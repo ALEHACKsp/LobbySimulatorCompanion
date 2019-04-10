@@ -1,15 +1,15 @@
 package mlga.io.peer;
 
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
+import mlga.io.Settings;
+
+import javax.crypto.CipherInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.zip.GZIPInputStream;
-
-import javax.crypto.CipherInputStream;
-
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
 
 /**
  * Simple class to handle reading IOPeer objects from the given file.  <br>
@@ -34,7 +34,6 @@ public class PeerReader {
 	public IOPeer next() throws IOException {
 		if (reader.hasNext()) {
 			IOPeer peer = gson.fromJson(reader, IOPeer.class);
-			peer.saved = true;
 			return peer;
 		}
 		return null;
@@ -62,6 +61,10 @@ public class PeerReader {
 	}
 
 	private InputStreamReader open(File f) throws IOException {
+		if (!Settings.ENCRYPT_STORED_DATA) {
+			return new InputStreamReader(new FileInputStream(f), "UTF-8");
+		}
+
 		CipherInputStream decStream = null;
 		FileInputStream fis = new FileInputStream(f);
 		try {

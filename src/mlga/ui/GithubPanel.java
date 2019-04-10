@@ -33,7 +33,7 @@ public class GithubPanel extends JFrame {
 	/**
 	 * The project owner, name, and release JAR name, for this Github Repository. Used for lookup.
 	 */
-	private static final String author = "PsiLupan", project = "MakeLobbiesGreatAgain", directJAR = "MLGA.jar";
+	private static final String author = "nickyramone", project = "MakeLobbiesGreatAgainExtended", directJAR = "MLGAX.jar";
 	/**
 	 * The String flag to be included in the Release Notes Body if the update is mandatory for all below the new version.
 	 */

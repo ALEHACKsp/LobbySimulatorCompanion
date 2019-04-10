@@ -38,11 +38,10 @@ public class FileUtil {
 	 *
 	 * @param f                The file to duplicate
 	 * @param backup_dir       The directory to store the backup in.
-	 * @param max_extra_copies The number of copies beyond the base copy desired.
 	 *
 	 * @return True if the save works.
 	 */
-	public static boolean saveFile(File f, File backup_dir, int max_extra_copies) {
+	public static boolean saveFile(File f, File backup_dir) {
 		if (!backup_dir.exists()) {
 			backup_dir.mkdirs();
 			System.out.println("Built backup directory: " + backup_dir.getAbsolutePath());
@@ -53,7 +52,7 @@ public class FileUtil {
 		}
 
 		System.out.println("Saving: " + f);
-		File copy = new File(backup_dir.getAbsolutePath() + "/" + f.getName());
+		File copy = getSaveName(f, 1);
 		if (!copy.getParentFile().exists())
 			copy.getParentFile().mkdirs();
 
@@ -71,18 +70,17 @@ public class FileUtil {
 	}
 
 	/**
-	 * Simplified version of {@link #saveFile(File, File, int)},
+	 * Simplified version of {@link #saveFile(File, File)},
 	 * this method always uses the directory provided by {@link #getMlgaPath()},
 	 * and appends the supplied string to the directory as a subdirectory path for the backup files.
 	 *
 	 * @param f                The file to duplicate
 	 * @param subdirs          The subdirectory path within the MLGA directory to use for the copies.
-	 * @param max_extra_copies The number of copies beyond the base copy desired.
 	 *
 	 * @return True if the save works.
 	 */
-	public static boolean saveFile(File f, String subdirs, int max_extra_copies) {
-		return saveFile(f, new File(getMlgaPath() + subdirs + "/"), max_extra_copies);
+	public static boolean saveFile(File f, String subdirs) {
+		return saveFile(f, new File(getMlgaPath() + subdirs + "/"));
 	}
 
 	/**
@@ -91,7 +89,8 @@ public class FileUtil {
 	 * This function exists to enforce those conventions.
 	 */
 	public static File getSaveName(File f, int version) {
-		return new File(f.getParentFile().getAbsolutePath() + "/" + (version != 0 ? version + " - " : "") + f.getName());
+		return new File(f.getParentFile().getAbsolutePath() + "/" + f.getName()
+			+ (version != 0? "." + version: ""));
 	}
 
 	/**

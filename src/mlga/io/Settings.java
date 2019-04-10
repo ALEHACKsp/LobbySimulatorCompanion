@@ -1,11 +1,7 @@
 package mlga.io;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.io.FileOutputStream;
-import java.io.File;
 
 /**
  * The Settings class exposes access to rapidly read/save values for a key->value system.
@@ -16,6 +12,16 @@ import java.io.File;
  * this is best for easy editing/validation in bug reports.
  */
 public class Settings {
+	/** For debugging: Auto-selects the first network interface it finds. */
+	public static boolean AUTOSELECT_NETWORK_INTERFACE = true;
+
+	/** For debugging: Does not analyze packets and uses a few simulated connections instead. */
+	public static boolean SIMULATE_TRAFFIC = false;
+
+	/** For debugging: Stores data without using encryption. */
+	public static boolean ENCRYPT_STORED_DATA = false;
+
+
 	private final static File save = new File("mlga.settings.ini");
 	private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<String, String>();
 

@@ -1,4 +1,7 @@
-[![Build Status](https://travis-ci.org/PsiLupan/MakeLobbiesGreatAgain.svg)](https://travis-ci.org/PsiLupan/MakeLobbiesGreatAgain/)
+
+# Why MLGAX (MLGA Extended)?
+I wanted to try several changes
+
 
 # WHAT IS MLGA?
 

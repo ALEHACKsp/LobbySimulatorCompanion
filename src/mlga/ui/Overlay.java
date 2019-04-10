@@ -1,229 +1,300 @@
 package mlga.ui;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontFormatException;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Inet4Address;
+import java.util.*;
 import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-import javax.swing.JPanel;
-import javax.swing.JWindow;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.*;
 
 import mlga.Boot;
-import mlga.io.FileUtil;
+import mlga.SteamUser;
+import mlga.io.DbdSteamLogMonitor;
 import mlga.io.Settings;
+import mlga.io.peer.IOPeer;
 import mlga.io.peer.PeerTracker;
 
-public class Overlay extends JPanel {
-	private static final long serialVersionUID = -470849574354121503L;
+public class Overlay extends JPanel implements Observer {
+    private static final long serialVersionUID = -470849574354121503L;
 
-	private boolean frameMove = false;
+    private DbdSteamLogMonitor logMonitor;
+    private PeerTracker peerTracker;
 
-	private CopyOnWriteArrayList<Peer> peers = new CopyOnWriteArrayList<Peer>();
-	private Font roboto;
-	/** idx & fh are updated by listener and rendering events. <br>They track hovered index and font height. */
-	private int idx = -1, fh = 0;
+    private JFrame frame;
+    private JLabel defaultStatus;
+    private PeerStatus.PeerStatusListener peerStatusListener;
+    private MouseListener mouseListener;
+    private MouseMotionListener mouseMotionListener;
+    private boolean frameMove = false;
 
-	private final PeerTracker peerTracker;
+    private final Map<Inet4Address, PeerStatus> peerStatuses = new ConcurrentHashMap<>();
+    private Long timeSinceWeHaveOnlyOnePeer;
+    private static final int MIN_HOST_DETECTION_MS = 10000;
 
-	private final JWindow frame;
+    private static final int PEER_TIMEOUT_MS = 5000;
+    private static final int CLEANER_POLL_MS = 2500;
 
-	public Overlay() throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException, FontFormatException, IOException {
-		peerTracker = new PeerTracker();
-		peerTracker.start();
 
-		InputStream is = FileUtil.localResource("Roboto-Medium.ttf");
-		roboto = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(15f);
-		is.close();
+    public Overlay() throws ClassNotFoundException, InstantiationException, IllegalAccessException,
+            UnsupportedLookAndFeelException, IOException {
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        defineListeners();
+        createDefaultStatus();
 
-		UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		this.setOpaque(false);
-		frame = new JWindow();
-		frame.setBackground(new Color(0, 0, 0, 0));
-		frame.setFocusableWindowState(false);
+        peerTracker = new PeerTracker();
 
-		frame.add(this);
-		frame.setAlwaysOnTop(true);
-		frame.addMouseListener(new MouseListener() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (!SwingUtilities.isRightMouseButton(e)) {
-					if (e.isShiftDown()) {
-						if (idx < 0 || idx >= peers.size() || peers.isEmpty() || e.getX() < 0 || e.getY() < 0)
-							return;
+        setOpaque(false);
+        frame = new JFrame();
+        // since this frame will be always on top, having the focus state in true, will make other windows unclickable
+        frame.setFocusableWindowState(false);
+        frame.setUndecorated(true);
+        frame.setBackground(Color.BLACK);
+        frame.setLayout(new GridLayout(0, 1));
+        frame.add(defaultStatus);
+        frame.setAlwaysOnTop(true);
+        frame.pack();
+        frame.setLocation((int) Settings.getDouble("frame_x", 5), (int) Settings.getDouble("frame_y", 400));
+        frame.setVisible(true);
 
-						Peer p = peers.get(idx);
-						if (!p.saved()) {
-							p.rate(true);
-						} else if (p.blocked()) {
-							p.rate(false);
-						} else {
-							p.unsave();
-						}
-					} else if (e.getClickCount() >= 2) {
-						frameMove = !frameMove;
-						Settings.set("frame_x", frame.getLocationOnScreen().x);
-						Settings.set("frame_y", frame.getLocationOnScreen().y);
-					}
-				}
-			}
+        startCleanerTask();
+        startLogMonitor();
+    }
 
-			@Override
-			public void mouseEntered(MouseEvent e) {
-			}
+    private void defineListeners() {
+        mouseListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
+                    frameMove = !frameMove;
+                    Settings.set("frame_x", frame.getLocationOnScreen().x);
+                    Settings.set("frame_y", frame.getLocationOnScreen().y);
+                }
+            }
+        };
 
-			@Override
-			public void mouseExited(MouseEvent e) {
-				idx = -1;
-			}
+        mouseMotionListener = new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (frameMove) {
+                    frame.setLocation(e.getXOnScreen() - (getPreferredSize().width / 2), e.getYOnScreen() - 6);
+                }
+            }
+        };
 
-			@Override
-			public void mousePressed(MouseEvent e) {
-			}
+        peerStatusListener = new PeerStatus.PeerStatusListener() {
+            @Override
+            public void startEdit() {
+                frame.setMinimumSize(new Dimension(500, 0));
+                frame.setFocusableWindowState(true);
+                frame.pack();
+            }
 
-			@Override
-			public void mouseReleased(MouseEvent e) {
-			}
-		});
-		frame.addMouseMotionListener(new MouseMotionListener() {
-			@Override
-			public void mouseDragged(MouseEvent e) {
-				if (frameMove)
-					frame.setLocation(e.getXOnScreen() - (getPreferredSize().width / 2), e.getYOnScreen() - 6);
-			}
+            @Override
+            public void finishEdit() {
+                frame.setFocusableWindowState(false);
+                frame.setMinimumSize(new Dimension(0, 0));
+                frame.pack();
+            }
 
-			@Override
-			public void mouseMoved(MouseEvent e) {
-				idx = Math.min(peers.size() - 1, (int) Math.floor(e.getY() / (fh)));
-			}
+            @Override
+            public void updated() {
+                frame.pack();
+            }
 
-		});
+            @Override
+            public void peerDataChanged() {
+                peerTracker.savePeers();
+            }
+        };
+    }
 
-		frame.pack();
-		frame.setLocation((int) Settings.getDouble("frame_x", 5), (int) Settings.getDouble("frame_y", 400));
-		frame.setVisible(true);
+    private void createDefaultStatus() {
+        defaultStatus = new JLabel("    No players - Join a lobby?    ");
+        defaultStatus.setFont(ResourceFactory.getRobotoFont());
+        defaultStatus.setBackground(new Color(0, 0, 0, 255));
+        defaultStatus.setForeground(Color.RED);
+        defaultStatus.setOpaque(true);
+        defaultStatus.addMouseListener(mouseListener);
+        defaultStatus.addMouseMotionListener(mouseMotionListener);
+    }
 
-		Timer cleanTime = new Timer();
-		cleanTime.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				peers.stream().filter(p -> p.age() >= 5000).forEach(p -> {
-					Boot.active.remove(p.getID().hashCode());
-					peers.remove(p);
-				});
-			}
-		}, 0, 2500);
 
-		Thread t = new Thread("UIPainter") {
-			public void run() {
-				try {
-					while (true) {
-						frame.toFront(); //Fix for window sometime hiding behind others
-						if (!frameMove) {
-							Thread.sleep(400);
-						} else {
-							Thread.sleep(10);
-						}
-						Overlay.this.repaint();
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		};
-		t.setDaemon(true);
-		t.start();
-	}
+    /**
+     * Sets a peer's ping, or creates their object.
+     */
+    public void setPing(Inet4Address id, long ping) {
+        frame.remove(defaultStatus);
+        PeerStatus peerStatus = peerStatuses.get(id);
 
-	private void addPeer(Inet4Address addr, long rtt) {
-		peers.add(new Peer(addr, rtt, peerTracker.getPeer(addr)));
-	}
+        if (peerStatus == null) {
+            System.out.print(System.currentTimeMillis() / 1000 + ": ");
+            System.out.println("New ping address: " + id);
+            addPeerStatus(id, ping);
+        } else {
+            Peer peerDto = peerStatus.getPeerDto();
+            peerDto.setPing(ping);
+            peerStatus.update();
+        }
+    }
 
-	/** Sets a peer's ping, or creates their object. */
-	public void setPing(Inet4Address id, long ping) {
-		Peer p = this.getPeer(id);
-		if (p != null) {
-			p.setPing(ping);
-		} else {
-			this.addPeer(id, ping);
-		}
-	}
+    private void addPeerStatus(Inet4Address addr, long rtt) {
+        Peer peer = new Peer(addr, rtt);
+        PeerStatus peerStatus = new PeerStatus(peer, peerStatusListener);
+        peerStatus.addMouseListener(mouseListener);
+        peerStatus.addMouseMotionListener(mouseMotionListener);
+        peerStatuses.put(addr, peerStatus);
+        timeSinceWeHaveOnlyOnePeer = peerStatuses.size() == 1 ? System.currentTimeMillis() : null;
+        System.out.println("timeSinceWeHaveOnlyOnePeer: " + ( (timeSinceWeHaveOnlyOnePeer != null)? (timeSinceWeHaveOnlyOnePeer / 1000): "null") );
+        updateSteamUserIfNecessary();
+        frame.add(peerStatus);
+        frame.pack();
+        frame.revalidate();
+        frame.repaint();
+    }
 
-	/** Finds a Peer connection by its ID. */
-	private Peer getPeer(Inet4Address id) {
-		return peers.stream().filter(p -> p.getID().equals(id)).findFirst().orElse(null);
-	}
 
-	/** Dispose this Overlay's Window. */
-	public void close() {
-		this.frame.dispose();
-	}
+    /**
+     * Dispose this Overlay's Window.
+     */
+    public void close() {
+        this.frame.dispose();
+    }
 
-	@Override
-	public Dimension getPreferredSize() {
-		return new Dimension(110, 100);
-	}
 
-	@Override
-	protected void paintComponent(Graphics gr) {
-		super.paintComponent(gr);
-		Graphics2D g = (Graphics2D) gr.create();
-		g.setColor(getBackground());
-		g.setFont(roboto);
-		g.setColor(new Color(0, 0, 0, 0));
-		g.fillRect(0, 0, getWidth(), getHeight());
+    private void startLogMonitor() throws IOException {
+        logMonitor = new DbdSteamLogMonitor(this);
+        Thread thread = new Thread(logMonitor);
+        thread.setDaemon(true);
+        thread.start();
+    }
 
-		if (!frameMove) {
-			g.setColor(new Color(0f, 0f, 0f, .5f));
-		} else {
-			g.setColor(new Color(0f, 0f, 0f, 1f));
-		}
+    private void startCleanerTask() {
+        Timer cleanTime = new Timer();
+        cleanTime.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                Collection<Map.Entry<Inet4Address, PeerStatus>> entriesToRemove =
+                        peerStatuses.entrySet().stream()
+                                .filter(e -> e.getValue().getPeerDto().age() >= PEER_TIMEOUT_MS)
+                                .collect(Collectors.toList());
 
-		fh = g.getFontMetrics().getAscent();//line height. Can use getHeight() for more padding between.
+                for (Map.Entry<Inet4Address, PeerStatus> entryToRemove : entriesToRemove) {
+                    Boot.active.remove(entryToRemove.getKey());
+                    PeerStatus peerStatus = peerStatuses.remove(entryToRemove.getKey());
+                    frame.remove(peerStatus);
 
-		g.fillRect(0, 0, getPreferredSize().width, fh * Math.max(1, peers.size()) + 2);
+                    if (peerStatuses.isEmpty()) {
+                        frame.add(defaultStatus);
+                    } else if (peerStatuses.size() == 1) {
+                        timeSinceWeHaveOnlyOnePeer = System.currentTimeMillis();
+                    }
 
-		if (!peers.isEmpty()) {
-			short i = 0;
-			for (Peer p : peers) {
-				if (idx == i) {
-					g.setColor(new Color(0f, 0f, 0f));
-					g.fillRect(1, fh * i + 1, getPreferredSize().width, fh + 1);//Pronounce hovered Peer.
-				}
-				long rtt = p.getPing();
-				if (rtt <= 140) {
-					g.setColor(Color.GREEN);
-				} else if (rtt > 140 && rtt <= 190) {
-					g.setColor(Color.YELLOW);
-				} else {
-					g.setColor(Color.RED);
-				}
+                    updateSteamUserIfNecessary();
+                    frame.pack();
+                    frame.revalidate();
+                    frame.repaint();
+                }
+            }
+        }, 0, CLEANER_POLL_MS);
 
-				String render = "Ping: " + rtt;
-				if (p.saved())
-					render = (p.blocked() ? "BLOCKED: " : "LOVED: ") + rtt;
+    }
 
-				g.drawString(render, 1, fh * (i + 1));
-				++i;
-			}
-		} else {
-			g.setColor(Color.RED);
-			g.drawString("No Players", 1, fh);
-		}
 
-		g.dispose();
-	}
+    @Override
+    public void update(Observable o, Object arg) {
+        if (o instanceof DbdSteamLogMonitor) {
+            updateSteamUserIfNecessary();
+        }
+    }
+
+
+    private void updateSteamUserIfNecessary() {
+        if (timeSinceWeHaveOnlyOnePeer == null) {
+            return;
+        }
+
+        long timeWithOnlyOnePeer = System.currentTimeMillis() - timeSinceWeHaveOnlyOnePeer;
+        System.out.println("time with one peer: " + timeWithOnlyOnePeer / 1000);
+
+        if (timeWithOnlyOnePeer >= MIN_HOST_DETECTION_MS && logMonitor.getLastSteamUserFound() != null) {
+            /**
+             * Important: At this point, we have to be careful of the following situation:
+             * It can happen that even when we have a single connection, that connection is not with the lobby host
+             * (because there are other communication packets being sent between other peers).
+             * As more seconds pass, we have a higher probability of knowing that the single connection is with
+             * the lobby host.
+             *
+             * So, if we decided to clear the username right after assigning it, we might end up losing it if it was
+             * assigned to a random peer that was not the lobby host.
+             */
+            PeerStatus peerStatus = peerStatuses.entrySet().iterator().next().getValue();
+            SteamUser steamUser = logMonitor.getLastSteamUserFound();
+
+            System.out.println("Attaching steam name {" + logMonitor.getLastSteamUserFound().getName()
+                    + "} to peer status: " + peerStatus.getPeerDto().getID() + " / " + peerStatus.getPeerDto().getSteamName());
+
+            String steamId = steamUser.getId();
+            IOPeer ioPeer = peerStatus.getPeerDto().getPeerData();
+            ioPeer.setUID(steamId);
+
+            IOPeer storedPeer = peerTracker.getPeerBySteamId(steamId);
+            if (storedPeer == null) {
+                System.out.println("storedPeer not found: creating new one");
+                ioPeer.addName(steamUser.getName());
+                peerTracker.addPeer(steamId, ioPeer);
+            } else {
+                System.out.println("storedPeer found");
+                storedPeer.addName(steamUser.getName());
+                peerStatus.getPeerDto().setPeerData(storedPeer);
+                peerStatus.notifyDataUpdated();
+            }
+
+            peerStatus.update();
+        }
+    }
+
+//    private synchronized void updateSteamUserIfNecessary() {
+//
+//        if (peerStatuses.size() == 1 && logMonitor.getLastSteamUserFound() != null) {
+//            /**
+//             * Important: At this point, we have to be careful of the following situation:
+//             * It can happen that even when we have a single connection, that connection is not with the lobby host
+//             * (because there are other commmunication packets being sent between other peers).
+//             * As more seconds pass, we have a higher probability of knowing that the single connection is with
+//             * the lobby host.
+//             *
+//             * So, if we decided to clear the username right after assigning it, we might end up losing it if it was
+//             * assigned to a random peer that was not the lobby host.
+//             */
+//            PeerStatus peerStatus = peerStatuses.entrySet().iterator().next().getValue();
+//            SteamUser steamUser = logMonitor.getLastSteamUserFound();
+//
+//            System.out.println("Attaching steam name {" + logMonitor.getLastSteamUserFound().getName()
+//                    + "} to peer status: " + peerStatus.getPeerDto().getID() + " / " + peerStatus.getPeerDto().getSteamName());
+//
+//            String steamId = steamUser.getId();
+//            IOPeer ioPeer = peerStatus.getPeerDto().getPeerData();
+//            ioPeer.setUID(steamId);
+//
+//            IOPeer storedPeer = peerTracker.getPeerBySteamId(steamId);
+//            if (storedPeer == null) {
+//                System.out.println("storedPeer not found: creating new one");
+//                ioPeer.addName(steamUser.getName());
+//                peerTracker.addPeer(steamId, ioPeer);
+//            } else {
+//                System.out.println("storedPeer found");
+//                storedPeer.addName(steamUser.getName());
+//                peerStatus.getPeerDto().setPeerData(storedPeer);
+//                peerStatus.notifyDataUpdated();
+//            }
+//
+//            peerStatus.update();
+//        }
+//    }
+
+
 }
