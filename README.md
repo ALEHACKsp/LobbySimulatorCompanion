@@ -1,6 +1,3 @@
-
-
-
 # What is LOOP?
 
 LOOP (stands for "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
@@ -11,36 +8,18 @@ LOOP can continuously show you the ping against the host you are connected to an
 This is especially useful because some hosts show a good ping on the lobby but then lag terribly during the match, or use
 lag switch, which makes the game experience terrible.
 
-Streamers might also find it especially useful to avoid harrassment and excessive sniping, which they otherwise cannot control.
+Streamers might also find it especially useful to avoid harassment and excessive sniping, which they otherwise cannot control.
 
 
-# Why did you create this fork of MLGA (MakeLobbiesGreatAgain)?
-LOOP has been built on the MLGA code, but I wanted to make significant changes to the codebase as well as the purpose of the project.
-MLGA has become more of a generic P2P tool for multiple games, while LOOP is very oriented towards DBD survivor players.
-Also, the core mechanics of identifying peers has changed, but we still use the MLGA implementation for detecting
-STUN packets.
-Also, keep in mind that this project will become obsolete in several months, when the DBD public servers become available.
+# What does it look like?
+Here's a screenshot:
+
+![](./docs/lobby_sample.png)
+
+You can see the LOOP bar showing a ping of 92ms, and that I have previously positively rated this killer with a description of "Nice and fun killer!". 
 
 
-# Can I get banned for using LOOP?
-While we cannot provide guarantees on this, you shouldn't get banned for using it.
-1) This game does not modify or interact with DBD in any way.
-2) It's a completely external desktop application.
-3) It only reads packets from P2P connections but never sends any packets.
-4) It doesn't alter the game mechanics in any way so that you can gain in-game advantage.
-5) It is based on the MLGA codebase, which is approved by EAC.
-5) This tool will probably become obsolete once public servers are available.
-
-Jist in case, we have sent an email to EAC to see if we can get their approval. We are waiting for their reply.
-
-
-
-## How does it work?
-LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection, in order to determine
-who you're connected to and get ping from. It also uses a storage file for user-provided data.
-
-
-## Features
+# What are its features?
 * Ping display: 
   * The ping against the lobby/match host will be displayed on the overlay.
 * Rate the user that's hosting the lobby/match:
@@ -56,7 +35,7 @@ who you're connected to and get ping from. It also uses a storage file for user-
   * Double-click to lock/unlock the overlay for dragging.
 
 
-## How to Install and Use
+# How to Install and Use?
 **System Requirements:**
 * Latest Java Runtime https://java.com/en/download/
 * Npcap from https://nmap.org/npcap/ and tick "Install Npcap in WinPcap API-compatible Mode" during installation (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
@@ -73,3 +52,32 @@ You may need to run the application via Command Prompt (this is due to the PCap4
 * Start a new line with Enter and type, javaw -jar LOOP.jar
 * Choose Save As and name it LOOP.bat with the option All Files selected
 * Right-click the new batch file and Run as Administrator
+
+
+## I am a killer main. Can I use it?
+For now, this is oriented to survivors because it keeps track of a connection against the game host. 
+
+
+## Why did you create this fork of MLGA (MakeLobbiesGreatAgain)?
+LOOP has been built on the MLGA code, but I wanted to make significant changes to the codebase as well as the purpose of the project.
+MLGA has become more of a generic P2P tool for multiple games, while LOOP is very oriented towards DBD survivor players.
+Also, the core mechanics of identifying peers has changed, but we still use the MLGA implementation for detecting
+STUN packets.
+Also, keep in mind that this project will become obsolete in several months, when the DBD public servers become available.
+
+
+## Can I get banned for using LOOP?
+While I cannot provide a 100% guarantees on this, you shouldn't get banned for using it. Here's why:
+1) This app does not modify or interact with DBD in any way.
+2) It's a completely external/independent desktop application, which does not hook to any Steam/DBD process.
+3) It only reads packets from P2P connections but never sends or fiddle with any packets.
+4) It doesn't alter the game mechanics in any way so that you can gain in-game advantage.
+5) It is based on the MLGA codebase, which has been approved by EAC, and running since 2016.
+6) This tool will probably become obsolete once public servers are available.
+
+Just in case, I have sent an email to EAC to see if we can get their approval. I am waiting for their reply.
+
+
+## How does it work?
+LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection in order to determine
+who you're connected to and get ping from. It also uses a storage file for user-provided data.
