@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import static loop.io.peer.IOPeer.Status;
+import static loop.io.peer.IOPeer.Rating;
 
 /**
  * Represents a status bar component for a single connection.
@@ -62,8 +62,6 @@ public class PeerStatus extends JPanel {
 
 
     public PeerStatus(PeerStatusListener listener) {
-//        this.peer = peer;
-//        this.lastDescription = peer.getDescription();
         hostUser = new IOPeer();
         this.listener = listener;
 
@@ -71,9 +69,6 @@ public class PeerStatus extends JPanel {
         defineListeners();
         createComponents();
         addComponents();
-
-//        update();
-//        listener.updated();
     }
 
     private void createComponents() {
@@ -138,7 +133,6 @@ public class PeerStatus extends JPanel {
         gridConstrs.gridx = 7;
         gridConstrs.weightx = 1;
         gridConstrs.anchor = GridBagConstraints.WEST;
-//        gridConstrs.fill = GridBagConstraints.HORIZONTAL;
         gridConstrs.insets = new Insets(0, 0, 0, 0);
         layout.setConstraints(editField, gridConstrs);
 
@@ -292,8 +286,6 @@ public class PeerStatus extends JPanel {
                     separator2Label.setVisible(!lastDescription.isEmpty());
                     listener.finishEdit();
                     editingDescription = false;
-//                    revalidate();
-//                    repaint();
                 }
             }
 
@@ -360,14 +352,14 @@ public class PeerStatus extends JPanel {
         if (userDetected) {
             userNameLabel.setText(hostUser.getMostRecentName());
 
-            Status peerRating = hostUser.getStatus();
+            Rating peerRating = hostUser.getRating();
 
-            if (peerRating == Status.BLOCKED) {
+            if (peerRating == Rating.THUMBS_DOWN) {
                 if (!ratingLabel.isVisible()) {
                     ratingLabel.setVisible(true);
                 }
                 ratingLabel.setIcon(ResourceFactory.getThumbsDownIcon());
-            } else if (peerRating == Status.LOVED) {
+            } else if (peerRating == Rating.THUMBS_UP) {
                 if (!ratingLabel.isVisible()) {
                     ratingLabel.setVisible(true);
                 }
@@ -383,24 +375,21 @@ public class PeerStatus extends JPanel {
     }
 
     public void rateHostUser() {
-        if (hostUser.getStatus().equals(Status.UNRATED)) {
-            hostUser.setStatus(Status.BLOCKED);
-        } else if (hostUser.getStatus().equals(Status.BLOCKED)) {
-            hostUser.setStatus(Status.LOVED);
-        } else {
-            hostUser.setStatus(Status.UNRATED);
-        }
-    }
+        Rating rating = hostUser.getRating();
 
-    public IOPeer getHostUser() {
-        return hostUser;
+        if (Rating.UNRATED.equals(rating)) {
+            hostUser.setRating(Rating.THUMBS_UP);
+        } else if (Rating.THUMBS_DOWN.equals(rating)) {
+            hostUser.setRating(Rating.THUMBS_DOWN);
+        } else {
+            hostUser.setRating(Rating.UNRATED);
+        }
     }
 
     public void setHostUser(IOPeer hostUser) {
         this.hostUser = hostUser;
         editField.setText(hostUser.getDescription());
         lastDescription = hostUser.getDescription();
-        updateUserInfo();
     }
 
     public void setPing(int ping) {

@@ -20,7 +20,7 @@ import loop.Boot;
 public class Security {
 
     /**
-     * Builds the Cipher Object userd for encryption/decryption.
+     * Builds the Cipher Object used for encryption/decryption.
      *
      * @param readMode The Cipher will be initiated in either encrypt/decrypt mode.
      * @return Cipher object, ready to go.

@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static loop.io.peer.IOPeer.Status;
+import static loop.io.peer.IOPeer.Rating;
 
 /**
  * Manages saved peers.
@@ -37,7 +37,7 @@ public class PeerTracker {
                     PeerReader ps = new PeerReader(FileUtil.getSaveName(peerFile, i));
                     while (ps.hasNext()) {
                         IOPeer ioPeer = ps.next();
-                        if (!ioPeer.getStatus().equals(IOPeer.Status.UNRATED) || !ioPeer.getDescription().isEmpty()) {
+                        if (!ioPeer.getRating().equals(Rating.UNRATED) || !ioPeer.getDescription().isEmpty()) {
                             peers.put(ioPeer.getUID(), ioPeer);
                         }
                     }
@@ -87,7 +87,7 @@ public class PeerTracker {
 
     private boolean shouldSavePeer(IOPeer peer) {
         return !peer.getUID().isEmpty() &&
-                (!peer.getStatus().equals(Status.UNRATED) || !peer.getDescription().isEmpty());
+                (!peer.getRating().equals(Rating.UNRATED) || !peer.getDescription().isEmpty());
     }
 
     public IOPeer getPeerBySteamId(String steamId) {

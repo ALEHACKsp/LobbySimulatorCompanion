@@ -144,32 +144,6 @@ public class Overlay extends JPanel implements Observer {
         ping = connections.size() == 1 ? ping : -1;
         peerStatus.setPing(ping);
         peerStatus.update();
-
-//        revalidate();
-//        repaint();
-//        if (peerStatus == null) {
-////            frame.remove(emptyStatus);
-//            empty
-//            addPeerStatus(ping);
-//        } else {
-//            ping = connections.size() == 1? ping: -1;
-//            peerStatus.setPing(ping);
-//            peerStatus.update();
-//        }
-    }
-
-    private void addPeerStatus(int ping) {
-//        Peer peer = new Peer(addr, rtt);
-//        peerStatus = new PeerStatus(peerStatusListener);
-//        peerStatus.addMouseListener(mouseListener);
-//        peerStatus.addMouseMotionListener(mouseMotionListener);
-//        peerStatus.setPing(ping);
-//        peerStatuses.put(addr, peerStatus);
-//        updateSteamUserIfNecessary();
-//        frame.add(peerStatus);
-//        frame.pack();
-//        frame.revalidate();
-//        frame.repaint();
     }
 
 
@@ -216,6 +190,7 @@ public class Overlay extends JPanel implements Observer {
     private void clearUserHostStatus() {
         frame.remove(peerStatus);
         peerStatus.setHostUser(new IOPeer());
+        peerStatus.update();
         logMonitor.clearUser();
         frame.add(emptyStatus);
         connected = false;
@@ -230,33 +205,24 @@ public class Overlay extends JPanel implements Observer {
     }
 
 
-    private void updateSteamUserIfNecessary() {
+    private synchronized void updateSteamUserIfNecessary() {
 
         if (connected && logMonitor.getLastSteamUserFound() != null) {
             SteamUser steamUser = logMonitor.getLastSteamUserFound();
             String steamId = steamUser.getId();
-            IOPeer ioPeer = peerStatus.getHostUser();
-            ioPeer.setUID(steamId);
+            IOPeer storedHost = peerTracker.getPeerBySteamId(steamId);
 
-            IOPeer storedPeer = peerTracker.getPeerBySteamId(steamId);
-            if (storedPeer == null) {
-                System.out.println("storedPeer not found: creating new one");
-
-                if (!ioPeer.getMostRecentName().isEmpty()) {
-                    // we are replacing the current host
-                    ioPeer.setStatus(IOPeer.Status.UNRATED);
-                    ioPeer.setDescription("");
-                    ioPeer.clearNames();
-                }
-
-                ioPeer.addName(steamUser.getName());
-                peerTracker.addPeer(steamId, ioPeer);
+            if (storedHost == null) {
+                storedHost = new IOPeer();
+                storedHost.setUID(steamId);
+                storedHost.setRating(IOPeer.Rating.UNRATED);
+                storedHost.setDescription("");
+                storedHost.addName(steamUser.getName());
+                peerTracker.addPeer(steamId, storedHost);
             } else {
-                System.out.println("storedPeer found: " + storedPeer);
-                storedPeer.addName(steamUser.getName());
-                peerStatus.setHostUser(storedPeer);
+                storedHost.addName(steamUser.getName());
             }
-
+            peerStatus.setHostUser(storedHost);
             peerStatus.update();
         }
     }

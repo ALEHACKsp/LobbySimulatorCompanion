@@ -33,6 +33,11 @@ You can see the LOOP bar showing a ping of 92ms, and that I have previously posi
     to open the default browser on the host's Steam profile page.
 * Re-position the overlay:
   * Double-click to lock/unlock the overlay for dragging.
+  
+
+## How does it work?
+LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection in order to determine
+who you're connected to and get ping from. It also uses an encrypted file for storing user-provided data.
 
 
 # How to Install and Use?
@@ -54,16 +59,13 @@ You may need to run the application via Command Prompt (this is due to the PCap4
 * Right-click the new batch file and Run as Administrator
 
 
+# What's the current status?
+We are in a Beta version 1.0.0, so be warned that there's a possibility that there might be some breaking changes soon.
+
+
 ## I am a killer main. Can I use it?
+Well, you can, but you won't get much from it.
 For now, this is oriented to survivors because it keeps track of a connection against the game host. 
-
-
-## Why did you create this fork of MLGA (MakeLobbiesGreatAgain)?
-LOOP has been built on the MLGA code, but I wanted to make significant changes to the codebase as well as the purpose of the project.
-MLGA has become more of a generic P2P tool for multiple games, while LOOP is very oriented towards DBD survivor players.
-Also, the core mechanics of identifying peers has changed, but we still use the MLGA implementation for detecting
-STUN packets.
-Also, keep in mind that this project will become obsolete in several months, when the DBD public servers become available.
 
 
 ## Can I get banned for using LOOP?
@@ -78,6 +80,14 @@ While I cannot provide a 100% guarantees on this, you shouldn't get banned for u
 Just in case, I have sent an email to EAC to see if we can get their approval. I am waiting for their reply.
 
 
-## How does it work?
-LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection in order to determine
-who you're connected to and get ping from. It also uses a storage file for user-provided data.
+## Why did you create this fork of MLGA (MakeLobbiesGreatAgain)?
+LOOP has been built on the MLGA code, but I wanted to make significant changes to the codebase as well as the purpose of the project.
+MLGA has become more of a generic P2P tool for multiple games, while LOOP is very oriented towards DBD survivor players.
+Also, the core mechanics of identifying peers has changed, but we still use the MLGA implementation for detecting
+STUN packets.
+
+Finally, keep in mind that this project will become obsolete in several months, when the DBD public servers become available.
+
+
+## Can I use MLGA and LOOP at the same time?
+Yes. LOOP uses different configuration files than MLGA, so they don't collide.

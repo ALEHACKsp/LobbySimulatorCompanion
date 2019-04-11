@@ -1,5 +1,7 @@
 package loop.io.peer;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,36 +15,22 @@ public class IOPeer implements Serializable {
 
     private static final int MAX_NAMES_STORED = 5;
 
-    /**
-     * Status is stored locally (and saved to file) as an int, for potential future-proofing. <br>
-     * However, all external accessors for Status use these values. <br>
-     * This allows for future changes without having to hunt down all calls to getStatus()
-     */
-    public enum Status {
-        UNRATED(-1), BLOCKED(0), LOVED(1);
 
-        public final int val;
-
-        Status(int value) {
-            this.val = value;
-        }
+    public enum Rating {
+        @SerializedName("-1") THUMBS_DOWN,
+        @SerializedName("0") UNRATED,
+        @SerializedName("1") THUMBS_UP
     }
-
-    /**
-     * When this peer was first discovered.
-     */
-    private long firstSeen;
-
-    /**
-     * A version flag for each Peer object, for if something needs changing later.
-     */
-    public final int version = 2;
-
 
     /**
      * The UID of this peer, which is the user Steam Id.
      */
     private String uid = "";
+
+    /**
+     * When this peer was first discovered.
+     */
+    private long firstSeen;
 
     /**
      * The last Steam names used by this peer.
@@ -52,14 +40,14 @@ public class IOPeer implements Serializable {
     private List<String> names = new ArrayList<>();
 
     /**
-     * This peer's status value, stored as an integer for any future updates/refactoring.
+     * This peer's rating value
      */
-    private int status = Status.UNRATED.val;
+    private Rating rating = Rating.UNRATED;
 
     /**
      * A description for this peer
      */
-    private String description = "";
+    private String description;
 
 
     public IOPeer() {
@@ -75,14 +63,13 @@ public class IOPeer implements Serializable {
         }
     }
 
-    /**
-     * Sets the UID of this peer, once we find it in the logs.
-     */
     public void setUID(String uid) {
         this.uid = uid.trim();
     }
 
     public void addName(String name) {
+        name = name.trim();
+
         if (name.equals(getMostRecentName())) {
             return;
         }
@@ -93,10 +80,6 @@ public class IOPeer implements Serializable {
         }
 
         names.add(name);
-    }
-
-    public void clearNames() {
-        names.clear();
     }
 
     public String getMostRecentName() {
@@ -110,36 +93,22 @@ public class IOPeer implements Serializable {
     }
 
 
-    /**
-     * Sets this Peer's status to the int supplied. Check {@link IOPeer.Status} for values.
-     */
-    public void setStatus(Status stat) {
-        this.status = stat.val;
+    public void setRating(Rating rating) {
+        this.rating = rating;
     }
 
 
-    /**
-     * Get this peer's UID. <br>
-     */
     public String getUID() {
         return this.uid;
     }
 
-    /**
-     * Get the {@link IOPeer.Status} of this Peer, as set by the user.
-     */
-    public Status getStatus() {
-        for (Status s : Status.values()) {
-            if (s.val == this.status) {
-                return s;
-            }
-        }
-        System.err.println("Unknown status value: " + this.status);
-        return Status.UNRATED;
+
+    public Rating getRating() {
+        return rating;
     }
 
     public String getDescription() {
-        return description;
+        return description == null ? "" : description;
     }
 
 
@@ -148,26 +117,25 @@ public class IOPeer implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         IOPeer ioPeer = (IOPeer) o;
-        return version == ioPeer.version &&
-                status == ioPeer.status &&
+        return firstSeen == ioPeer.firstSeen &&
                 Objects.equals(uid, ioPeer.uid) &&
-                Objects.equals(names, ioPeer.names) &&
+                names.equals(ioPeer.names) &&
+                rating == ioPeer.rating &&
                 Objects.equals(description, ioPeer.description);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(version, uid, names, status, description);
+        return Objects.hash(firstSeen, uid, names, rating, description);
     }
 
     @Override
     public String toString() {
         return "IOPeer{" +
-                "firstSeen=" + firstSeen +
-                ", version=" + version +
-                ", uid='" + uid + '\'' +
+                "uid='" + uid + '\'' +
+                ", firstSeen=" + firstSeen +
                 ", names=" + names +
-                ", status=" + status +
+                ", rating=" + rating +
                 ", description='" + description + '\'' +
                 '}';
     }
