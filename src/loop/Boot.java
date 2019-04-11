@@ -127,7 +127,7 @@ public class Boot {
         final PopupMenu popup = new PopupMenu();
         final MenuItem info = new MenuItem();
         final MenuItem exit = new MenuItem();
-        final TrayIcon trayIcon = new TrayIcon(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), "MLGA", popup);
+        final TrayIcon trayIcon = new TrayIcon(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), Constants.APP_SHORT_NAME, popup);
         try {
             InputStream is = FileUtil.localResource("icon.png");
             trayIcon.setImage(ImageIO.read(is));
