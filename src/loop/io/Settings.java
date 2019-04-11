@@ -15,7 +15,7 @@ public class Settings {
     /**
      * For debugging: Auto-selects the first network interface it finds.
      */
-    public static boolean AUTOSELECT_NETWORK_INTERFACE = true;
+    public static boolean AUTOSELECT_NETWORK_INTERFACE = false;
 
     /**
      * For debugging: Does not analyze packets and uses a few simulated connections instead.
@@ -25,7 +25,7 @@ public class Settings {
     /**
      * For debugging: Stores data without using encryption.
      */
-    public static boolean ENCRYPT_STORED_DATA = false;
+    public static boolean ENCRYPT_STORED_DATA = true;
 
 
     private final static File save = new File("loop.settings.ini");
