@@ -1,6 +1,6 @@
-package mlga.ui;
+package loop.ui;
 
-import mlga.io.FileUtil;
+import loop.io.FileUtil;
 
 import javax.swing.*;
 import java.awt.*;

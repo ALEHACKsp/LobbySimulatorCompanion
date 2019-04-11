@@ -1,4 +1,4 @@
-package mlga;
+package loop;
 
 /**
  * Represents a Steam user.

@@ -1,10 +1,10 @@
-package mlga.io.peer;
+package loop.io.peer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonWriter;
-import mlga.io.FileUtil;
-import mlga.io.Settings;
+import loop.io.FileUtil;
+import loop.io.Settings;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;

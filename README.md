@@ -1,53 +1,75 @@
 
-# Why MLGAX (MLGA Extended)?
-I wanted to try several changes
 
 
-# WHAT IS MLGA?
+# What is LOOP?
 
-MLGA stands for "Make Lobbies Great Again". In any Peer to peer lobby, MLGA can be run to view the people you are connected to, see their ping, and toggle a blocked/loved setting for each of them.
+LOOP (stands for "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
+especially while waiting in the match lobbies. It is strongly oriented towards survivor players.
 
-*This is a continuation of the original project, adapted to work for any - and every - peer-hosted game.
-It supports loading any lists of users you've previously created, but no longer automatically backs up or interacts with any game data.*
+LOOP can continuously show you the ping against the host you are connected to and can let you view the host's name,
+ rate them as positive/negative or attach a description, so that next time you encounter them, you know what to expect.
+This is especially useful because some hosts show a good ping on the lobby but then lag terribly during the match, or use
+lag switch, which makes the game experience terrible.
 
-## HOW DOES IT WORK?
-MakeLobbiesGreatAgain uses a packet capture library to detect STUN packets from any peer-to-peer connection, in order to determine who you're connected to and get ping from.
-It is not detected as a hack, since it does not and will not interact with the game ever. 
+Streamers might also find it especially useful to avoid harrassment and excessive sniping, which they otherwise cannot control.
 
 
-## APPLICATION SUPPORTS BOTH CLIENTS AND HOSTS
+# Why did you create this fork of MLGA (MakeLobbiesGreatAgain)?
+LOOP has been built on the MLGA code, but I wanted to make significant changes to the codebase as well as the purpose of the project.
+MLGA has become more of a generic P2P tool for multiple games, while LOOP is very oriented towards DBD survivor players.
+Also, the core mechanics of identifying peers has changed, but we still use the MLGA implementation for detecting
+STUN packets.
+Also, keep in mind that this project will become obsolete in several months, when the DBD public servers become available.
 
-**NOTE**: If you were linked here from another source, such as Reddit, be sure to check for the latest versions for the best quality. You can find all versions here: [MLGA Releases](https://github.com/PsiLupan/MakeLobbiesGreatAgain/releases)
 
-Primary Feature:
-* Determining Ping
+# Can I get banned for using LOOP?
+While we cannot provide guarantees on this, you shouldn't get banned for using it.
+1) This game does not modify or interact with DBD in any way.
+2) It's a completely external desktop application.
+3) It only reads packets from P2P connections but never sends any packets.
+4) It doesn't alter the game mechanics in any way so that you can gain in-game advantage.
+5) It is based on the MLGA codebase, which is approved by EAC.
+5) This tool will probably become obsolete once public servers are available.
 
-Optional Features: 
-* Double-Click to lock/unlock the overlay for dragging
-* Shift + Left Click on a player, highlighted in a darker color for current selection, to toggle to BLOCKED, LOVED, or back to the normal display
-* To exit, simply look for the icon in your system tray near the clock, right-click, and select Exit.
+Jist in case, we have sent an email to EAC to see if we can get their approval. We are waiting for their reply.
 
-## HOW TO INSTALL AND USE:
+
+
+## How does it work?
+LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection, in order to determine
+who you're connected to and get ping from. It also uses a storage file for user-provided data.
+
+
+## Features
+* Ping display: 
+  * The ping against the lobby/match host will be displayed on the overlay.
+* Rate the user that's hosting the lobby/match:
+  * As soon as the host name is detected, hold Shift and click on the name. With every click, you will cycle between thumbs down, thumbs up and unrated.
+  * This is stored so that next time you encounter them, you will see that information displayed.
+* Attach a description to the lobby/match host:
+  * As soon as the host name is detected, right-click on the overlay to add/edit a description.
+  * This is stored so that next time you encounter them, you will see that information displayed.
+* Visit the host's Steam profile:
+  * As soon as the host name is detected, hold Shift and click on the Steam icon. It will attempt 
+    to open the default browser on the host's Steam profile page.
+* Re-position the overlay:
+  * Double-click to lock/unlock the overlay for dragging.
+
+
+## How to Install and Use
 **System Requirements:**
 * Latest Java Runtime https://java.com/en/download/
 * Npcap from https://nmap.org/npcap/ and tick "Install Npcap in WinPcap API-compatible Mode" during installation (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
 
-Simply double double click on the MLGA.jar file to run
+Simply double double click on the LOOP.jar file to run.
 
 **NOTE:** You may need to right-click the JAR file, select Properties, and choose Unblock if it appears below Attributes.
 
 **If UAC is enabled:** 
 You may need to run the application via Command Prompt (this is due to the PCap4J library being unable to find devices).
-* Copy the folder path that MLGA is in, for example: C:\Users\Dwight\Desktop\MLGA\
-* Right-click in the same directory as MLGA and create a new text document
+* Copy the folder path that LOOP is in, for example: C:\Users\Dwight\Programs\LOOP\
+* Right-click in the same directory as LOOP and create a new text document.
 * Open it with Notepad and type, cd C:\The\Path\You\Copied\Earlier
-* Start a new line with Enter and type, javaw -jar MLGA.jar
-* Choose Save As and name it MLGA.bat with the option All Files selected
+* Start a new line with Enter and type, javaw -jar LOOP.jar
+* Choose Save As and name it LOOP.bat with the option All Files selected
 * Right-click the new batch file and Run as Administrator
-
-## HOW TO SUBMIT A DEBUG LOG
-* Right-click in the same directory as MLGA and create a new text document
-* Open it with Notepad and type, java -jar MLGA.jar
-* Choose Save As and name it MLGADebug.bat with the option All Files selected
-* Right-click the new batch file and Run as Administrator
-* Submit a picture or copy of the text to an Issue

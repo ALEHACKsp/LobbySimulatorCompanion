@@ -1,8 +1,8 @@
-package mlga;
+package loop;
 
-import mlga.io.FileUtil;
-import mlga.io.Settings;
-import mlga.ui.Overlay;
+import loop.io.FileUtil;
+import loop.io.Settings;
+import loop.ui.Overlay;
 import org.pcap4j.core.*;
 import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
 import org.pcap4j.packet.IpV4Packet;
@@ -82,7 +82,7 @@ public class Boot {
                         if (active.containsKey(srcAddr) && !srcAddr.equals(localAddr)) {
                             // it's a response from a peer to the local address
                             if (active.get(srcAddr) != null && payloadLen == 68 && dstAddr.equals(localAddr)) {
-                                long ping = handle.getTimestamp().getTime() - active.get(srcAddr).getTime();
+                                int ping = (int) (handle.getTimestamp().getTime() - active.get(srcAddr).getTime());
                                 ui.setPing(ippacket.getHeader().getSrcAddr(), ping);
                                 active.put(srcAddr, null); //No longer expect ping
                             }
@@ -90,9 +90,7 @@ public class Boot {
                             if (payloadLen == 56 && srcAddr.equals(localAddr)) {
                                 // it's a request from the local address to a peer
                                 // we will store the peer address
-//                                ui.notifyRequestToPeer();
                                 Inet4Address peerAddresss = ippacket.getHeader().getDstAddr();
-                                ui.setPing(peerAddresss, 99999);
                                 active.put(peerAddresss, handle.getTimestamp());
                             }
                         }
@@ -106,7 +104,7 @@ public class Boot {
     private static void simulateTraffic() throws UnknownHostException, InterruptedException {
         long startTime = System.currentTimeMillis();
         long endTime1 = startTime + 350000;
-        long endTime2 = startTime + 10000;
+        long endTime2 = startTime + 500;
 
         while (running) {
             long currentTime = System.currentTimeMillis();

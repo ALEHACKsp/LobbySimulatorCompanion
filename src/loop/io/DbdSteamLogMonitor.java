@@ -1,6 +1,6 @@
-package mlga.io;
+package loop.io;
 
-import mlga.SteamUser;
+import loop.SteamUser;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -125,7 +125,7 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
         return new SteamUser(lastSteamIdFound, lastSteamNameFound);
     }
 
-    private void clearUser() {
+    public void clearUser() {
         lastSteamIdFound = null;
         lastSteamNameFound = null;
     }

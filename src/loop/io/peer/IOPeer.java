@@ -1,8 +1,9 @@
-package mlga.io.peer;
+package loop.io.peer;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Wrapper used to save/load Peer settings.
@@ -37,11 +38,6 @@ public class IOPeer implements Serializable {
      */
     public final int version = 2;
 
-    /**
-     * List of all IPs this peer has been known under.
-     */
-//    private CopyOnWriteArrayList<Integer> ips = new CopyOnWriteArrayList<Integer>();
-    private List<Integer> ips = new ArrayList<>();
 
     /**
      * The UID of this peer, which is the user Steam Id.
@@ -99,6 +95,10 @@ public class IOPeer implements Serializable {
         names.add(name);
     }
 
+    public void clearNames() {
+        names.clear();
+    }
+
     public String getMostRecentName() {
         String name = "";
 
@@ -142,24 +142,33 @@ public class IOPeer implements Serializable {
         return description;
     }
 
+
+    @Override
     public boolean equals(Object o) {
-        if (!(o instanceof IOPeer)) {
-            return false;
-        }
-        IOPeer p2 = (IOPeer) o;
-        if ((getUID() == null && p2.getUID() != null) || getUID() != null && !getUID().equals(p2.getUID())) {
-            return false;
-        }
-        if (ips.size() != p2.ips.size()) {
-            return false;
-        }
-        for (int i = 0; i < ips.size(); i++) {
-            int v = ips.get(i).compareTo(p2.ips.get(i));
-            if (v != 0) {
-                return false;
-            }
-        }
-        return true;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IOPeer ioPeer = (IOPeer) o;
+        return version == ioPeer.version &&
+                status == ioPeer.status &&
+                Objects.equals(uid, ioPeer.uid) &&
+                Objects.equals(names, ioPeer.names) &&
+                Objects.equals(description, ioPeer.description);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(version, uid, names, status, description);
+    }
+
+    @Override
+    public String toString() {
+        return "IOPeer{" +
+                "firstSeen=" + firstSeen +
+                ", version=" + version +
+                ", uid='" + uid + '\'' +
+                ", names=" + names +
+                ", status=" + status +
+                ", description='" + description + '\'' +
+                '}';
+    }
 }

@@ -1,14 +1,14 @@
-package mlga.io.peer;
+package loop.io.peer;
 
-import mlga.io.FileUtil;
+import loop.io.FileUtil;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static mlga.io.peer.IOPeer.Status;
+import static loop.io.peer.IOPeer.Status;
 
 /**
  * Manages saved peers.
@@ -16,9 +16,9 @@ import static mlga.io.peer.IOPeer.Status;
  * @author ShadowMoose
  */
 public class PeerTracker {
-    private static final File peerFile = new File(FileUtil.getMlgaPath() + "peers.mlga");
+    private static final File peerFile = new File(FileUtil.getLoopPath() + "peers.loop");
     private static boolean saving = false;
-    private Map<String, IOPeer> peers = new HashMap<>();
+    private Map<String, IOPeer> peers = new ConcurrentHashMap<>();
 
     /**
      * Creates a PeerTracker, which instantly loads the Peer List into memory.
@@ -62,7 +62,7 @@ public class PeerTracker {
      *
      * @return True if this save works. May not work if a save is already underway.
      */
-    public boolean savePeers() {
+    public synchronized boolean savePeers() {
         if (saving) {
             // This type of check is less than ideal,
             // but if save is being called at the same time, the first instance should still save all listed IOPeers.
@@ -70,7 +70,7 @@ public class PeerTracker {
             return false;
         }
         List<IOPeer> peersToSave = peers.values().stream().filter(p -> shouldSavePeer(p)).collect(Collectors.toList());
-        System.out.println("Saving peers!");
+        System.out.println("Saving peers!: " + peersToSave.size());
         // Flag that the save file is busy, to avoid thread shenanigans.
         saving = true;
         try {

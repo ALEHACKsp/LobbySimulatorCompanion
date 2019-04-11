@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>MakeLobbiesGreatAgain</groupId>
-    <artifactId>MLGAX</artifactId>
-    <version>2.1.1.0</version>
+    <groupId>loop</groupId>
+    <artifactId>loop</artifactId>
+    <version>1.0.0</version>
     <build>
         <sourceDirectory>src</sourceDirectory>
         <resources>
@@ -21,11 +21,11 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <finalName>MLGAX</finalName>
+                    <finalName>LOOP</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
-                            <mainClass>mlga.Boot</mainClass>
+                            <mainClass>loop.Boot</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

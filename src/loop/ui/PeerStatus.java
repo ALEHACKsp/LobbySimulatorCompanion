@@ -1,6 +1,7 @@
-package mlga.ui;
+package loop.ui;
 
-import mlga.Constants;
+import loop.Constants;
+import loop.io.peer.IOPeer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,7 +10,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import static mlga.io.peer.IOPeer.Status;
+import static loop.io.peer.IOPeer.Status;
 
 /**
  * Represents a status bar component for a single connection.
@@ -18,9 +19,8 @@ import static mlga.io.peer.IOPeer.Status;
  */
 public class PeerStatus extends JPanel {
 
-    private static int MAX_DESCRIPTION_LEN = 50;
-
-    private static Font font = ResourceFactory.getRobotoFont();
+    private static final int MAX_DESCRIPTION_LEN = 50;
+    private static final Font font = ResourceFactory.getRobotoFont();
 
     private JLabel pingLabel;
     private JLabel separator1Label;
@@ -34,14 +34,15 @@ public class PeerStatus extends JPanel {
     private MouseListener mouseListener;
     private MouseMotionListener mouseMotionListener;
 
-    private Peer peer;
+    private int ping;
+    private IOPeer hostUser;
+
 
     /**
      * We store the previous description in case the user cancels the input by pressing Esc.
      */
     private String lastDescription;
     private boolean editingDescription;
-
 
 
     /**
@@ -60,9 +61,10 @@ public class PeerStatus extends JPanel {
     }
 
 
-    public PeerStatus(Peer peer, PeerStatusListener listener) {
-        this.peer = peer;
-        this.lastDescription = peer.getDescription();
+    public PeerStatus(PeerStatusListener listener) {
+//        this.peer = peer;
+//        this.lastDescription = peer.getDescription();
+        hostUser = new IOPeer();
         this.listener = listener;
 
         setBackground(new Color(0, 0, 0, 255));
@@ -70,8 +72,8 @@ public class PeerStatus extends JPanel {
         createComponents();
         addComponents();
 
-        update();
-        listener.updated();
+//        update();
+//        listener.updated();
     }
 
     private void createComponents() {
@@ -136,7 +138,7 @@ public class PeerStatus extends JPanel {
         gridConstrs.gridx = 7;
         gridConstrs.weightx = 1;
         gridConstrs.anchor = GridBagConstraints.WEST;
-        gridConstrs.fill = GridBagConstraints.HORIZONTAL;
+//        gridConstrs.fill = GridBagConstraints.HORIZONTAL;
         gridConstrs.insets = new Insets(0, 0, 0, 0);
         layout.setConstraints(editField, gridConstrs);
 
@@ -154,19 +156,20 @@ public class PeerStatus extends JPanel {
         mouseListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                boolean peerIsIdentified = !peer.getPeerData().getUID().isEmpty();
+                boolean peerIsIdentified = !hostUser.getUID().isEmpty();
 
                 if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown() && peerIsIdentified) {
-                    peer.rate();
+                    rateHostUser();
                     update();
                     listener.peerDataChanged();
                 } else if (SwingUtilities.isRightMouseButton(e) && peerIsIdentified) {
-                    // user wants to edit getDescription
+                    // user wants to edit the description
                     editingDescription = true;
+                    separator2Label.setVisible(true);
                     descriptionLabel.setVisible(false);
                     editField.setVisible(true);
-                    listener.startEdit();
                     editField.requestFocusInWindow();
+                    listener.startEdit();
                 } else {
                     for (MouseListener listener : getMouseListeners()) {
                         if (listener != this) {
@@ -226,7 +229,7 @@ public class PeerStatus extends JPanel {
                 super.mouseClicked(e);
                 if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown()) {
                     try {
-                        String profileUrl = Constants.STEAM_PROFILE_URL_PREFIX + getPeerDto().getPeerData().getUID();
+                        String profileUrl = Constants.STEAM_PROFILE_URL_PREFIX + hostUser.getUID();
                         Desktop.getDesktop().browse(new URL(profileUrl).toURI());
                     } catch (IOException e1) {
                         System.err.println("Failed to open browser at Steam profile.");
@@ -270,9 +273,9 @@ public class PeerStatus extends JPanel {
     }
 
     private void createDescriptionEditField() {
-        editField = new JTextField(peer.getDescription());
-        editField.setCaretPosition(peer.getDescription().length());
+        editField = new JTextField(hostUser.getDescription());
         editField.setCaretColor(Color.WHITE);
+        editField.setCaretPosition(hostUser.getDescription().length());
         editField.setBackground(Color.BLACK);
         editField.setForeground(Color.WHITE);
         editField.setColumns(30);
@@ -286,11 +289,11 @@ public class PeerStatus extends JPanel {
                     editField.setText(lastDescription);
                     editField.setVisible(false);
                     descriptionLabel.setVisible(true);
-                    separator2Label.setVisible(true);
+                    separator2Label.setVisible(!lastDescription.isEmpty());
                     listener.finishEdit();
                     editingDescription = false;
-                    revalidate();
-                    repaint();
+//                    revalidate();
+//                    repaint();
                 }
             }
 
@@ -303,12 +306,12 @@ public class PeerStatus extends JPanel {
         });
         editField.addActionListener(e -> {
             lastDescription = editField.getText();
-            peer.setDescription(lastDescription);
+            hostUser.setDescription(lastDescription);
             descriptionLabel.setText(lastDescription);
             editField.setVisible(false);
             descriptionLabel.setVisible(true);
-            update();
             editingDescription = false;
+            update();
             listener.finishEdit();
             listener.peerDataChanged();
         });
@@ -323,9 +326,12 @@ public class PeerStatus extends JPanel {
     }
 
     private void updatePing() {
-        long ping = peer.getPing();
+        int ping = this.ping;
         Color color;
-        if (ping <= 140) {
+
+        if (ping < 0) {
+            color = Color.WHITE;
+        } else if (ping <= 140) {
             color = Color.GREEN;
         } else if (ping > 140 && ping <= 190) {
             color = Color.YELLOW;
@@ -333,49 +339,72 @@ public class PeerStatus extends JPanel {
             color = Color.RED;
         }
         pingLabel.setForeground(color);
-//        pingLabel.setText(ping + " ms");
-        pingLabel.setText(ping + " (" + peer.getID() + ")");
+        pingLabel.setText((ping >= 0 ? ping : " ? ") + " ms");
     }
 
 
     private void updateUserInfo() {
-        boolean userDetected = !peer.getPeerData().getUID().isEmpty();
-        boolean hasDescription = !peer.getDescription().isEmpty();
+        boolean userDetected = !hostUser.getUID().isEmpty();
+        boolean hasDescription = !hostUser.getDescription().isEmpty();
 
         separator1Label.setVisible(userDetected);
         steamLabel.setVisible(userDetected);
         userNameLabel.setVisible(userDetected);
-        separator2Label.setVisible(hasDescription);
 
         if (!editingDescription) {
+            separator2Label.setVisible(hasDescription);
             descriptionLabel.setVisible(hasDescription);
-            descriptionLabel.setText(peer.getDescription());
+            descriptionLabel.setText(hostUser.getDescription());
         }
 
         if (userDetected) {
-            userNameLabel.setText(peer.getSteamName());
+            userNameLabel.setText(hostUser.getMostRecentName());
 
-            Status peerRating = peer.getPeerData().getStatus();
+            Status peerRating = hostUser.getStatus();
 
             if (peerRating == Status.BLOCKED) {
+                if (!ratingLabel.isVisible()) {
+                    ratingLabel.setVisible(true);
+                }
                 ratingLabel.setIcon(ResourceFactory.getThumbsDownIcon());
             } else if (peerRating == Status.LOVED) {
+                if (!ratingLabel.isVisible()) {
+                    ratingLabel.setVisible(true);
+                }
                 ratingLabel.setIcon(ResourceFactory.getThumbsUpIcon());
             } else {
                 ratingLabel.setIcon(null);
+
+                if (ratingLabel.isVisible()) {
+                    ratingLabel.setVisible(false);
+                }
             }
         }
     }
 
-
-    public Peer getPeerDto() {
-        return peer;
+    public void rateHostUser() {
+        if (hostUser.getStatus().equals(Status.UNRATED)) {
+            hostUser.setStatus(Status.BLOCKED);
+        } else if (hostUser.getStatus().equals(Status.BLOCKED)) {
+            hostUser.setStatus(Status.LOVED);
+        } else {
+            hostUser.setStatus(Status.UNRATED);
+        }
     }
 
-    public void notifyDataUpdated() {
-        editField.setText(peer.getDescription());
-        lastDescription = peer.getDescription();
+    public IOPeer getHostUser() {
+        return hostUser;
     }
 
+    public void setHostUser(IOPeer hostUser) {
+        this.hostUser = hostUser;
+        editField.setText(hostUser.getDescription());
+        lastDescription = hostUser.getDescription();
+        updateUserInfo();
+    }
+
+    public void setPing(int ping) {
+        this.ping = ping;
+    }
 
 }
