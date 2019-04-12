@@ -41,13 +41,17 @@ who you're connected to and get ping from. It also uses an encrypted file for st
 
 
 # How to Install and Use?
-**System Requirements:**
-* Latest Java Runtime https://java.com/en/download/
-* Npcap from https://nmap.org/npcap/ and tick "Install Npcap in WinPcap API-compatible Mode" during installation (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
-
-Simply double double click on the LOOP.jar file to run.
-
-**NOTE:** You may need to right-click the JAR file, select Properties, and choose Unblock if it appears below Attributes.
+1) Make sure you satisfy the requirements:
+  * **System Requirements:**
+    * Latest Java Runtime (https://java.com/en/download/)
+    * Npcap (https://nmap.org/npcap/).
+      * Tick "Install Npcap in WinPcap API-compatible Mode" during installation 
+        (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
+2) Create a folder where you would like to install this app (Example, under C:\Program Files\LobbySimulatorCompanion) 
+   and place LOOP.jar there.
+3) Double click on LOOP.jar to run.
+   * **NOTE:** You may need to right-click the JAR file, select Properties, and choose "Unblock" if it
+    appears below "Attributes".
 
 **If UAC is enabled:** 
 You may need to run the application via Command Prompt (this is due to the PCap4J library being unable to find devices).
@@ -60,7 +64,8 @@ You may need to run the application via Command Prompt (this is due to the PCap4
 
 
 # What's the current status?
-We are in a Beta version 1.0.0, so be warned that there's a possibility that there might be some breaking changes soon.
+We are in our first Beta version, so expect to encounter some bugs, and there's a possibility 
+that there can be some minor changes.
 
 
 ## I am a killer main. Can I use it?
@@ -69,6 +74,9 @@ For now, this is oriented to survivors because it keeps track of a connection ag
 
 
 ## Can I get banned for using LOOP?
+No.
+
+
 While I cannot provide a 100% guarantees on this, you shouldn't get banned for using it. Here's why:
 1) This app does not modify or interact with DBD in any way.
 2) It's a completely external/independent desktop application, which does not hook to any Steam/DBD process.

@@ -11,8 +11,12 @@ import javax.swing.JOptionPane;
 import org.pcap4j.core.Pcaps;
 
 import loop.ui.GithubPanel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Sanity {
+    private static final Logger logger = LoggerFactory.getLogger(Sanity.class);
+
     private final static Double version = 2.2;
     private static boolean headless = false;
 
@@ -48,7 +52,7 @@ public class Sanity {
      */
     private static boolean checkJava() {
         String v = System.getProperty("java.version");
-        System.out.println("Java Version: " + v);
+        logger.info("Java version: {}", v);
         if (!v.equals("9")) {
             double version = Double.parseDouble(v.substring(0, v.indexOf('.', 2)));
             if (version < 1.8) {
@@ -64,16 +68,16 @@ public class Sanity {
      */
     private static boolean checkPCap() {
         try {
-            System.out.println("Pcap Info: " + Pcaps.libVersion());
+            logger.info("Pcap info: {}", Pcaps.libVersion());
         } catch (Error e) {
-            e.printStackTrace();
+            logger.error("Failed to initialize PCap library.", e);
             message("You MUST have NPCap or WinPCap installed to allow this program to monitor the lobby!"
                     + (Desktop.isDesktopSupported() ? "\nAn installer link will attempt to open." : "Please go to https://www.winpcap.org/ and install it."));
             if (Desktop.isDesktopSupported()) {
                 try {
                     Desktop.getDesktop().browse(new URL("https://nmap.org/npcap/").toURI());
                 } catch (IOException | URISyntaxException e1) {
-                    e1.printStackTrace();
+                    logger.error("Failed to open URL on browser.", e1);
                     message("We couldn't open the URL for you, so go to https://nmap.org/npcap/ and install it!");
                 }
             }
@@ -88,13 +92,13 @@ public class Sanity {
             message("At least one update located is mandatory!\nSome updates can be very important for functionality and your security.\nPlease update LOOP before running!");
             return false;
         } else {
-            System.out.println("Up to date!");
+            logger.info("Up to date!");
         }
         return true;
     }
 
     private static void message(String out) {
-        System.err.println(out);
+        logger.error(out);
         if (!headless)
             JOptionPane.showMessageDialog(null, out, "Error", JOptionPane.ERROR_MESSAGE);
     }

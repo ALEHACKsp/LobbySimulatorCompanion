@@ -2,6 +2,8 @@ package loop.ui;
 
 import loop.Constants;
 import loop.io.peer.IOPeer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,6 +20,7 @@ import static loop.io.peer.IOPeer.Rating;
  * @author NickyRamone
  */
 public class PeerStatus extends JPanel {
+    private static final Logger logger = LoggerFactory.getLogger(PeerStatus.class);
 
     private static final int MAX_DESCRIPTION_LEN = 50;
     private static final Font font = ResourceFactory.getRobotoFont();
@@ -159,9 +162,9 @@ public class PeerStatus extends JPanel {
                 } else if (SwingUtilities.isRightMouseButton(e) && peerIsIdentified) {
                     // user wants to edit the description
                     editingDescription = true;
-                    separator2Label.setVisible(true);
-                    descriptionLabel.setVisible(false);
-                    editField.setVisible(true);
+                    setVisible(separator2Label, true);
+                    setVisible(descriptionLabel, false);
+                    setVisible(editField, true);
                     editField.requestFocusInWindow();
                     listener.startEdit();
                 } else {
@@ -226,11 +229,9 @@ public class PeerStatus extends JPanel {
                         String profileUrl = Constants.STEAM_PROFILE_URL_PREFIX + hostUser.getUID();
                         Desktop.getDesktop().browse(new URL(profileUrl).toURI());
                     } catch (IOException e1) {
-                        System.err.println("Failed to open browser at Steam profile.");
-                        e1.printStackTrace();
+                        logger.error("Failed to open browser at Steam profile.");
                     } catch (URISyntaxException e1) {
-                        System.err.println("Failed to open browser at Steam profile.");
-                        e1.printStackTrace();
+                        logger.error("Attempted to use an invalid URL for the Steam profile.");
                     }
                 }
             }
@@ -281,9 +282,9 @@ public class PeerStatus extends JPanel {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     editField.setText(lastDescription);
-                    editField.setVisible(false);
-                    descriptionLabel.setVisible(true);
-                    separator2Label.setVisible(!lastDescription.isEmpty());
+                    setVisible(editField, false);
+                    setVisible(descriptionLabel, true);
+                    setVisible(separator2Label, !lastDescription.isEmpty());
                     listener.finishEdit();
                     editingDescription = false;
                 }
@@ -300,8 +301,8 @@ public class PeerStatus extends JPanel {
             lastDescription = editField.getText();
             hostUser.setDescription(lastDescription);
             descriptionLabel.setText(lastDescription);
-            editField.setVisible(false);
-            descriptionLabel.setVisible(true);
+            setVisible(editField, false);
+            setVisible(descriptionLabel, true);
             editingDescription = false;
             update();
             listener.finishEdit();
@@ -338,8 +339,9 @@ public class PeerStatus extends JPanel {
     private void updateUserInfo() {
         boolean userDetected = !hostUser.getUID().isEmpty();
         boolean hasDescription = !hostUser.getDescription().isEmpty();
-
-        separator1Label.setVisible(userDetected);
+        setVisible(separator1Label, userDetected);
+        setVisible(steamLabel, userDetected);
+        userNameLabel.setVisible(userDetected);
         steamLabel.setVisible(userDetected);
         userNameLabel.setVisible(userDetected);
 
@@ -351,25 +353,17 @@ public class PeerStatus extends JPanel {
 
         if (userDetected) {
             userNameLabel.setText(hostUser.getMostRecentName());
-
             Rating peerRating = hostUser.getRating();
 
             if (peerRating == Rating.THUMBS_DOWN) {
-                if (!ratingLabel.isVisible()) {
-                    ratingLabel.setVisible(true);
-                }
+                setVisible(ratingLabel, true);
                 ratingLabel.setIcon(ResourceFactory.getThumbsDownIcon());
             } else if (peerRating == Rating.THUMBS_UP) {
-                if (!ratingLabel.isVisible()) {
-                    ratingLabel.setVisible(true);
-                }
+                setVisible(ratingLabel, true);
                 ratingLabel.setIcon(ResourceFactory.getThumbsUpIcon());
             } else {
+                setVisible(ratingLabel, false);
                 ratingLabel.setIcon(null);
-
-                if (ratingLabel.isVisible()) {
-                    ratingLabel.setVisible(false);
-                }
             }
         }
     }
@@ -394,6 +388,12 @@ public class PeerStatus extends JPanel {
 
     public void setPing(int ping) {
         this.ping = ping;
+    }
+
+    private void setVisible(Component component, boolean visible) {
+        if (component.isVisible() != visible) {
+            component.setVisible(visible);
+        }
     }
 
 }

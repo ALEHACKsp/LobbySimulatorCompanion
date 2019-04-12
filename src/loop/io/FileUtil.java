@@ -1,6 +1,8 @@
 package loop.io;
 
 import loop.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +16,8 @@ import java.nio.file.StandardCopyOption;
  * @author ShadowMoose
  */
 public class FileUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(FileUtil.class);
 
     /**
      * Get the base directory path for all LOOP files, if left at default .  <br>
@@ -43,26 +47,25 @@ public class FileUtil {
     public static boolean saveFile(File f, File backup_dir) {
         if (!backup_dir.exists()) {
             backup_dir.mkdirs();
-            System.out.println("Built backup directory: " + backup_dir.getAbsolutePath());
+            logger.info("Built backup directory: {}", backup_dir.getAbsolutePath());
         }
 
         if (!f.exists()) {
             return false;
         }
 
-        System.out.println("Saving: " + f);
+        logger.info("Saving: {}", f);
         File copy = getSaveName(f, 1);
         if (!copy.getParentFile().exists())
             copy.getParentFile().mkdirs();
 
-        System.out.println(copy);
         try {
             if (f.exists()) {
                 Files.copy(f.toPath(), copy.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                System.out.println("\t+Made backup of file!");
+                logger.info("Made backup of file.");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Failed to copy file for backup.", e);
             return false;
         }
         return true;

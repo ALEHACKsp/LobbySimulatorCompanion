@@ -8,6 +8,8 @@ import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
 import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.Packet;
 import org.pcap4j.packet.UdpPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -21,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Boot {
+    private static final Logger logger = LoggerFactory.getLogger(Boot.class);
     public static PcapNetworkInterface nif = null;
     public static HashMap<Inet4Address, Timestamp> active = new HashMap<>();
 
@@ -133,7 +136,7 @@ public class Boot {
             trayIcon.setImage(ImageIO.read(is));
             is.close();
         } catch (IOException e1) {
-            e1.printStackTrace();
+            logger.error("Failed to load application icon.", e1);
         }
 
         info.addActionListener(e -> {
@@ -165,10 +168,10 @@ public class Boot {
             running = false;
             tray.remove(trayIcon);
             ui.close();
-            System.out.println("Terminated UI...");
-            System.out.println("Cleaning up system resources. Could take a while...");
+            logger.info("Terminated UI.");
+            logger.info("Cleaning up system resources. Could take a while...");
             handle.close();
-            System.out.println("Killed handle.");
+            logger.info("Killed handle.");
             System.exit(0);
         });
         info.setLabel("Help");
@@ -204,7 +207,7 @@ public class Boot {
                     if (inf != null && inf.isUp() && !inf.isVirtual()) {
                         inets.add(xAddr);
                         lanIP.addItem((lanIP.getItemCount() + 1) + " - " + inf.getDisplayName() + " ::: " + xAddr.getHostAddress());
-                        System.out.println("Found: " + lanIP.getItemCount() + " - " + inf.getDisplayName() + " ::: " + xAddr.getHostAddress());
+                        logger.info("Found: {} - {} ::: {}", lanIP.getItemCount(), inf.getDisplayName(), xAddr.getHostAddress());
                         Settings.set("addr", xAddr.getHostAddress().replaceAll("/", ""));
 
                         if (Settings.AUTOSELECT_NETWORK_INTERFACE) {
@@ -227,16 +230,16 @@ public class Boot {
             try {
                 if (lanText.getText().length() >= 7 && !lanText.getText().equals("0.0.0.0")) { // 7 is because the minimum field is 0.0.0.0
                     localAddr = InetAddress.getByName(lanText.getText());
-                    System.out.println("Using IP from textfield: " + lanText.getText());
+                    logger.debug("Using IP from textfield: {}", lanText.getText());
                 } else {
                     localAddr = inets.get(lanIP.getSelectedIndex());
-                    System.out.println("Using device from dropdown: " + lanIP.getSelectedItem());
+                    logger.debug("Using device from dropdown: {}", lanIP.getSelectedItem());
                 }
                 Settings.set("addr", localAddr.getHostAddress().replaceAll("/", ""));
                 frame.setVisible(false);
                 frame.dispose();
             } catch (UnknownHostException e1) {
-                e1.printStackTrace();
+                logger.error("Encountered an invalid address.", e1);
             }
         });
 

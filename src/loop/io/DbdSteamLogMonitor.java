@@ -1,6 +1,8 @@
 package loop.io;
 
 import loop.SteamUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -22,6 +24,8 @@ import java.util.regex.Pattern;
 public class DbdSteamLogMonitor extends Observable implements Runnable {
 
     private static final int LOG_POLLING_PERIOD_MS = 1000;
+
+    private static final Logger logger = LoggerFactory.getLogger(DbdSteamLogMonitor.class);
 
     private static final Path USER_APPDATA_PATH = Paths.get(System.getenv("APPDATA")).getParent();
     private static final String LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
@@ -85,9 +89,9 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
                     Thread.sleep(LOG_POLLING_PERIOD_MS);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Encountered error while reading from the log file.", e);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                // ignore
             }
         }
     }
@@ -98,7 +102,7 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
             String steamUserName = matcher.group(1).trim();
             lastSteamNameFound = steamUserName;
             lastSteamIdFound = null;
-            System.out.println("joined lobby of user: " + steamUserName);
+            logger.debug("Detected user name: {}", steamUserName);
             return;
         }
 
@@ -111,7 +115,7 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
         if (matcher.find()) {
             String steamUserId = matcher.group(1).trim();
             lastSteamIdFound = steamUserId;
-            System.out.println("Found user id: " + steamUserId);
+            logger.debug("Detected host user id: {}", steamUserId);
             setChanged();
             notifyObservers();
         }

@@ -1,5 +1,8 @@
 package loop.io;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,10 +15,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * this is best for easy editing/validation in bug reports.
  */
 public class Settings {
+    private static final Logger logger = LoggerFactory.getLogger(Settings.class);
+
     /**
      * For debugging: Auto-selects the first network interface it finds.
      */
-    public static boolean AUTOSELECT_NETWORK_INTERFACE = false;
+    public static boolean AUTOSELECT_NETWORK_INTERFACE = true;
 
     /**
      * For debugging: Does not analyze packets and uses a few simulated connections instead.
@@ -25,7 +30,7 @@ public class Settings {
     /**
      * For debugging: Stores data without using encryption.
      */
-    public static boolean ENCRYPT_STORED_DATA = true;
+    public static boolean ENCRYPT_STORED_DATA = false;
 
 
     private final static File save = new File("loop.settings.ini");
@@ -36,7 +41,7 @@ public class Settings {
      */
     public static void init() {
         if (!save.exists()) {
-            System.err.println("Save file has not been created yet. Skipping loading.");
+            logger.info("Save file has not been created yet. Skipping loading.");
             return;
         }
         try {
@@ -50,8 +55,7 @@ public class Settings {
             }
             bufferedReader.close();
         } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("No settings were able to be loaded in.");
+            logger.error("No settings were able to be loaded in.", e);
         }
     }
 
@@ -74,7 +78,7 @@ public class Settings {
             }
             o.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Failed to save settings.", e);
         }
     }
 

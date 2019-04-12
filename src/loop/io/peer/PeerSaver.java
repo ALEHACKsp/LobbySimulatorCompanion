@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonWriter;
 import loop.io.FileUtil;
 import loop.io.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
@@ -19,6 +21,8 @@ import java.util.zip.GZIPOutputStream;
  * @author ShadowMoose
  */
 public class PeerSaver {
+
+    private static final Logger logger = LoggerFactory.getLogger(PeerSaver.class);
 
     private final File saveFile;
 
@@ -81,7 +85,7 @@ public class PeerSaver {
         try {
             c = Security.getCipher(false);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to configure encryption.", e);
             throw new IOException();
         }
         return new GZIPOutputStream(new CipherOutputStream(new FileOutputStream(f), c));

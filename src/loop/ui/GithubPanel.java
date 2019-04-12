@@ -23,6 +23,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import loop.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A panel for rendering Github updates, somewhat faithfully.
@@ -30,6 +32,7 @@ import loop.Constants;
  * @author ShadowMoose
  */
 public class GithubPanel extends JFrame {
+    private static final Logger logger = LoggerFactory.getLogger(GithubPanel.class);
     private static final long serialVersionUID = -8603001629015114181L;
     /**
      * The project owner, name, and release JAR name, for this Github Repository. Used for lookup.
@@ -59,7 +62,7 @@ public class GithubPanel extends JFrame {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             parseReleases();
         } catch (Exception e1) {
-            e1.printStackTrace();
+            logger.error("Failed to obtain release versions.", e1);
         }
         if (updates <= 0) {
             return;
@@ -76,7 +79,7 @@ public class GithubPanel extends JFrame {
                     Desktop.getDesktop().browse(he.getURL().toURI());
                     System.exit(0);
                 } catch (IOException | URISyntaxException e) {
-                    e.printStackTrace();
+                    logger.error("Failed to open browser at URL.", e);
                 }
             }
         });
@@ -140,11 +143,11 @@ public class GithubPanel extends JFrame {
 
         try {
             while (this.isDisplayable()) Thread.sleep(200);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            // ignore
         }
         if (required > 0) {
-            System.err.println("Mandatory updates: " + required);
+            logger.error("Mandatory updates: {}", required);
             return false;
         }
         return true;
@@ -222,7 +225,7 @@ public class GithubPanel extends JFrame {
                 }
                 if (nv <= this.version)
                     continue;// Skip older updates.
-                System.out.println("Version: " + nv);
+                logger.info("Version: {}", nv);
 
                 if (i > 0)
                     html += "<hr />";
@@ -238,9 +241,9 @@ public class GithubPanel extends JFrame {
                 parse(obj.get("tag_name").getAsString().trim(), title, body);
                 updates++;
             } catch (ClassCastException cce) {
-                System.out.println("Ignoring build: " + obj.get("tag_name").getAsString());
+                logger.info("Ignoring build: {}", obj.get("tag_name").getAsString());
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Failed to parse a release version.", e);
             }
         }
         setTitle(Constants.APP_SHORT_NAME + " Update - " + updates + " releases behind");

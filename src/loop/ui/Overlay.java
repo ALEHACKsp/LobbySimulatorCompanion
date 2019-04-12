@@ -16,9 +16,13 @@ import loop.io.DbdSteamLogMonitor;
 import loop.io.Settings;
 import loop.io.peer.IOPeer;
 import loop.io.peer.PeerTracker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Overlay extends JPanel implements Observer {
     private static final long serialVersionUID = -470849574354121503L;
+
+    private static final Logger logger = LoggerFactory.getLogger(Overlay.class);
 
     private DbdSteamLogMonitor logMonitor;
     private PeerTracker peerTracker;
@@ -105,6 +109,8 @@ public class Overlay extends JPanel implements Observer {
             @Override
             public void updated() {
                 frame.pack();
+                revalidate();
+                repaint();
             }
 
             @Override
@@ -210,9 +216,11 @@ public class Overlay extends JPanel implements Observer {
         if (connected && logMonitor.getLastSteamUserFound() != null) {
             SteamUser steamUser = logMonitor.getLastSteamUserFound();
             String steamId = steamUser.getId();
+            String steamName = steamUser.getName();
             IOPeer storedHost = peerTracker.getPeerBySteamId(steamId);
 
             if (storedHost == null) {
+                logger.debug("User of id {} not found in the storage. Creating a new one...", steamId);
                 storedHost = new IOPeer();
                 storedHost.setUID(steamId);
                 storedHost.setRating(IOPeer.Rating.UNRATED);
@@ -220,7 +228,8 @@ public class Overlay extends JPanel implements Observer {
                 storedHost.addName(steamUser.getName());
                 peerTracker.addPeer(steamId, storedHost);
             } else {
-                storedHost.addName(steamUser.getName());
+                logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry.", steamId, steamName);
+                storedHost.addName(steamName);
             }
             peerStatus.setHostUser(storedHost);
             peerStatus.update();

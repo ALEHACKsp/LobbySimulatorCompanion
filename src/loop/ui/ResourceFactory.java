@@ -1,6 +1,8 @@
 package loop.ui;
 
 import loop.io.FileUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,6 +15,8 @@ import java.io.InputStream;
  * @author NickyRamone
  */
 public final class ResourceFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(ResourceFactory.class);
 
     private static final String STEAM_ICON_PATH = "/resources/steam_icon.png";
     private static final String THUMBS_DOWN_ICON_PATH = "/resources/thumbs-down_icon.png";
@@ -34,9 +38,9 @@ public final class ResourceFactory {
             try {
                 roboto = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(15f);
             } catch (FontFormatException e) {
-                e.printStackTrace();
+                logger.error("Font file is corrupt.");
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Failed to load Roboto font.", e);
             }
         }
         return roboto;
@@ -49,7 +53,7 @@ public final class ResourceFactory {
             if (imgURL != null) {
                 thumbsUpIcon = new ImageIcon(imgURL, "thumbs up");
             } else {
-                System.err.println("Couldn't load thumbs-up icon.");
+                logger.error("Failed to load thumbs-up icon.");
             }
         }
 
@@ -64,7 +68,7 @@ public final class ResourceFactory {
             if (imgURL != null) {
                 thumbsDownIcon = new ImageIcon(imgURL, "thumbs down");
             } else {
-                System.err.println("Couldn't load thumbs-down icon.");
+                logger.error("Failed to load thumbs-down icon.");
             }
         }
 
@@ -79,7 +83,7 @@ public final class ResourceFactory {
             if (imgURL != null) {
                 steamIcon = new ImageIcon(imgURL, "steam");
             } else {
-                System.err.println("Couldn't load Steam icon.");
+                logger.error("Failed to load Steam icon.");
             }
         }
 

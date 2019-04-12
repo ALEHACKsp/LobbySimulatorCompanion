@@ -3,6 +3,8 @@ package loop.io.peer;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import loop.io.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.CipherInputStream;
 import java.io.File;
@@ -18,6 +20,8 @@ import java.util.zip.GZIPInputStream;
  * @author ShadowMoose
  */
 public class PeerReader {
+    private static final Logger logger = LoggerFactory.getLogger(PeerReader.class);
+
     private JsonReader reader;
     private Gson gson;
 
@@ -56,7 +60,7 @@ public class PeerReader {
             }
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Encountered a problem while reading the host info file.", e);
         }
         return false;
     }
@@ -76,7 +80,7 @@ public class PeerReader {
         try {
             decStream = new CipherInputStream(fis, Security.getCipher(true));
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to create encrypted stream.", e);
             throw new IOException();
         }
         return new InputStreamReader(new GZIPInputStream(decStream), "UTF-8");

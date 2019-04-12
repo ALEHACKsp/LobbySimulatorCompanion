@@ -1,6 +1,8 @@
 package loop.io.peer;
 
 import loop.io.FileUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.List;
@@ -16,8 +18,8 @@ import static loop.io.peer.IOPeer.Rating;
  * @author ShadowMoose
  */
 public class PeerTracker {
+    private static final Logger logger = LoggerFactory.getLogger(PeerTracker.class);
     private static final File peerFile = new File(FileUtil.getLoopPath() + "peers.loop");
-    private static boolean saving = false;
     private Map<String, IOPeer> peers = new ConcurrentHashMap<>();
 
     /**
@@ -41,16 +43,18 @@ public class PeerTracker {
                             peers.put(ioPeer.getUID(), ioPeer);
                         }
                     }
-                    System.out.println("Loaded " + peers.size() + " tracked users!");
+                    logger.info("Loaded {} tracked users.", peers.size());
 
-                    if (i != 0) // If we had to check a backup, re-save the backup as the primary instantly.
+                    if (i != 0) {
+                        // If we had to check a backup, re-save the backup as the primary instantly.
                         savePeers();
+                    }
                 }
                 break;
             } catch (Exception e) {
-                e.printStackTrace();
-                if (i == 0)
-                    System.err.println("No Peers file located! Checking backups!");
+                if (i == 0) {
+                    logger.error("No Peers file located! Checking backups!", e);
+                }
             }
         }
     }
@@ -63,25 +67,16 @@ public class PeerTracker {
      * @return True if this save works. May not work if a save is already underway.
      */
     public synchronized boolean savePeers() {
-        if (saving) {
-            // This type of check is less than ideal,
-            // but if save is being called at the same time, the first instance should still save all listed IOPeers.
-            System.err.println("Peer File is busy!");
-            return false;
-        }
         List<IOPeer> peersToSave = peers.values().stream().filter(p -> shouldSavePeer(p)).collect(Collectors.toList());
-        System.out.println("Saving peers!: " + peersToSave.size());
+        logger.info("Saving {} host(s)...", peersToSave.size());
         // Flag that the save file is busy, to avoid thread shenanigans.
-        saving = true;
         try {
             PeerSaver ps = new PeerSaver(peerFile);
             ps.save(peersToSave);
-            saving = false;
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to save hosts data.", e);
         }
-        saving = false;
         return false;
     }
 
