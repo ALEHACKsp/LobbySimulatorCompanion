@@ -1,6 +1,6 @@
 # What is LOOP?
 
-LOOP (stands for "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
+LOOP (comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
 especially while waiting in the match lobbies. It is strongly oriented towards survivor players.
 
 LOOP can continuously show you the ping against the host you are connected to and can let you view the host's name,
@@ -34,11 +34,6 @@ You can see the LOOP bar showing a ping of 92ms, and that I have previously posi
 * Re-position the overlay:
   * Double-click to lock/unlock the overlay for dragging.
   
-
-## How does it work?
-LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection in order to determine
-who you're connected to and get ping from. It also uses an encrypted file for storing user-provided data.
-
 
 # How to install?
 1. Make sure you satisfy the system requirements:
@@ -76,6 +71,11 @@ We are in our first Beta version, so expect to encounter some bugs, and there's 
 that there can be some minor changes.
 
 
+## How does it work?
+LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection in order to determine
+who you're connected to and get ping from. It also uses an encrypted file for storing user-provided data.
+
+
 ## I am a killer main. Can I use it?
 Well, you can, but you won't get much from it.
 For now, this is oriented to survivors because it keeps track of a connection against the game host. 
@@ -92,7 +92,7 @@ While with these things you can never have a 100% guarantees on this, here's why
 4) It doesn't alter the game mechanics in any way so that you can gain in-game advantage.
 5) It is based on the MLGA codebase, which has been approved by EAC, and running since 2016.
 6) This tool will become obsolete in a few months once public servers are available.
-7) I have contacted EAC (Easy Anti Cheat) and it's not in their interest to ban these kinds of applications,
+7) I have contacted EAC (Easy Anti Cheat) and they replied that it's not in their interest to ban these kinds of applications,
    unless explicitly asked by the game developers. Their "main focus is on the specifically crafted cheating tools".
 
 
@@ -102,7 +102,7 @@ MLGA has become more of a generic P2P tool for multiple games, while LOOP is ver
 Also, the core mechanics of identifying peers has changed, but we still use the MLGA implementation for detecting
 STUN packets.
 
-Finally, keep in mind that this project will become obsolete in several months, when the DBD public servers become available.
+Finally, keep in mind that this project will probably become obsolete in several months, when the DBD public servers become available.
 
 
 ## Can I use MLGA and LOOP at the same time?
