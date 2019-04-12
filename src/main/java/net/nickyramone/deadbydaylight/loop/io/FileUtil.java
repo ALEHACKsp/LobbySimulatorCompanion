@@ -1,13 +1,16 @@
-package loop.io;
+package net.nickyramone.deadbydaylight.loop.io;
 
-import loop.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 /**
@@ -19,6 +22,19 @@ public class FileUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(FileUtil.class);
 
+    private static Path APP_PATH;
+
+    static {
+        try {
+            URI execUri = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+            APP_PATH = new File(execUri).toPath().getParent();
+            logger.info("Application running in: {}", APP_PATH);
+        } catch (URISyntaxException e) {
+            logger.error("Failed to initialize the application running directory.", e);
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Get the base directory path for all LOOP files, if left at default .  <br>
      * Can be changed by the user, by editing 'base_dir' in the settings ini. <br>
@@ -26,13 +42,8 @@ public class FileUtil {
      *
      * @return A String file path, for convenience.
      */
-    public static String getLoopPath() {
-        String f = Settings.get("base_dir", null);
-        if (f == null) {
-            f = new File(System.getenv("APPDATA") + "/" + Constants.APP_SHORT_NAME + "/").getAbsolutePath();
-            Settings.set("base_dir", f);
-        }
-        return (f.endsWith("/") ? f : (f + "/"));
+    public static Path getLoopPath() {
+        return APP_PATH;
     }
 
 
@@ -41,13 +52,13 @@ public class FileUtil {
      * Supports creating multiple rolling backups of the same file within the same supplied backup dir.
      *
      * @param f          The file to duplicate
-     * @param backup_dir The directory to store the backup in.
+     * @param backupDir The directory to store the backup in.
      * @return True if the save works.
      */
-    public static boolean saveFile(File f, File backup_dir) {
-        if (!backup_dir.exists()) {
-            backup_dir.mkdirs();
-            logger.info("Built backup directory: {}", backup_dir.getAbsolutePath());
+    public static boolean saveFile(File f, File backupDir) {
+        if (!backupDir.exists()) {
+            backupDir.mkdirs();
+            logger.info("Built backup directory: {}", backupDir.getAbsolutePath());
         }
 
         if (!f.exists()) {
@@ -81,7 +92,9 @@ public class FileUtil {
      * @return True if the save works.
      */
     public static boolean saveFile(File f, String subdirs) {
-        return saveFile(f, new File(getLoopPath() + subdirs + "/"));
+        File backupDir = getLoopPath().resolve(subdirs).toFile();
+
+        return saveFile(f, backupDir);
     }
 
     /**
@@ -98,15 +111,11 @@ public class FileUtil {
      * Generate an InputStream to the given resource file name.  <br>
      * Automatically toggles between JAR and Build paths.
      *
-     * @param resourceName The name or relative filepath (if resource is deeper than just "resources/") of the desired File.
+     * @param resourceName The name or relative filepath of the desired File.
      * @return Null if File cannot be found, otherwise the resource's Stream.
      */
     public static InputStream localResource(String resourceName) {
-        if (ClassLoader.getSystemClassLoader().getResourceAsStream("resources/" + resourceName) != null) {
-            return ClassLoader.getSystemClassLoader().getResourceAsStream("resources/" + resourceName);
-        } else {
-            return ClassLoader.getSystemClassLoader().getResourceAsStream("src/resources/" + resourceName);
-        }
+        return ClassLoader.getSystemClassLoader().getResourceAsStream(resourceName);
     }
 
 }

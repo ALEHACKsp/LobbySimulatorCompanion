@@ -1,4 +1,4 @@
-package loop;
+package net.nickyramone.deadbydaylight.loop;
 
 public final class Constants {
 

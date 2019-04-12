@@ -1,4 +1,4 @@
-package loop.io.peer;
+package net.nickyramone.deadbydaylight.loop.io.peer;
 
 import java.io.IOException;
 import java.net.NetworkInterface;
@@ -12,7 +12,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
 
-import loop.Boot;
+import net.nickyramone.deadbydaylight.loop.Boot;
 
 /**
  * Class to simplify key generation/file access.

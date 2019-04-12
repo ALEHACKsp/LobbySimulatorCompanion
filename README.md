@@ -40,27 +40,35 @@ LOOP uses a packet capture library to detect STUN packets from any peer-to-peer 
 who you're connected to and get ping from. It also uses an encrypted file for storing user-provided data.
 
 
-# How to Install and Use?
-1) Make sure you satisfy the requirements:
-  * **System Requirements:**
+# How to install?
+1. Make sure you satisfy the system requirements:
+    * Microsoft Windows (preferrably, Windows 10, which is what we test in)
     * Latest Java Runtime (https://java.com/en/download/)
     * Npcap (https://nmap.org/npcap/).
       * Tick "Install Npcap in WinPcap API-compatible Mode" during installation 
         (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
-2) Create a folder where you would like to install this app (Example, under C:\Program Files\LobbySimulatorCompanion) 
-   and place LOOP.jar there.
-3) Double click on LOOP.jar to run.
-   * **NOTE:** You may need to right-click the JAR file, select Properties, and choose "Unblock" if it
-    appears below "Attributes".
+1. Create a folder where you would like to install this app (Example, under C:\Program Files\LobbySimulatorCompanion) 
+   and place loop.jar there.
+   * Tip: Don't throw it under the desktop. Just create a folder where to contain this application, and then create
+          a desktop launcher if you want.
 
-**If UAC is enabled:** 
+1. **If UAC is enabled:**\
 You may need to run the application via Command Prompt (this is due to the PCap4J library being unable to find devices).
 * Copy the folder path that LOOP is in, for example: C:\Users\Dwight\Programs\LOOP\
 * Right-click in the same directory as LOOP and create a new text document.
 * Open it with Notepad and type, cd C:\The\Path\You\Copied\Earlier
-* Start a new line with Enter and type, javaw -jar LOOP.jar
+* Start a new line with Enter and type, javaw -jar loop.jar
 * Choose Save As and name it LOOP.bat with the option All Files selected
 * Right-click the new batch file and Run as Administrator
+
+
+# How to run?
+1. Double click on LOOP.jar on your installation folder.\
+  **NOTE:** You may need to right-click the JAR file, select Properties, and choose "Unblock" if it appears below "Attributes".
+1. If the application started successfully, you should see at least these two files in the installation directory:\
+   loop.settings.ini, loop.hosts.dat
+1. **Advanced usage:**\
+   If you want to avoid having to select the network device IP every time you start the app, edit loop.settings.ini and change the autoload value to 1.
 
 
 # What's the current status?

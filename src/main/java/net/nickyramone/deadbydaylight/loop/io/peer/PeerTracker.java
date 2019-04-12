@@ -1,6 +1,6 @@
-package loop.io.peer;
+package net.nickyramone.deadbydaylight.loop.io.peer;
 
-import loop.io.FileUtil;
+import net.nickyramone.deadbydaylight.loop.io.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static loop.io.peer.IOPeer.Rating;
+import static net.nickyramone.deadbydaylight.loop.io.peer.IOPeer.Rating;
 
 /**
  * Manages saved peers.
@@ -19,7 +19,7 @@ import static loop.io.peer.IOPeer.Rating;
  */
 public class PeerTracker {
     private static final Logger logger = LoggerFactory.getLogger(PeerTracker.class);
-    private static final File peerFile = new File(FileUtil.getLoopPath() + "peers.loop");
+    private static final File peerFile = FileUtil.getLoopPath().resolve("loop.hosts.dat").toFile();
     private Map<String, IOPeer> peers = new ConcurrentHashMap<>();
 
     /**

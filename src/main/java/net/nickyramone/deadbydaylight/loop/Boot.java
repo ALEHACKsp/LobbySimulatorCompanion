@@ -1,9 +1,8 @@
-package loop;
+package net.nickyramone.deadbydaylight.loop;
 
-import loop.io.FileUtil;
-import loop.io.Settings;
-import loop.ui.Overlay;
-import loop.ui.ResourceFactory;
+import net.nickyramone.deadbydaylight.loop.io.FileUtil;
+import net.nickyramone.deadbydaylight.loop.io.Settings;
+import net.nickyramone.deadbydaylight.loop.ui.Overlay;
 import org.pcap4j.core.*;
 import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
 import org.pcap4j.packet.IpV4Packet;
@@ -17,7 +16,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.*;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -135,6 +133,7 @@ public class Boot {
         BufferedImage trayIconImage = ImageIO.read(FileUtil.localResource("loop_logo.png"));
         int trayIconWidth = new TrayIcon(trayIconImage).getSize().width;
         TrayIcon trayIcon = new TrayIcon(trayIconImage.getScaledInstance(trayIconWidth, -1, Image.SCALE_SMOOTH));
+        trayIcon.setPopupMenu(popup);
         trayIcon.setToolTip(Constants.APP_NAME);
 
         info.addActionListener(e -> {
@@ -181,6 +180,7 @@ public class Boot {
 
     public static void getLocalAddr() throws InterruptedException, PcapNativeException, UnknownHostException, SocketException,
             ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
+
         if (Settings.getDouble("autoload", 0) == 1) {
             localAddr = InetAddress.getByName(Settings.get("addr", ""));
             return;
@@ -207,11 +207,6 @@ public class Boot {
                         lanIP.addItem((lanIP.getItemCount() + 1) + " - " + inf.getDisplayName() + " ::: " + xAddr.getHostAddress());
                         logger.info("Found: {} - {} ::: {}", lanIP.getItemCount(), inf.getDisplayName(), xAddr.getHostAddress());
                         Settings.set("addr", xAddr.getHostAddress().replaceAll("/", ""));
-
-                        if (Settings.AUTOSELECT_NETWORK_INTERFACE) {
-                            localAddr = xAddr;
-                            return;
-                        }
                     }
                 }
             }

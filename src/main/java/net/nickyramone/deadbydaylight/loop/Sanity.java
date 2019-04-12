@@ -1,4 +1,4 @@
-package loop;
+package net.nickyramone.deadbydaylight.loop;
 
 import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
@@ -10,7 +10,7 @@ import javax.swing.JOptionPane;
 
 import org.pcap4j.core.Pcaps;
 
-import loop.ui.GithubPanel;
+import net.nickyramone.deadbydaylight.loop.ui.GithubPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

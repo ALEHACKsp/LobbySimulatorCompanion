@@ -1,4 +1,4 @@
-package loop.io.peer;
+package net.nickyramone.deadbydaylight.loop.io.peer;
 
 import com.google.gson.annotations.SerializedName;
 

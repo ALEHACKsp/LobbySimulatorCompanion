@@ -1,4 +1,4 @@
-package loop.ui;
+package net.nickyramone.deadbydaylight.loop.ui;
 
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -22,7 +22,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import loop.Constants;
+import net.nickyramone.deadbydaylight.loop.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ public class GithubPanel extends JFrame {
     /**
      * The project owner, name, and release JAR name, for this Github Repository. Used for lookup.
      */
-    private static final String author = "nickyramone", project = "LobbySimulatorCompanion", directJAR = "LOOP.jar";
+    private static final String author = "nickyramone", project = "LobbySimulatorCompanion", directJAR = "loop.jar";
     /**
      * The String flag to be included in the Release Notes Body if the update is mandatory for all below the new version.
      */

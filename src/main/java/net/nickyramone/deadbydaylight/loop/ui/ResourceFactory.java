@@ -1,6 +1,6 @@
-package loop.ui;
+package net.nickyramone.deadbydaylight.loop.ui;
 
-import loop.io.FileUtil;
+import net.nickyramone.deadbydaylight.loop.io.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,9 +18,9 @@ public final class ResourceFactory {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceFactory.class);
 
-    private static final String STEAM_ICON_PATH = "/resources/steam_icon.png";
-    private static final String THUMBS_DOWN_ICON_PATH = "/resources/thumbs-down_icon.png";
-    private static final String THUMBS_UP_ICON_PATH = "/resources/thumbs-up_icon.png";
+    private static final String STEAM_ICON_PATH = "/steam_icon.png";
+    private static final String THUMBS_DOWN_ICON_PATH = "/thumbs-down_icon.png";
+    private static final String THUMBS_UP_ICON_PATH = "/thumbs-up_icon.png";
 
     private static Font roboto;
     private static ImageIcon thumbsUpIcon;

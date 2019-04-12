@@ -1,4 +1,4 @@
-package loop.ui;
+package net.nickyramone.deadbydaylight.loop.ui;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -10,12 +10,12 @@ import java.util.stream.Collectors;
 
 import javax.swing.*;
 
-import loop.Boot;
-import loop.SteamUser;
-import loop.io.DbdSteamLogMonitor;
-import loop.io.Settings;
-import loop.io.peer.IOPeer;
-import loop.io.peer.PeerTracker;
+import net.nickyramone.deadbydaylight.loop.Boot;
+import net.nickyramone.deadbydaylight.loop.SteamUser;
+import net.nickyramone.deadbydaylight.loop.io.DbdSteamLogMonitor;
+import net.nickyramone.deadbydaylight.loop.io.Settings;
+import net.nickyramone.deadbydaylight.loop.io.peer.IOPeer;
+import net.nickyramone.deadbydaylight.loop.io.peer.PeerTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package loop.io;
+package net.nickyramone.deadbydaylight.loop.io;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,22 +18,16 @@ public class Settings {
     private static final Logger logger = LoggerFactory.getLogger(Settings.class);
 
     /**
-     * For debugging: Auto-selects the first network interface it finds.
-     */
-    public static boolean AUTOSELECT_NETWORK_INTERFACE = true;
-
-    /**
      * For debugging: Does not analyze packets and uses a few simulated connections instead.
      */
-    public static boolean SIMULATE_TRAFFIC = false;
+    public static boolean SIMULATE_TRAFFIC = true;
 
     /**
      * For debugging: Stores data without using encryption.
      */
     public static boolean ENCRYPT_STORED_DATA = false;
 
-
-    private final static File save = new File("loop.settings.ini");
+    private final static File save = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
     private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<String, String>();
 
     /**
@@ -46,10 +40,11 @@ public class Settings {
         }
         try {
             BufferedReader bufferedReader = new BufferedReader(new FileReader(save));
-            String line = "";
+            String line;
             while ((line = bufferedReader.readLine()) != null) {
                 if (line.trim().startsWith(";") || !line.contains("=")) {
-                    continue;//skip comments. It's INI, but we'll still pretend to follow conventions.
+                    //skip comments. It's INI, but we'll still pretend to follow conventions.
+                    continue;
                 }
                 loaded.put(line.split("=")[0].trim(), line.substring(line.indexOf('=') + 1).trim());
             }
@@ -99,13 +94,4 @@ public class Settings {
         return Double.parseDouble(get(key, "" + def));
     }
 
-    /**
-     * Removes the given setting key.
-     *
-     * @param key
-     */
-    public static void remove(String key) {
-        loaded.remove(key);
-        save();
-    }
 }

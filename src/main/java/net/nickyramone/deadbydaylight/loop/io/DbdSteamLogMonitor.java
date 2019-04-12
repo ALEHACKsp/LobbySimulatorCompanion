@@ -1,6 +1,6 @@
-package loop.io;
+package net.nickyramone.deadbydaylight.loop.io;
 
-import loop.SteamUser;
+import net.nickyramone.deadbydaylight.loop.SteamUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

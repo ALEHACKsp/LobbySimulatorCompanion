@@ -1,7 +1,7 @@
-package loop.ui;
+package net.nickyramone.deadbydaylight.loop.ui;
 
-import loop.Constants;
-import loop.io.peer.IOPeer;
+import net.nickyramone.deadbydaylight.loop.Constants;
+import net.nickyramone.deadbydaylight.loop.io.peer.IOPeer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import static loop.io.peer.IOPeer.Rating;
+import static net.nickyramone.deadbydaylight.loop.io.peer.IOPeer.Rating;
 
 /**
  * Represents a status bar component for a single connection.
@@ -373,7 +373,7 @@ public class PeerStatus extends JPanel {
 
         if (Rating.UNRATED.equals(rating)) {
             hostUser.setRating(Rating.THUMBS_UP);
-        } else if (Rating.THUMBS_DOWN.equals(rating)) {
+        } else if (Rating.THUMBS_UP.equals(rating)) {
             hostUser.setRating(Rating.THUMBS_DOWN);
         } else {
             hostUser.setRating(Rating.UNRATED);

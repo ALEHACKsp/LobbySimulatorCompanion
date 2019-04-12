@@ -1,10 +1,10 @@
-package loop.io.peer;
+package net.nickyramone.deadbydaylight.loop.io.peer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonWriter;
-import loop.io.FileUtil;
-import loop.io.Settings;
+import net.nickyramone.deadbydaylight.loop.io.FileUtil;
+import net.nickyramone.deadbydaylight.loop.io.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package loop;
+package net.nickyramone.deadbydaylight.loop;
 
 /**
  * Represents a Steam user.
