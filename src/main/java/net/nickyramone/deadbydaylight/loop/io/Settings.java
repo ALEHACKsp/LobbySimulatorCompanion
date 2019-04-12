@@ -22,13 +22,8 @@ public class Settings {
      */
     public static boolean SIMULATE_TRAFFIC = false;
 
-    /**
-     * For debugging: Stores data without using encryption.
-     */
-    public static boolean ENCRYPT_STORED_DATA = true;
-
     private final static File save = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
-    private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<String, String>();
+    private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<>();
 
     /**
      * Loads in the saved settings, if possible.
@@ -75,6 +70,12 @@ public class Settings {
         } catch (IOException e) {
             logger.error("Failed to save settings.", e);
         }
+    }
+
+    public static String get(String key) {
+        String value = loaded.get(key);
+
+        return value != null? value.trim(): null;
     }
 
     /**

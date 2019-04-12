@@ -38,10 +38,9 @@ public class PeerSaver {
      */
     public PeerSaver(File save) {
         this.saveFile = save;
-
         GsonBuilder gsonBuilder = new GsonBuilder();
 
-        if (!Settings.ENCRYPT_STORED_DATA) {
+        if ("0".equals(Settings.get("encrypt"))) {
             gsonBuilder.setPrettyPrinting();
             jsonIndent = "    ";
         } else {
@@ -65,10 +64,11 @@ public class PeerSaver {
             FileUtil.saveFile(this.saveFile, "");
         }
 
-        if (Settings.ENCRYPT_STORED_DATA) {
-            savePeers(openEncryptedStream(this.saveFile), peers);
-        } else {
+        if ("0".equals(Settings.get("encrypt"))) {
             savePeers(new FileOutputStream(this.saveFile.getAbsolutePath()), peers);
+        }
+        else{
+            savePeers(openEncryptedStream(this.saveFile), peers);
         }
     }
 

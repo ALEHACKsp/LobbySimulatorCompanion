@@ -71,11 +71,11 @@ public class PeerReader {
     }
 
     private InputStreamReader open(File f) throws IOException {
-        if (!Settings.ENCRYPT_STORED_DATA) {
+        if ("0".equals(Settings.get("encrypt"))) {
             return new InputStreamReader(new FileInputStream(f), "UTF-8");
         }
 
-        CipherInputStream decStream = null;
+        CipherInputStream decStream;
         FileInputStream fis = new FileInputStream(f);
         try {
             decStream = new CipherInputStream(fis, Security.getCipher(true));

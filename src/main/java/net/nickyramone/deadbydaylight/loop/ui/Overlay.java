@@ -220,7 +220,7 @@ public class Overlay extends JPanel implements Observer {
             IOPeer storedHost = peerTracker.getPeerBySteamId(steamId);
 
             if (storedHost == null) {
-                logger.debug("User of id {} not found in the storage. Creating a new one...", steamId);
+                logger.debug("User of id {} not found in the storage. Creating new entry...", steamId);
                 storedHost = new IOPeer();
                 storedHost.setUID(steamId);
                 storedHost.setRating(IOPeer.Rating.UNRATED);
