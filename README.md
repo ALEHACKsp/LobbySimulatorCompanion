@@ -1,10 +1,10 @@
 # What is LOOP?
 
-LOOP (comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
+LOOP (which comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
 especially while waiting in the match lobbies. It is strongly oriented towards survivor players.
 
 LOOP can continuously show you the ping against the host you are connected to and can let you view the host's name,
- rate them as positive/negative or attach a description, so that next time you encounter them, you know what to expect.
+ rate them as positive/negative or attach a description, so that next time you encounter them, you'll get that information back.
 This is especially useful because some hosts show a good ping on the lobby but then lag terribly during the match, or use
 lag switch, which makes the game experience terrible.
 
@@ -42,19 +42,20 @@ You can see the LOOP bar showing a ping of 92ms, and that I have previously posi
     * Npcap (https://nmap.org/npcap/).
       * Tick "Install Npcap in WinPcap API-compatible Mode" during installation 
         (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
+1. Download loop.jar from the [releases page](https://github.com/nickyramone/LobbySimulatorCompanion/releases).
 1. Create a folder where you would like to install this app (Example, under C:\Program Files\LobbySimulatorCompanion) 
-   and place loop.jar there.
+   and place the jar there.
    * Tip: Don't throw it under the desktop. Just create a folder where to contain this application, and then create
           a desktop launcher if you want.
 
-1. **If UAC is enabled:**\
-You may need to run the application via Command Prompt (this is due to the PCap4J library being unable to find devices).
-* Copy the folder path that LOOP is in, for example: C:\Users\Dwight\Programs\LOOP\
-* Right-click in the same directory as LOOP and create a new text document.
-* Open it with Notepad and type, cd C:\The\Path\You\Copied\Earlier
-* Start a new line with Enter and type, javaw -jar loop.jar
-* Choose Save As and name it LOOP.bat with the option All Files selected
-* Right-click the new batch file and Run as Administrator
+1. **If UAC (User Account Control) is enabled:**\
+  You may need to run the application via Command Prompt (this is due to the PCap4J library being unable to find devices).
+    * Copy the folder path that LOOP is in, for example: C:\Users\Dwight\Programs\LOOP\
+    * Right-click in the same directory as LOOP and create a new text document.
+    * Open it with Notepad and type, cd C:\The\Path\You\Copied\Earlier
+    * Start a new line with Enter and type, javaw -jar loop.jar
+    * Choose Save As and name it LOOP.bat with the option All Files selected
+    * Right-click the new batch file and Run as Administrator
 
 
 # How to run?
@@ -67,7 +68,7 @@ You may need to run the application via Command Prompt (this is due to the PCap4
 
 
 # What's the current status?
-We are in our first Beta version, so expect to encounter some bugs, and there's a possibility 
+I'm releasing beta versions, so expect to encounter some bugs, and there's a possibility 
 that there can be some minor changes.
 
 
