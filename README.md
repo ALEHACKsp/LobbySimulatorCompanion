@@ -73,19 +73,19 @@ Well, you can, but you won't get much from it.
 For now, this is oriented to survivors because it keeps track of a connection against the game host. 
 
 
-## Can I get banned for using LOOP?
-No.
+## Can I get banned by EAC (Easy Anti Cheat) for using LOOP?
+Short answer: No.
 
 
-While I cannot provide a 100% guarantees on this, you shouldn't get banned for using it. Here's why:
+While with these things you can never have a 100% guarantees on this, here's why you shouldn't get banned:
 1) This app does not modify or interact with DBD in any way.
 2) It's a completely external/independent desktop application, which does not hook to any Steam/DBD process.
 3) It only reads packets from P2P connections but never sends or fiddle with any packets.
 4) It doesn't alter the game mechanics in any way so that you can gain in-game advantage.
 5) It is based on the MLGA codebase, which has been approved by EAC, and running since 2016.
-6) This tool will probably become obsolete once public servers are available.
-
-Just in case, I have sent an email to EAC to see if we can get their approval. I am waiting for their reply.
+6) This tool will become obsolete in a few months once public servers are available.
+7) I have contacted EAC (Easy Anti Cheat) and it's not in their interest to ban these kinds of applications,
+   unless explicitly asked by the game developers. Their "main focus is on the specifically crafted cheating tools".
 
 
 ## Why did you create this fork of MLGA (MakeLobbiesGreatAgain)?
