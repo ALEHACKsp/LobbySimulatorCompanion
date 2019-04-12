@@ -3,6 +3,7 @@ package loop;
 import loop.io.FileUtil;
 import loop.io.Settings;
 import loop.ui.Overlay;
+import loop.ui.ResourceFactory;
 import org.pcap4j.core.*;
 import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
 import org.pcap4j.packet.IpV4Packet;
@@ -125,19 +126,16 @@ public class Boot {
     }
 
 
-    public static void setupTray() throws AWTException {
+    public static void setupTray() throws AWTException, IOException {
         final SystemTray tray = SystemTray.getSystemTray();
         final PopupMenu popup = new PopupMenu();
         final MenuItem info = new MenuItem();
         final MenuItem exit = new MenuItem();
-        final TrayIcon trayIcon = new TrayIcon(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), Constants.APP_SHORT_NAME, popup);
-        try {
-            InputStream is = FileUtil.localResource("icon.png");
-            trayIcon.setImage(ImageIO.read(is));
-            is.close();
-        } catch (IOException e1) {
-            logger.error("Failed to load application icon.", e1);
-        }
+
+        BufferedImage trayIconImage = ImageIO.read(FileUtil.localResource("loop_logo.png"));
+        int trayIconWidth = new TrayIcon(trayIconImage).getSize().width;
+        TrayIcon trayIcon = new TrayIcon(trayIconImage.getScaledInstance(trayIconWidth, -1, Image.SCALE_SMOOTH));
+        trayIcon.setToolTip(Constants.APP_NAME);
 
         info.addActionListener(e -> {
             String message = ""
