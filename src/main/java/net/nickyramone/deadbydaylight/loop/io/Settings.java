@@ -20,12 +20,12 @@ public class Settings {
     /**
      * For debugging: Does not analyze packets and uses a few simulated connections instead.
      */
-    public static boolean SIMULATE_TRAFFIC = true;
+    public static boolean SIMULATE_TRAFFIC = false;
 
     /**
      * For debugging: Stores data without using encryption.
      */
-    public static boolean ENCRYPT_STORED_DATA = false;
+    public static boolean ENCRYPT_STORED_DATA = true;
 
     private final static File save = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
     private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<String, String>();
