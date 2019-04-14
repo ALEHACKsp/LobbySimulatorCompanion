@@ -1,8 +1,10 @@
-package net.nickyramone.deadbydaylight.loop;
+package net.lobby_simulator_companion.loop;
 
-import net.nickyramone.deadbydaylight.loop.io.FileUtil;
-import net.nickyramone.deadbydaylight.loop.io.Settings;
-import net.nickyramone.deadbydaylight.loop.ui.Overlay;
+import net.lobby_simulator_companion.loop.config.AppProperties;
+import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.io.peer.Security;
+import net.lobby_simulator_companion.loop.ui.Overlay;
+import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.*;
 import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
 import org.pcap4j.packet.IpV4Packet;
@@ -31,15 +33,43 @@ public class Boot {
     private static Overlay ui;
     private static boolean running = true;
 
-    public static void main(String[] args) throws UnsupportedLookAndFeelException, AWTException, ClassNotFoundException, InterruptedException,
-            InstantiationException, IllegalAccessException, IOException, PcapNativeException, NotOpenException {
+    public static void main(String[] args) throws Exception {
+        try {
+            init();
+        } catch (Exception e) {
+            logger.error("Failed to initialize application: {}", e.getMessage(), e);
+            errorDialog("Failed to initialize application: " + e.getMessage());
+            exitApplication(1);
+        }
+
+        if (Settings.SIMULATE_TRAFFIC) {
+            simulateTraffic();
+        } else {
+            sniffPackets();
+        }
+    }
+
+    private static void init() throws Exception {
+        logger.info("Initializing...");
+        Factory.init();
         System.setProperty("jna.nosys", "true");
         if (!Sanity.check()) {
             System.exit(1);
         }
-        Settings.init();
         Settings.set("autoload", Settings.get("autoload", "0")); //"autoload" is an ini-only toggle for advanced users.
         setupTray();
+
+        logger.info("Setting up network interface...");
+        setUpNetworkInterface();
+
+        logger.info("Starting UI...");
+        ui = new Overlay(Factory.getPlayerService());
+    }
+
+
+    private static void setUpNetworkInterface() throws PcapNativeException, IllegalAccessException, InterruptedException,
+            UnknownHostException, InstantiationException, SocketException, UnsupportedLookAndFeelException,
+            ClassNotFoundException, NotOpenException {
 
         getLocalAddr();
         nif = Pcaps.getDevByAddress(localAddr);
@@ -49,7 +79,7 @@ public class Boot {
                     "Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
-
+        Security.nif = nif; // TODO: ugh! fix this asap!
         final int snapLen = 65536;
         final PromiscuousMode mode = PromiscuousMode.NONPROMISCUOUS;
         final int timeout = 0;
@@ -57,14 +87,10 @@ public class Boot {
 
         // Berkley Packet Filter (BPF): http://biot.com/capstats/bpf.html
         handle.setFilter("udp && less 150", BpfProgram.BpfCompileMode.OPTIMIZE);
+    }
 
-        ui = new Overlay();
 
-        if (Settings.SIMULATE_TRAFFIC) {
-            simulateTraffic();
-            return;
-        }
-
+    private static void sniffPackets() throws NotOpenException {
         while (running) {
 
             final Packet packet = handle.getNextPacket();
@@ -125,6 +151,7 @@ public class Boot {
 
 
     public static void setupTray() throws AWTException, IOException {
+        final AppProperties appProperties = Factory.getAppProperties();
         final SystemTray tray = SystemTray.getSystemTray();
         final PopupMenu popup = new PopupMenu();
         final MenuItem info = new MenuItem();
@@ -134,11 +161,11 @@ public class Boot {
         int trayIconWidth = new TrayIcon(trayIconImage).getSize().width;
         TrayIcon trayIcon = new TrayIcon(trayIconImage.getScaledInstance(trayIconWidth, -1, Image.SCALE_SMOOTH));
         trayIcon.setPopupMenu(popup);
-        trayIcon.setToolTip(Constants.APP_NAME);
+        trayIcon.setToolTip(appProperties.get("app.name"));
 
         info.addActionListener(e -> {
             String message = ""
-                    + Constants.APP_SHORT_NAME + " is a tool to provide Dead By Daylight players more information about the lobby hosts.\n\n"
+                    + appProperties.get("app.name.short") + " is a tool to provide Dead By Daylight players more information about the lobby hosts.\n\n"
                     + "Features:\n"
                     + "======\n"
                     + "- Ping display:\n"
@@ -158,24 +185,39 @@ public class Boot {
                     + "=====\n"
                     + "Author of this fork: NickyRamone\n"
                     + "Original version and core: MLGA project, by PsiLupan & ShadowMoose";
-            JOptionPane.showMessageDialog(null, message, Constants.APP_NAME, JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, message, appProperties.get("app.name"), JOptionPane.INFORMATION_MESSAGE);
         });
 
         exit.addActionListener(e -> {
-            running = false;
-            tray.remove(trayIcon);
-            ui.close();
-            logger.info("Terminated UI.");
-            logger.info("Cleaning up system resources. Could take a while...");
-            handle.close();
-            logger.info("Killed handle.");
-            System.exit(0);
+            exitApplication(0);
         });
         info.setLabel("Help");
         exit.setLabel("Exit");
         popup.add(info);
         popup.add(exit);
         tray.add(trayIcon);
+    }
+
+    public static void exitApplication(int status) {
+        running = false;
+        SystemTray systemTray = SystemTray.getSystemTray();
+
+        for (TrayIcon trayIcon : systemTray.getTrayIcons()) {
+            systemTray.remove(trayIcon);
+        }
+        if (ui != null) {
+            ui.close();
+        }
+
+        logger.info("Terminated UI.");
+
+        if (handle != null) {
+            logger.info("Cleaning up system resources. Could take a while...");
+            handle.close();
+            logger.info("Freed network interface handle.");
+        }
+
+        System.exit(status);
     }
 
     public static void getLocalAddr() throws InterruptedException, PcapNativeException, UnknownHostException, SocketException,
@@ -191,7 +233,7 @@ public class Boot {
         frame.setFocusableWindowState(true);
 
         final JLabel ipLab = new JLabel("Select LAN IP obtained from Network Settings:", JLabel.LEFT);
-        final JComboBox<String> lanIP = new JComboBox<String>();
+        final JComboBox<String> lanIP = new JComboBox<>();
         final JLabel lanLabel = new JLabel("If your device IP isn't in the dropdown, provide it below.");
         final JTextField lanText = new JTextField(Settings.get("addr", ""));
 
@@ -252,5 +294,9 @@ public class Boot {
             Thread.sleep(10);
     }
 
+
+    private static void errorDialog(String msg) {
+        JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
+    }
 
 }

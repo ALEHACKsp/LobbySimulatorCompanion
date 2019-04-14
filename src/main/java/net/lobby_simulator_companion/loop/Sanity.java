@@ -1,29 +1,25 @@
-package net.nickyramone.deadbydaylight.loop;
+package net.lobby_simulator_companion.loop;
 
-import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
+import net.lobby_simulator_companion.loop.ui.GithubPanel;
+import org.pcap4j.core.Pcaps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import javax.swing.JOptionPane;
-
-import org.pcap4j.core.Pcaps;
-
-import net.nickyramone.deadbydaylight.loop.ui.GithubPanel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class Sanity {
     private static final Logger logger = LoggerFactory.getLogger(Sanity.class);
 
-    private final static Double version = 2.2;
     private static boolean headless = false;
 
     public static boolean check() {
         boolean[] checks = {
                 checkGraphics(),
-//                checkUpdate(),
+                checkUpdate(),
                 checkJava(),
                 checkPCap()
         };
@@ -87,7 +83,7 @@ public class Sanity {
     }
 
     public static boolean checkUpdate() {
-        GithubPanel mp = new GithubPanel(version);
+        GithubPanel mp = new GithubPanel();
         if (!mp.prompt()) {
             message("At least one update located is mandatory!\nSome updates can be very important for functionality and your security.\nPlease update LOOP before running!");
             return false;

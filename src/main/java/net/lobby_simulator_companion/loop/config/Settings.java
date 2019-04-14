@@ -1,5 +1,6 @@
-package net.nickyramone.deadbydaylight.loop.io;
+package net.lobby_simulator_companion.loop.config;
 
+import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,10 +21,14 @@ public class Settings {
     /**
      * For debugging: Does not analyze packets and uses a few simulated connections instead.
      */
-    public static boolean SIMULATE_TRAFFIC = false;
+    public static boolean SIMULATE_TRAFFIC = true;
 
     private final static File save = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
     private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<>();
+
+    static {
+        init();
+    }
 
     /**
      * Loads in the saved settings, if possible.

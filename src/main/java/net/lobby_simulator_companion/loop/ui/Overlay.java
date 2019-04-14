@@ -1,31 +1,29 @@
-package net.nickyramone.deadbydaylight.loop.ui;
+package net.lobby_simulator_companion.loop.ui;
 
+import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.service.DbdSteamLogMonitor;
+import net.lobby_simulator_companion.loop.service.Player;
+import net.lobby_simulator_companion.loop.Boot;
+import net.lobby_simulator_companion.loop.service.PlayerService;
+import net.lobby_simulator_companion.loop.service.SteamUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.net.Inet4Address;
-import java.util.*;
 import java.util.Timer;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import javax.swing.*;
-
-import net.nickyramone.deadbydaylight.loop.Boot;
-import net.nickyramone.deadbydaylight.loop.SteamUser;
-import net.nickyramone.deadbydaylight.loop.io.DbdSteamLogMonitor;
-import net.nickyramone.deadbydaylight.loop.io.Settings;
-import net.nickyramone.deadbydaylight.loop.io.peer.IOPeer;
-import net.nickyramone.deadbydaylight.loop.io.peer.PeerTracker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Overlay extends JPanel implements Observer {
     private static final long serialVersionUID = -470849574354121503L;
-
     private static final Logger logger = LoggerFactory.getLogger(Overlay.class);
 
     private DbdSteamLogMonitor logMonitor;
-    private PeerTracker peerTracker;
+    private final PlayerService playerService;
 
     private JFrame frame;
     private JLabel emptyStatus;
@@ -42,14 +40,14 @@ public class Overlay extends JPanel implements Observer {
     private static final int CLEANER_POLL_MS = 2500;
 
 
-    public Overlay() throws ClassNotFoundException, InstantiationException, IllegalAccessException,
+    public Overlay(PlayerService playerService) throws ClassNotFoundException, InstantiationException, IllegalAccessException,
             UnsupportedLookAndFeelException, IOException {
+
+        this.playerService = playerService;
 
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         defineListeners();
         createEmptyStatus();
-
-        peerTracker = new PeerTracker();
 
         setOpaque(false);
         frame = new JFrame();
@@ -96,7 +94,9 @@ public class Overlay extends JPanel implements Observer {
             public void startEdit() {
                 frame.setMinimumSize(new Dimension(500, 0));
                 frame.setFocusableWindowState(true);
+                peerStatus.update();
                 frame.pack();
+                peerStatus.focusOnEditField();
             }
 
             @Override
@@ -115,7 +115,7 @@ public class Overlay extends JPanel implements Observer {
 
             @Override
             public void peerDataChanged() {
-                peerTracker.savePeers();
+                playerService.save();
             }
         };
     }
@@ -195,7 +195,7 @@ public class Overlay extends JPanel implements Observer {
 
     private void clearUserHostStatus() {
         frame.remove(peerStatus);
-        peerStatus.setHostUser(new IOPeer());
+        peerStatus.setHostUser(new Player());
         peerStatus.update();
         logMonitor.clearUser();
         frame.add(emptyStatus);
@@ -217,16 +217,16 @@ public class Overlay extends JPanel implements Observer {
             SteamUser steamUser = logMonitor.getLastSteamUserFound();
             String steamId = steamUser.getId();
             String steamName = steamUser.getName();
-            IOPeer storedHost = peerTracker.getPeerBySteamId(steamId);
+            Player storedHost = playerService.getPlayerBySteamId(steamId);
 
             if (storedHost == null) {
                 logger.debug("User of id {} not found in the storage. Creating new entry...", steamId);
-                storedHost = new IOPeer();
+                storedHost = new Player();
                 storedHost.setUID(steamId);
-                storedHost.setRating(IOPeer.Rating.UNRATED);
+                storedHost.setRating(Player.Rating.UNRATED);
                 storedHost.setDescription("");
                 storedHost.addName(steamUser.getName());
-                peerTracker.addPeer(steamId, storedHost);
+                playerService.addPlayer(steamId, storedHost);
             } else {
                 logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry.", steamId, steamName);
                 storedHost.addName(steamName);

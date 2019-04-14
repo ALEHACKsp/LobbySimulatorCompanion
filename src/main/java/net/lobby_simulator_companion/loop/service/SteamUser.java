@@ -1,4 +1,4 @@
-package net.nickyramone.deadbydaylight.loop;
+package net.lobby_simulator_companion.loop.service;
 
 /**
  * Represents a Steam user.

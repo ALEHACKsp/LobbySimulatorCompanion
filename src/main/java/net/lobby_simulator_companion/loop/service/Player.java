@@ -1,4 +1,4 @@
-package net.nickyramone.deadbydaylight.loop.io.peer;
+package net.lobby_simulator_companion.loop.service;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -11,7 +11,7 @@ import java.util.Objects;
  * Wrapper used to save/load Peer settings.
  * Must be serializable, so GSON can stream-encode them as objects.
  */
-public class IOPeer implements Serializable {
+public class Player implements Serializable {
 
     private static final int MAX_NAMES_STORED = 5;
 
@@ -50,7 +50,7 @@ public class IOPeer implements Serializable {
     private String description;
 
 
-    public IOPeer() {
+    public Player() {
         this.firstSeen = System.currentTimeMillis();
     }
 
@@ -116,7 +116,7 @@ public class IOPeer implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        IOPeer ioPeer = (IOPeer) o;
+        Player ioPeer = (Player) o;
         return firstSeen == ioPeer.firstSeen &&
                 Objects.equals(uid, ioPeer.uid) &&
                 names.equals(ioPeer.names) &&

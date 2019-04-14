@@ -1,10 +1,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>net.nickyramone.deadbydaylight.lobby-simulator-companion</groupId>
+    <groupId>net.lobby-simulator-companion</groupId>
     <artifactId>loop</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-beta-3-SNAPSHOT</version>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -13,7 +19,7 @@
                     <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
-                            <mainClass>net.nickyramone.deadbydaylight.loop.Boot</mainClass>
+                            <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -61,6 +67,11 @@
             <groupId>org.pcap4j</groupId>
             <artifactId>pcap4j-packetfactory-static</artifactId>
             <version>1.7.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.zafarkhaja</groupId>
+            <artifactId>java-semver</artifactId>
+            <version>0.9.0</version>
         </dependency>
     </dependencies>
 </project>

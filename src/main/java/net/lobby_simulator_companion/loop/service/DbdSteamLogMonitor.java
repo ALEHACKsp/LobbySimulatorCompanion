@@ -1,6 +1,6 @@
-package net.nickyramone.deadbydaylight.loop.io;
+package net.lobby_simulator_companion.loop.service;
 
-import net.nickyramone.deadbydaylight.loop.SteamUser;
+import net.lobby_simulator_companion.loop.config.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,8 +1,9 @@
-package net.nickyramone.deadbydaylight.loop.io.peer;
+package net.lobby_simulator_companion.loop.io.peer;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
-import net.nickyramone.deadbydaylight.loop.io.Settings;
+import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.service.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +20,7 @@ import java.util.zip.GZIPInputStream;
  *
  * @author ShadowMoose
  */
+@Deprecated
 public class PeerReader {
     private static final Logger logger = LoggerFactory.getLogger(PeerReader.class);
 
@@ -39,9 +41,9 @@ public class PeerReader {
     /**
      * Gets the next unread IOPeer in the list, or null if none remain.
      */
-    public IOPeer next() throws IOException {
+    public Player next() throws IOException {
         if (reader.hasNext()) {
-            IOPeer peer = gson.fromJson(reader, IOPeer.class);
+            Player peer = gson.fromJson(reader, Player.class);
             return peer;
         }
         return null;
@@ -78,7 +80,7 @@ public class PeerReader {
         CipherInputStream decStream;
         FileInputStream fis = new FileInputStream(f);
         try {
-            decStream = new CipherInputStream(fis, Security.getCipher(true));
+            decStream = new CipherInputStream(fis, Security.getCipher_macBased(true));
         } catch (Exception e) {
             logger.error("Failed to create encrypted stream.", e);
             throw new IOException();

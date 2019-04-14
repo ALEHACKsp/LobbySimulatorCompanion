@@ -1,7 +1,7 @@
-package net.nickyramone.deadbydaylight.loop.ui;
+package net.lobby_simulator_companion.loop.ui;
 
-import net.nickyramone.deadbydaylight.loop.Constants;
-import net.nickyramone.deadbydaylight.loop.io.peer.IOPeer;
+import net.lobby_simulator_companion.loop.service.Player;
+import net.lobby_simulator_companion.loop.Factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,8 +11,6 @@ import java.awt.event.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
-
-import static net.nickyramone.deadbydaylight.loop.io.peer.IOPeer.Rating;
 
 /**
  * Represents a status bar component for a single connection.
@@ -38,7 +36,7 @@ public class PeerStatus extends JPanel {
     private MouseMotionListener mouseMotionListener;
 
     private int ping;
-    private IOPeer hostUser;
+    private Player hostUser;
 
 
     /**
@@ -65,7 +63,7 @@ public class PeerStatus extends JPanel {
 
 
     public PeerStatus(PeerStatusListener listener) {
-        hostUser = new IOPeer();
+        hostUser = new Player();
         this.listener = listener;
 
         setBackground(new Color(0, 0, 0, 255));
@@ -165,7 +163,8 @@ public class PeerStatus extends JPanel {
                     setVisible(separator2Label, true);
                     setVisible(descriptionLabel, false);
                     setVisible(editField, true);
-                    editField.requestFocusInWindow();
+//                    editField.requestFocusInWindow();
+//                    update();
                     listener.startEdit();
                 } else {
                     for (MouseListener listener : getMouseListeners()) {
@@ -226,7 +225,7 @@ public class PeerStatus extends JPanel {
                 super.mouseClicked(e);
                 if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown()) {
                     try {
-                        String profileUrl = Constants.STEAM_PROFILE_URL_PREFIX + hostUser.getUID();
+                        String profileUrl = Factory.getAppProperties().get("steam.profile_url_prefix") + hostUser.getUID();
                         Desktop.getDesktop().browse(new URL(profileUrl).toURI());
                     } catch (IOException e1) {
                         logger.error("Failed to open browser at Steam profile.");
@@ -353,12 +352,12 @@ public class PeerStatus extends JPanel {
 
         if (userDetected) {
             userNameLabel.setText(hostUser.getMostRecentName());
-            Rating peerRating = hostUser.getRating();
+            Player.Rating peerRating = hostUser.getRating();
 
-            if (peerRating == Rating.THUMBS_DOWN) {
+            if (peerRating == Player.Rating.THUMBS_DOWN) {
                 setVisible(ratingLabel, true);
                 ratingLabel.setIcon(ResourceFactory.getThumbsDownIcon());
-            } else if (peerRating == Rating.THUMBS_UP) {
+            } else if (peerRating == Player.Rating.THUMBS_UP) {
                 setVisible(ratingLabel, true);
                 ratingLabel.setIcon(ResourceFactory.getThumbsUpIcon());
             } else {
@@ -369,18 +368,18 @@ public class PeerStatus extends JPanel {
     }
 
     public void rateHostUser() {
-        Rating rating = hostUser.getRating();
+        Player.Rating rating = hostUser.getRating();
 
-        if (Rating.UNRATED.equals(rating)) {
-            hostUser.setRating(Rating.THUMBS_UP);
-        } else if (Rating.THUMBS_UP.equals(rating)) {
-            hostUser.setRating(Rating.THUMBS_DOWN);
+        if (Player.Rating.UNRATED.equals(rating)) {
+            hostUser.setRating(Player.Rating.THUMBS_UP);
+        } else if (Player.Rating.THUMBS_UP.equals(rating)) {
+            hostUser.setRating(Player.Rating.THUMBS_DOWN);
         } else {
-            hostUser.setRating(Rating.UNRATED);
+            hostUser.setRating(Player.Rating.UNRATED);
         }
     }
 
-    public void setHostUser(IOPeer hostUser) {
+    public void setHostUser(Player hostUser) {
         this.hostUser = hostUser;
         editField.setText(hostUser.getDescription());
         lastDescription = hostUser.getDescription();
@@ -394,6 +393,10 @@ public class PeerStatus extends JPanel {
         if (component.isVisible() != visible) {
             component.setVisible(visible);
         }
+    }
+
+    public void focusOnEditField() {
+        editField.requestFocusInWindow();
     }
 
 }

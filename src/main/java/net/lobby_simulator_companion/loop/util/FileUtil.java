@@ -1,13 +1,12 @@
-package net.nickyramone.deadbydaylight.loop.io;
+package net.lobby_simulator_companion.loop.util;
 
+import net.lobby_simulator_companion.loop.Factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,19 +20,8 @@ import java.nio.file.StandardCopyOption;
 public class FileUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(FileUtil.class);
+    private static Path APP_PATH = Paths.get(Factory.getAppProperties().get("app.home"));
 
-    private static Path APP_PATH;
-
-    static {
-        try {
-            URI execUri = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().toURI();
-            APP_PATH = new File(execUri).toPath().getParent();
-            logger.info("Application running in: {}", APP_PATH);
-        } catch (URISyntaxException e) {
-            logger.error("Failed to initialize the application running directory.", e);
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Get the base directory path for all LOOP files, if left at default .  <br>
@@ -51,7 +39,7 @@ public class FileUtil {
      * Attempts to back up any copies of valid Files passed to it. <br>
      * Supports creating multiple rolling backups of the same file within the same supplied backup dir.
      *
-     * @param f          The file to duplicate
+     * @param f         The file to duplicate
      * @param backupDir The directory to store the backup in.
      * @return True if the save works.
      */

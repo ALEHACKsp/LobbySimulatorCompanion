@@ -1,8 +1,18 @@
-package net.nickyramone.deadbydaylight.loop.ui;
+package net.lobby_simulator_companion.loop.ui;
 
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.Font;
+import com.github.zafarkhaja.semver.Version;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import net.lobby_simulator_companion.loop.Factory;
+import net.lobby_simulator_companion.loop.config.AppProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.swing.*;
+import javax.swing.event.HyperlinkEvent.EventType;
+import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -11,20 +21,6 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.swing.JEditorPane;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.UIManager;
-import javax.swing.event.HyperlinkEvent.EventType;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import net.nickyramone.deadbydaylight.loop.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A panel for rendering Github updates, somewhat faithfully.
@@ -43,21 +39,22 @@ public class GithubPanel extends JFrame {
      */
     private static final String mandatory = "Required";
     private String html = "";
-    private double version = 0;
+    //    private double version;
+    private Version appVersion;
     private JEditorPane ed;
+
+    private AppProperties appProperties = Factory.getAppProperties();
 
     private int updates = 0, required = 0;
 
     /**
      * Creates the new Panel and parses the supplied HTML.  <br>
      * <b> Supported Github Markdown: </b><i> Lists (unordered), Links, Images, Bold ('**' and '__'), Strikethrough, & Italics.  </i>
-     *
-     * @param currentVersion The version of the Jar currently running.
      */
-    public GithubPanel(double currentVersion) {
-        this.version = currentVersion;
+    public GithubPanel() {
+        this.appVersion = Version.valueOf(Factory.getAppProperties().get("app.version"));
 
-        setTitle(Constants.APP_SHORT_NAME + " Update");
+        setTitle(appProperties.get("app.name.short") + " Update");
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             parseReleases();
@@ -213,19 +210,11 @@ public class GithubPanel extends JFrame {
         for (int i = 0; i < arr.size(); i++) {
             JsonObject obj = arr.get(i).getAsJsonObject();
             try {
-                String vers = obj.get("tag_name").getAsString();
-                if (vers.contains("-")) {
-                    vers = vers.substring(0, vers.indexOf("-")).trim();
+                String versionString = obj.get("tag_name").getAsString();
+                Version version = Version.valueOf(versionString);
+                if (appVersion.compareTo(version) > 0) {
+                    return;
                 }
-                double nv;
-                try {
-                    nv = Double.parseDouble(vers);
-                } catch (NumberFormatException e) {
-                    nv = 2.0;
-                }
-                if (nv <= this.version)
-                    continue;// Skip older updates.
-                logger.info("Version: {}", nv);
 
                 if (i > 0)
                     html += "<hr />";
@@ -246,6 +235,6 @@ public class GithubPanel extends JFrame {
                 logger.error("Failed to parse a release version.", e);
             }
         }
-        setTitle(Constants.APP_SHORT_NAME + " Update - " + updates + " releases behind");
+        setTitle(appProperties.get("app.name.short") + " Update - " + updates + " releases behind");
     }
 }
