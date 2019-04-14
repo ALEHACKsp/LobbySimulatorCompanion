@@ -21,7 +21,7 @@ public class Settings {
     /**
      * For debugging: Does not analyze packets and uses a few simulated connections instead.
      */
-    public static boolean SIMULATE_TRAFFIC = true;
+    public static boolean SIMULATE_TRAFFIC = false;
 
     private final static File save = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
     private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<>();
