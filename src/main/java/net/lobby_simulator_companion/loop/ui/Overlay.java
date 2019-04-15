@@ -198,21 +198,19 @@ public class Overlay extends JPanel implements Observer {
 
             if (connected && connectionCount == 0) {
                 clearUserHostStatus();
+            } else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
+                /** we went from having 1+ connections to 1. If there's a host user in the queue, we must use it
+                 * to replace the current user in the status.
+                 */
+                Player lobbyHost = lobbyHosts.poll();
+                peerStatus.setHostUser(lobbyHost);
+                peerStatus.update();
             }
-//            else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
-////                updateLobbyHost();
-////                updateSteamUserIfNecessary();
-//                Player lobbyHost = lobbyHosts.poll();
-//                peerStatus.setHostUser(lobbyHost);
-//                peerStatus.update();
-//
-//            }
         }
         frame.pack();
         frame.revalidate();
         frame.repaint();
     }
-
 
 
     private void clearUserHostStatus() {
@@ -243,6 +241,7 @@ public class Overlay extends JPanel implements Observer {
                 playerService.addPlayer(steamId, player);
             } else {
                 logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry...", steamId, steamName);
+                player.updateLastSeen();
                 player.addName(steamName);
             }
 

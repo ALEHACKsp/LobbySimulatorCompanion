@@ -33,6 +33,11 @@ public class Player implements Serializable {
     private long firstSeen;
 
     /**
+     * When this peer was last seen.
+     */
+    private long lastSeen;
+
+    /**
      * The last Steam names used by this peer.
      * We will constrain this to a fixed number (for example, the last 5 used names).
      * The last one in the array is the most recent.
@@ -40,18 +45,20 @@ public class Player implements Serializable {
     private List<String> names = new ArrayList<>();
 
     /**
-     * This peer's rating value
+     * This peer's rating value.
      */
     private Rating rating = Rating.UNRATED;
 
     /**
-     * A description for this peer
+     * A description for this peer.
      */
     private String description;
 
 
     public Player() {
-        this.firstSeen = System.currentTimeMillis();
+        long currentTime = System.currentTimeMillis();
+        firstSeen = currentTime;
+        lastSeen = currentTime;
     }
 
 
@@ -109,6 +116,10 @@ public class Player implements Serializable {
 
     public String getDescription() {
         return description == null ? "" : description;
+    }
+
+    public void updateLastSeen() {
+        lastSeen = System.currentTimeMillis();
     }
 
 
