@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.lobby-simulator-companion</groupId>
     <artifactId>loop</artifactId>
-    <version>1.0.0-beta-5-SNAPSHOT</version>
+    <version>1.0.0-beta-5</version>
     <description>LObby simulatOr comPanion (LOOP)</description>
 
     <build>
@@ -98,6 +98,6 @@
     </dependencies>
     <scm>
         <connection>scm:git:https://github.com/nickyramone/LobbySimulatorCompanion.git</connection>
-        <tag>HEAD</tag>
+        <tag>1.0.0-beta-5</tag>
     </scm>
 </project>
