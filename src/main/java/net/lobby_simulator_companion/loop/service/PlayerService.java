@@ -25,8 +25,11 @@ public class PlayerService {
     private final Map<String, Player> players = new HashMap<>();
 
 
-    public PlayerService(PlayerbaseRepository playerbaseRepository) throws IOException {
+    public PlayerService(PlayerbaseRepository playerbaseRepository) {
         repository = playerbaseRepository;
+    }
+
+    public void init() throws IOException {
         Playerbase playerbase;
         try {
             playerbase = repository.load();

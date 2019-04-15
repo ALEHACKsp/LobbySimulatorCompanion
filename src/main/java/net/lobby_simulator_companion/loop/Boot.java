@@ -34,7 +34,6 @@ public class Boot {
     private static InetAddress localAddr;
     private static PcapHandle handle = null;
     private static Overlay ui;
-    private static DebugPanel debugPanel;
     private static boolean running = true;
 
     public static void main(String[] args) throws Exception {
@@ -73,6 +72,7 @@ public class Boot {
         logger.info("Setting up network interface...");
         setUpNetworkInterface();
         Factory.getPlayerbaseRepository().setNetworkInterface(nif);
+        Factory.getPlayerService().init();
 
         logger.info("Starting UI...");
         ui = Factory.getOverlay();
@@ -179,7 +179,9 @@ public class Boot {
                     + "=====\n"
                     + "Author of this fork: NickyRamone\n"
                     + "Original version and core: MLGA project, by PsiLupan & ShadowMoose";
-            JOptionPane.showMessageDialog(null, message, appProperties.get("app.name"), JOptionPane.INFORMATION_MESSAGE);
+
+            String title = appProperties.get("app.name") + " " + appProperties.get("app.version");
+            JOptionPane.showMessageDialog(null, message, title, JOptionPane.INFORMATION_MESSAGE);
         });
 
         exit.addActionListener(e -> {

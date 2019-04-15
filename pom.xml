@@ -7,6 +7,10 @@
     <build>
         <resources>
             <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
                 <directory>src/main/resources-filtered</directory>
                 <filtering>true</filtering>
             </resource>
@@ -83,6 +87,5 @@
     </dependencies>
     <scm>
         <connection>scm:git:https://github.com/nickyramone/LobbySimulatorCompanion.git</connection>
-      <tag>HEAD</tag>
-  </scm>
+    </scm>
 </project>
