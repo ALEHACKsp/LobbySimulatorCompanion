@@ -36,8 +36,6 @@ public final class ResourceFactory {
     public static synchronized Font getRobotoFont() {
         if (roboto == null) {
             InputStream is = ResourceFactory.class.getResourceAsStream(ROBOTO_FONT_PATH);
-//            InputStream is = FileUtil.localResource("Roboto-Medium.ttf");
-//            InputStream is = new File(url.toURI());
             try {
                 roboto = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(15f);
             } catch (FontFormatException e) {
@@ -92,6 +90,5 @@ public final class ResourceFactory {
 
         return steamIcon;
     }
-
 
 }

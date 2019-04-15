@@ -1,14 +1,24 @@
 package net.lobby_simulator_companion.loop;
 
+import net.lobby_simulator_companion.loop.service.DbdSteamLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerbaseRepository;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.service.PlayerService;
+import net.lobby_simulator_companion.loop.ui.DebugPanel;
+import net.lobby_simulator_companion.loop.ui.Overlay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.channels.Channels;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Factory for all classes.
+ * Can eventually be replaced by an IOC container like Guice.
+ *
+ * @author NickyRamone
+ */
 public final class Factory {
     private static final Logger logger = LoggerFactory.getLogger(Factory.class);
 
@@ -20,15 +30,18 @@ public final class Factory {
 
     public static void init() {
         try {
-            createAppProperties();
-            // TODO: we should create them here, but right now we can't because Security uses Boot.nif
-//            createPlayerbaseRepository();
-//            createPlayerService();
-        }
-        catch (Exception e) {
-            logger.error("Failed to instantiate classes." , e);
+            createInstances();
+        } catch (Exception e) {
+            logger.error("Failed to instantiate classes.", e);
             throw new RuntimeException("Failed to create instances.", e);
         }
+    }
+
+    private static void createInstances() throws Exception {
+        createAppProperties();
+        createPlayerbaseRepository();
+        createPlayerService();
+        createDbdLogMonitor();
     }
 
 
@@ -41,14 +54,14 @@ public final class Factory {
     }
 
     public static PlayerbaseRepository getPlayerbaseRepository() {
-        PlayerbaseRepository instance = (PlayerbaseRepository) instances.get(PlayerbaseRepository.class);
+        Object instance = instances.get(PlayerbaseRepository.class);
 
         if (instance == null) {
             createPlayerbaseRepository();
-            instance = (PlayerbaseRepository) instances.get(PlayerbaseRepository.class);
+            instance = instances.get(PlayerbaseRepository.class);
         }
 
-        return instance;
+        return (PlayerbaseRepository) instance;
     }
 
     private static void createPlayerbaseRepository() {
@@ -56,20 +69,62 @@ public final class Factory {
     }
 
     public static PlayerService getPlayerService() throws Exception {
-        PlayerService instance = (PlayerService) instances.get(PlayerService.class);
+        Object instance = instances.get(PlayerService.class);
 
         if (instance == null) {
             createPlayerService();
-            instance = (PlayerService) instances.get(PlayerService.class);
+            instance = instances.get(PlayerService.class);
         }
 
-        return instance;
+        return (PlayerService) instance;
     }
 
     private static void createPlayerService() throws Exception {
         PlayerbaseRepository playerbaseRepository = getPlayerbaseRepository();
         PlayerService instance = new PlayerService(playerbaseRepository);
         instances.put(PlayerService.class, instance);
+    }
+
+    private static DbdSteamLogMonitor getDbdLogMonitor() {
+        return (DbdSteamLogMonitor) instances.get(DbdSteamLogMonitor.class);
+    }
+
+    private static void createDbdLogMonitor() throws Exception {
+        Object instance = new DbdSteamLogMonitor();
+        instances.put(DbdSteamLogMonitor.class, instance);
+    }
+
+    public static Overlay getOverlay() throws Exception {
+        Object instance = instances.get(Overlay.class);
+
+        if (instance == null) {
+            createOverlay();
+            instance = instances.get(Overlay.class);
+        }
+
+        return (Overlay) instance;
+    }
+
+    private static void createOverlay() throws Exception {
+        Overlay instance = new Overlay(getPlayerService(), getDbdLogMonitor());
+        instances.put(Overlay.class, instance);
+    }
+
+
+    public static DebugPanel getDebugPanel() throws Exception {
+        Object instance = instances.get(DebugPanel.class);
+
+        if (instance == null) {
+            createDebugPanel();
+            instance = instances.get(DebugPanel.class);
+        }
+
+        return (DebugPanel) instance;
+    }
+
+    private static void createDebugPanel() throws Exception {
+        DebugPanel instance = new DebugPanel(getOverlay(), getDbdLogMonitor());
+        instances.put(DebugPanel.class, instance);
     }
 
 

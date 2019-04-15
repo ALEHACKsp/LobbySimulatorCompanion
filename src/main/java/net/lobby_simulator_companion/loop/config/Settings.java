@@ -18,10 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Settings {
     private static final Logger logger = LoggerFactory.getLogger(Settings.class);
 
-    /**
-     * For debugging: Does not analyze packets and uses a few simulated connections instead.
-     */
-    public static boolean SIMULATE_TRAFFIC = false;
+    public static boolean ENABLE_DEBUG_PANEL = false;
 
     private final static File save = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
     private static ConcurrentHashMap<String, String> loaded = new ConcurrentHashMap<>();

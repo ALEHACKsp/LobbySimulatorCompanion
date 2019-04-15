@@ -1,14 +1,15 @@
 package net.lobby_simulator_companion.loop.service;
 
-import net.lobby_simulator_companion.loop.config.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Observable;
-import java.util.Observer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,9 +43,8 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
     private long logSize;
 
 
-    public DbdSteamLogMonitor(Observer observer) throws IOException {
+    public DbdSteamLogMonitor() throws IOException {
         initReader();
-        addObserver(observer);
     }
 
 
@@ -57,12 +57,6 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
 
         // consume all entries in the log file, since they are old and cannot be related to any active connection.
         while (reader.readLine() != null) ;
-
-        if (Settings.SIMULATE_TRAFFIC) {
-            lastSteamNameFound = "DummyUser";
-            lastSteamIdFound = "12345";
-            notifyObservers();
-        }
     }
 
 
@@ -117,19 +111,11 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
             lastSteamIdFound = steamUserId;
             logger.debug("Detected host user id: {}", steamUserId);
             setChanged();
-            notifyObservers();
+            notifyObservers(new SteamUser(lastSteamIdFound, lastSteamNameFound));
         }
     }
 
-    public SteamUser getLastSteamUserFound() {
-        if (lastSteamNameFound == null || lastSteamIdFound == null) {
-            return null;
-        }
-
-        return new SteamUser(lastSteamIdFound, lastSteamNameFound);
-    }
-
-    public void clearUser() {
+    private void clearUser() {
         lastSteamIdFound = null;
         lastSteamNameFound = null;
     }

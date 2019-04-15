@@ -14,7 +14,7 @@ Streamers might also find it especially useful to avoid harassment and excessive
 # What does it look like?
 Here's a screenshot:
 
-![](./docs/lobby_sample.png)
+![](docs/images/lobby_sample.png)
 
 You can see the LOOP bar showing a ping of 92ms, and that I have previously positively rated this killer with a description of "Nice and fun killer!". 
 

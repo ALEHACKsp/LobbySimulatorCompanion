@@ -63,7 +63,6 @@ public class PeerStatus extends JPanel {
 
 
     public PeerStatus(PeerStatusListener listener) {
-        hostUser = new Player();
         this.listener = listener;
 
         setBackground(new Color(0, 0, 0, 255));
@@ -163,8 +162,6 @@ public class PeerStatus extends JPanel {
                     setVisible(separator2Label, true);
                     setVisible(descriptionLabel, false);
                     setVisible(editField, true);
-//                    editField.requestFocusInWindow();
-//                    update();
                     listener.startEdit();
                 } else {
                     for (MouseListener listener : getMouseListeners()) {
@@ -235,6 +232,8 @@ public class PeerStatus extends JPanel {
                 }
             }
         });
+        steamLabel.addMouseListener(mouseListener);
+        steamLabel.addMouseMotionListener(mouseMotionListener);
     }
 
     private void createUserNameLabel() {
@@ -267,9 +266,11 @@ public class PeerStatus extends JPanel {
     }
 
     private void createDescriptionEditField() {
-        editField = new JTextField(hostUser.getDescription());
+        String description = hostUser != null ? hostUser.getDescription() : "";
+
+        editField = new JTextField(description);
         editField.setCaretColor(Color.WHITE);
-        editField.setCaretPosition(hostUser.getDescription().length());
+        editField.setCaretPosition(description.length());
         editField.setBackground(Color.BLACK);
         editField.setForeground(Color.WHITE);
         editField.setColumns(30);
@@ -336,17 +337,10 @@ public class PeerStatus extends JPanel {
 
 
     private void updateUserInfo() {
-        boolean userDetected = !hostUser.getUID().isEmpty();
-        boolean hasDescription = !hostUser.getDescription().isEmpty();
-        setVisible(separator1Label, userDetected);
-        setVisible(steamLabel, userDetected);
-        userNameLabel.setVisible(userDetected);
-        steamLabel.setVisible(userDetected);
-        userNameLabel.setVisible(userDetected);
+        boolean userDetected = hostUser != null;
+        boolean hasDescription = userDetected && !hostUser.getDescription().isEmpty();
 
-        if (!editingDescription) {
-            separator2Label.setVisible(hasDescription);
-            descriptionLabel.setVisible(hasDescription);
+        if (userDetected && !editingDescription) {
             descriptionLabel.setText(hostUser.getDescription());
         }
 
@@ -355,16 +349,20 @@ public class PeerStatus extends JPanel {
             Player.Rating peerRating = hostUser.getRating();
 
             if (peerRating == Player.Rating.THUMBS_DOWN) {
-                setVisible(ratingLabel, true);
                 ratingLabel.setIcon(ResourceFactory.getThumbsDownIcon());
             } else if (peerRating == Player.Rating.THUMBS_UP) {
-                setVisible(ratingLabel, true);
                 ratingLabel.setIcon(ResourceFactory.getThumbsUpIcon());
             } else {
-                setVisible(ratingLabel, false);
                 ratingLabel.setIcon(null);
             }
         }
+
+        setVisible(separator1Label, userDetected);
+        setVisible(steamLabel, userDetected);
+        setVisible(userNameLabel, userDetected);
+        setVisible(ratingLabel, userDetected && Player.Rating.UNRATED != hostUser.getRating());
+        setVisible(separator2Label, hasDescription);
+        setVisible(descriptionLabel, hasDescription);
     }
 
     public void rateHostUser() {
@@ -381,8 +379,13 @@ public class PeerStatus extends JPanel {
 
     public void setHostUser(Player hostUser) {
         this.hostUser = hostUser;
-        editField.setText(hostUser.getDescription());
-        lastDescription = hostUser.getDescription();
+        String description = hostUser != null ? hostUser.getDescription() : "";
+        editField.setText(description);
+        lastDescription = description;
+    }
+
+    public boolean hasHostUser() {
+        return hostUser != null;
     }
 
     public void setPing(int ping) {

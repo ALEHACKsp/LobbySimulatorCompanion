@@ -10,6 +10,7 @@ import net.lobby_simulator_companion.loop.util.FileUtil;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.io.peer.PeerReader;
+import org.pcap4j.core.PcapNetworkInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +39,6 @@ public class PlayerbaseRepository {
 
     private final String jsonIndent;
 
-    private static final int VERSION = 1;
-
 
     public PlayerbaseRepository() {
         AppProperties appProperties = Factory.getAppProperties();
@@ -58,7 +57,7 @@ public class PlayerbaseRepository {
     }
 
 
-    public Playerbase load() throws IOException {
+    public Playerbase load() throws FileNotFoundException {
         // TODO: Use a single method after the first stable release
         Playerbase playerbase;
 
@@ -70,13 +69,16 @@ public class PlayerbaseRepository {
             save(playerbase);
         } catch (Exception e) {
             // mac-based cipher failed. Attempt with the new one
-            logger.info("Legacy beta cipher failed. Attempting with new cipher...");
+            logger.info("Legacy beta cipher failed. Attempting with latest cipher...");
             try {
                 Cipher cipher = Security.getCipher(true);
                 JsonReader reader = createJsonReader(cipher);
                 playerbase = gson.fromJson(reader, Playerbase.class);
-            } catch (Exception e2) {
-                throw new RuntimeException("Failed to load playerbase. Data file corrupt?", e2);
+            }
+            catch (FileNotFoundException e2) {
+                throw e2;
+            } catch (Exception e3) {
+                throw new RuntimeException("Failed to load playerbase. Data file corrupt?", e3);
             }
         }
 
@@ -155,4 +157,8 @@ public class PlayerbaseRepository {
         return new JsonWriter(new OutputStreamWriter(outputStream, "UTF-8"));
     }
 
+    // TODO: get rid of this
+    public void setNetworkInterface(PcapNetworkInterface nif) {
+        Security.nif = nif;
+    }
 }

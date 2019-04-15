@@ -3,6 +3,7 @@ package net.lobby_simulator_companion.loop;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.io.peer.Security;
+import net.lobby_simulator_companion.loop.ui.DebugPanel;
 import net.lobby_simulator_companion.loop.ui.Overlay;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.*;
@@ -17,23 +18,27 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Boot {
-    private static final Logger logger = LoggerFactory.getLogger(Boot.class);
     public static PcapNetworkInterface nif = null;
     public static HashMap<Inet4Address, Timestamp> active = new HashMap<>();
 
+    private static Logger logger;
     private static InetAddress localAddr;
     private static PcapHandle handle = null;
     private static Overlay ui;
+    private static DebugPanel debugPanel;
     private static boolean running = true;
 
     public static void main(String[] args) throws Exception {
+        configureLogger();
         try {
             init();
         } catch (Exception e) {
@@ -42,12 +47,18 @@ public class Boot {
             exitApplication(1);
         }
 
-        if (Settings.SIMULATE_TRAFFIC) {
-            simulateTraffic();
-        } else {
+        if (!Settings.ENABLE_DEBUG_PANEL) {
             sniffPackets();
         }
     }
+
+    private static void configureLogger() throws URISyntaxException {
+        URI execUri = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+        Path appHome = new File(execUri).toPath().getParent();
+        System.setProperty("app.home", appHome.toString());
+        logger = LoggerFactory.getLogger(Boot.class);
+    }
+
 
     private static void init() throws Exception {
         logger.info("Initializing...");
@@ -61,11 +72,15 @@ public class Boot {
 
         logger.info("Setting up network interface...");
         setUpNetworkInterface();
+        Factory.getPlayerbaseRepository().setNetworkInterface(nif);
 
         logger.info("Starting UI...");
-        ui = new Overlay(Factory.getPlayerService());
-    }
+        ui = Factory.getOverlay();
 
+        if (Settings.ENABLE_DEBUG_PANEL) {
+            Factory.getDebugPanel();
+        }
+    }
 
     private static void setUpNetworkInterface() throws PcapNativeException, IllegalAccessException, InterruptedException,
             UnknownHostException, InstantiationException, SocketException, UnsupportedLookAndFeelException,
@@ -91,8 +106,8 @@ public class Boot {
 
 
     private static void sniffPackets() throws NotOpenException {
+        // TODO: use handle.loop() instead? (http://www.tcpdump.org/pcap.html)
         while (running) {
-
             final Packet packet = handle.getNextPacket();
 
             if (packet != null) {
@@ -125,27 +140,6 @@ public class Boot {
                     }
                 }
             }
-        }
-    }
-
-
-    private static void simulateTraffic() throws UnknownHostException, InterruptedException {
-        long startTime = System.currentTimeMillis();
-        long endTime1 = startTime + 350000;
-        long endTime2 = startTime + 500;
-
-        while (running) {
-            long currentTime = System.currentTimeMillis();
-
-            if (currentTime <= endTime1) {
-                ui.setPing((Inet4Address) Inet4Address.getByName("1.2.3.4"), (int) (Math.random() * 300));
-            }
-
-            if (currentTime <= endTime2) {
-                ui.setPing((Inet4Address) Inet4Address.getByName("1.2.3.5"), (int) (Math.random() * 300));
-            }
-
-            Thread.sleep(2000);
         }
     }
 
@@ -219,6 +213,7 @@ public class Boot {
 
         System.exit(status);
     }
+
 
     public static void getLocalAddr() throws InterruptedException, PcapNativeException, UnknownHostException, SocketException,
             ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {

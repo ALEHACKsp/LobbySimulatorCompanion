@@ -1,9 +1,9 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import net.lobby_simulator_companion.loop.Boot;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.DbdSteamLogMonitor;
 import net.lobby_simulator_companion.loop.service.Player;
-import net.lobby_simulator_companion.loop.Boot;
 import net.lobby_simulator_companion.loop.service.PlayerService;
 import net.lobby_simulator_companion.loop.service.SteamUser;
 import org.slf4j.Logger;
@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.net.Inet4Address;
 import java.util.Timer;
 import java.util.*;
@@ -35,15 +34,16 @@ public class Overlay extends JPanel implements Observer {
     private Map<Inet4Address, Long> connections = new HashMap<>(); // keeps track of the last time we received ping for each IP
     private PeerStatus peerStatus;
     private boolean connected; // true if we are connected to any peer; otherwise, false
+    private Queue<Player> lobbyHosts = new LinkedList<>();
 
     private static final int PEER_TIMEOUT_MS = 5000;
     private static final int CLEANER_POLL_MS = 2500;
 
 
-    public Overlay(PlayerService playerService) throws ClassNotFoundException, InstantiationException, IllegalAccessException,
-            UnsupportedLookAndFeelException, IOException {
-
+    public Overlay(PlayerService playerService, DbdSteamLogMonitor logMonitor) throws Exception {
         this.playerService = playerService;
+        this.logMonitor = logMonitor;
+        logMonitor.addObserver(this);
 
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         defineListeners();
@@ -64,7 +64,7 @@ public class Overlay extends JPanel implements Observer {
         frame.setLocation((int) Settings.getDouble("frame_x", 5), (int) Settings.getDouble("frame_y", 400));
         frame.setVisible(true);
 
-        startCleanerTask();
+        startConnectionCleaner();
         startLogMonitor();
     }
 
@@ -72,7 +72,7 @@ public class Overlay extends JPanel implements Observer {
         mouseListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
+                if (SwingUtilities.isLeftMouseButton(e) && !e.isShiftDown() && e.getClickCount() >= 2) {
                     frameMove = !frameMove;
                     Settings.set("frame_x", frame.getLocationOnScreen().x);
                     Settings.set("frame_y", frame.getLocationOnScreen().y);
@@ -83,7 +83,7 @@ public class Overlay extends JPanel implements Observer {
         mouseMotionListener = new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (frameMove) {
+                if (frameMove && !e.isShiftDown()) {
                     frame.setLocation(e.getXOnScreen() - (getPreferredSize().width / 2), e.getYOnScreen() - 6);
                 }
             }
@@ -143,10 +143,14 @@ public class Overlay extends JPanel implements Observer {
             frame.remove(emptyStatus);
             frame.add(peerStatus);
             connected = true;
-            updateSteamUserIfNecessary();
+            updateLobbyHost();
+        }
+        connections.put(ip, System.currentTimeMillis());
+
+        if (!peerStatus.hasHostUser() && !lobbyHosts.isEmpty()) {
+            peerStatus.setHostUser(lobbyHosts.poll());
         }
 
-        connections.put(ip, System.currentTimeMillis());
         ping = connections.size() == 1 ? ping : -1;
         peerStatus.setPing(ping);
         peerStatus.update();
@@ -161,77 +165,96 @@ public class Overlay extends JPanel implements Observer {
     }
 
 
-    private void startLogMonitor() throws IOException {
-        logMonitor = new DbdSteamLogMonitor(this);
+    private void startLogMonitor() {
         Thread thread = new Thread(logMonitor);
         thread.setDaemon(true);
         thread.start();
     }
 
-    private void startCleanerTask() {
+    private void startConnectionCleaner() {
         Timer cleanTime = new Timer();
         cleanTime.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                long currentTime = System.currentTimeMillis();
-                Set<Inet4Address> connectionsToRemove = connections.entrySet().stream()
-                        .filter(e -> currentTime - e.getValue() >= PEER_TIMEOUT_MS)
-                        .map(e -> e.getKey()).collect(Collectors.toSet());
-
-                for (Inet4Address connectionToRemove : connectionsToRemove) {
-                    Boot.active.remove(connectionToRemove);
-                    connections.remove(connectionToRemove);
-                }
-
-                if (connected && connections.isEmpty()) {
-                    clearUserHostStatus();
-                }
-                frame.pack();
-                frame.revalidate();
-                frame.repaint();
+                cleanConnections();
             }
         }, 0, CLEANER_POLL_MS);
     }
 
+
+    private void cleanConnections() {
+        synchronized (connections) {
+            long currentTime = System.currentTimeMillis();
+            Set<Inet4Address> connectionsToRemove = connections.entrySet().stream()
+                    .filter(e -> currentTime - e.getValue() >= PEER_TIMEOUT_MS)
+                    .map(e -> e.getKey()).collect(Collectors.toSet());
+
+            for (Inet4Address connectionToRemove : connectionsToRemove) {
+                Boot.active.remove(connectionToRemove);
+                connections.remove(connectionToRemove);
+            }
+
+            int connectionCount = connections.size();
+
+            if (connected && connectionCount == 0) {
+                clearUserHostStatus();
+            }
+//            else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
+////                updateLobbyHost();
+////                updateSteamUserIfNecessary();
+//                Player lobbyHost = lobbyHosts.poll();
+//                peerStatus.setHostUser(lobbyHost);
+//                peerStatus.update();
+//
+//            }
+        }
+        frame.pack();
+        frame.revalidate();
+        frame.repaint();
+    }
+
+
+
     private void clearUserHostStatus() {
+        logger.debug("Clearing user host status...");
         frame.remove(peerStatus);
-        peerStatus.setHostUser(new Player());
+        peerStatus.setHostUser(null);
         peerStatus.update();
-        logMonitor.clearUser();
         frame.add(emptyStatus);
         connected = false;
     }
 
 
     @Override
-    public void update(Observable o, Object arg) {
+    public void update(Observable o, Object obj) {
         if (o instanceof DbdSteamLogMonitor) {
-            updateSteamUserIfNecessary();
+            SteamUser steamUser = (SteamUser) obj;
+            String steamId = steamUser.getId();
+            String steamName = steamUser.getName();
+            Player player = playerService.getPlayerBySteamId(steamId);
+
+            if (player == null) {
+                logger.debug("User of id {} not found in the storage. Creating new entry...", steamId);
+                player = new Player();
+                player.setUID(steamId);
+                player.setRating(Player.Rating.UNRATED);
+                player.setDescription("");
+                player.addName(steamUser.getName());
+                playerService.addPlayer(steamId, player);
+            } else {
+                logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry...", steamId, steamName);
+                player.addName(steamName);
+            }
+
+            lobbyHosts.add(player);
+            updateLobbyHost();
         }
     }
 
-
-    private synchronized void updateSteamUserIfNecessary() {
-
-        if (connected && logMonitor.getLastSteamUserFound() != null) {
-            SteamUser steamUser = logMonitor.getLastSteamUserFound();
-            String steamId = steamUser.getId();
-            String steamName = steamUser.getName();
-            Player storedHost = playerService.getPlayerBySteamId(steamId);
-
-            if (storedHost == null) {
-                logger.debug("User of id {} not found in the storage. Creating new entry...", steamId);
-                storedHost = new Player();
-                storedHost.setUID(steamId);
-                storedHost.setRating(Player.Rating.UNRATED);
-                storedHost.setDescription("");
-                storedHost.addName(steamUser.getName());
-                playerService.addPlayer(steamId, storedHost);
-            } else {
-                logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry.", steamId, steamName);
-                storedHost.addName(steamName);
-            }
-            peerStatus.setHostUser(storedHost);
+    private synchronized void updateLobbyHost() {
+        if (connected && !peerStatus.hasHostUser()) {
+            Player lobbyHost = lobbyHosts.poll();
+            peerStatus.setHostUser(lobbyHost);
             peerStatus.update();
         }
     }
