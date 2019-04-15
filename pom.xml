@@ -4,6 +4,7 @@
     <groupId>net.lobby-simulator-companion</groupId>
     <artifactId>loop</artifactId>
     <version>1.0.0-beta-3-SNAPSHOT</version>
+    <description>LObby simulatOr comPanion (LOOP)</description>
     <build>
         <resources>
             <resource>
@@ -35,6 +36,13 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -74,4 +82,10 @@
             <version>2.8.0</version>
         </dependency>
     </dependencies>
+    <distributionManagement>
+        <site>
+            <id>github</id>
+            <url>https://github.com/nickyramone/LobbySimulatorCompanion.git</url>
+        </site>
+    </distributionManagement>
 </project>
