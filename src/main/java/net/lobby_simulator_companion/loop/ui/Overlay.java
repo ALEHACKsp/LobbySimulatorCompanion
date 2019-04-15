@@ -243,6 +243,7 @@ public class Overlay extends JPanel implements Observer {
                 logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry...", steamId, steamName);
                 player.updateLastSeen();
                 player.addName(steamName);
+                playerService.save();
             }
 
             lobbyHosts.add(player);

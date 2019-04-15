@@ -53,7 +53,6 @@ public class FileUtil {
             return false;
         }
 
-        logger.info("Saving: {}", f);
         File copy = getSaveName(f, 1);
         if (!copy.getParentFile().exists())
             copy.getParentFile().mkdirs();
@@ -92,7 +91,7 @@ public class FileUtil {
      */
     public static File getSaveName(File f, int version) {
         return new File(f.getParentFile().getAbsolutePath() + "/" + f.getName()
-                + (version != 0 ? "." + version : ""));
+                + (version != 0 ? "." + version + ".bak" : ""));
     }
 
     /**
