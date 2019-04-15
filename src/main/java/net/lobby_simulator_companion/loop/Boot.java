@@ -3,7 +3,6 @@ package net.lobby_simulator_companion.loop;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.io.peer.Security;
-import net.lobby_simulator_companion.loop.ui.DebugPanel;
 import net.lobby_simulator_companion.loop.ui.Overlay;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.*;
@@ -46,8 +45,16 @@ public class Boot {
             exitApplication(1);
         }
 
-        if (!Settings.ENABLE_DEBUG_PANEL) {
+        if (Settings.ENABLE_DEBUG_PANEL) {
+            return;
+        }
+
+        try {
             sniffPackets();
+        }
+        catch (Exception e) {
+            logger.error("Fatal error while sniffing packets.", e);
+            errorDialog("A fatal error occurred while processing connections. Please, send us the log files.F");
         }
     }
 
@@ -105,7 +112,7 @@ public class Boot {
     }
 
 
-    private static void sniffPackets() throws NotOpenException {
+    private static void sniffPackets() throws Exception {
         // TODO: use handle.loop() instead? (http://www.tcpdump.org/pcap.html)
         while (running) {
             final Packet packet = handle.getNextPacket();
@@ -207,11 +214,13 @@ public class Boot {
 
         logger.info("Terminated UI.");
 
-        if (handle != null) {
-            logger.info("Cleaning up system resources. Could take a while...");
-            handle.close();
-            logger.info("Freed network interface handle.");
-        }
+        // TODO: Fix this. There seems to be an issue with Pcap where it hangs in a deadlock when trying to close.
+        // https://github.com/kaitoy/pcap4j/issues/199
+//        if (handle != null) {
+//            logger.info("Cleaning up system resources. Could take a while...");
+//            handle.close();
+//            logger.info("Freed network interface handle.");
+//        }
 
         System.exit(status);
     }
