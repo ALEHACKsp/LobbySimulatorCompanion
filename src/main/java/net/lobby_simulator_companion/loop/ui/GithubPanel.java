@@ -39,7 +39,6 @@ public class GithubPanel extends JFrame {
      */
     private static final String mandatory = "Required";
     private String html = "";
-    //    private double version;
     private Version appVersion;
     private JEditorPane ed;
 
@@ -212,7 +211,7 @@ public class GithubPanel extends JFrame {
             try {
                 String versionString = obj.get("tag_name").getAsString();
                 Version version = Version.valueOf(versionString);
-                if (appVersion.compareTo(version) > 0) {
+                if (appVersion.compareTo(version) >= 0) {
                     return;
                 }
 
@@ -220,7 +219,7 @@ public class GithubPanel extends JFrame {
                     html += "<hr />";
 
                 String body = obj.get("body").getAsString().trim();
-                String title = "<b style='color:black;'>" + sdf.format(gdate.parse(obj.get("published_at").getAsString())) + ":</b> " + obj.get("name").getAsString();
+                String title = "<b style='color:black;'>" + sdf.format(gdate.parse(obj.get("published_at").getAsString())) + ":</b> " + obj.get("tag_name").getAsString();
 
                 if (body.contains(mandatory)) {
                     required++;
@@ -237,4 +236,5 @@ public class GithubPanel extends JFrame {
         }
         setTitle(appProperties.get("app.name.short") + " Update - " + updates + " releases behind");
     }
+
 }

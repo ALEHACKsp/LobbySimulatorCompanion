@@ -84,8 +84,10 @@ public class Sanity {
 
     public static boolean checkUpdate() {
         GithubPanel mp = new GithubPanel();
+
         if (!mp.prompt()) {
-            message("At least one update located is mandatory!\nSome updates can be very important for functionality and your security.\nPlease update LOOP before running!");
+            message("At least one update located is mandatory!\nSome updates can be very important for functionality and your security.\n"
+                    + "Please update LOOP before running!");
             return false;
         } else {
             logger.info("Up to date!");
