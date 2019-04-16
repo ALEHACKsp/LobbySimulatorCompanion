@@ -150,13 +150,11 @@ public class PeerStatus extends JPanel {
         mouseListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                boolean peerIsIdentified = !hostUser.getUID().isEmpty();
-
-                if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown() && peerIsIdentified) {
+                if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown() && hasHostUser()) {
                     rateHostUser();
                     update();
                     listener.peerDataChanged();
-                } else if (SwingUtilities.isRightMouseButton(e) && peerIsIdentified) {
+                } else if (SwingUtilities.isRightMouseButton(e) && hasHostUser()) {
                     // user wants to edit the description
                     editingDescription = true;
                     setVisible(separator2Label, true);
@@ -361,7 +359,7 @@ public class PeerStatus extends JPanel {
         setVisible(userNameLabel, userDetected);
         setVisible(ratingLabel, userDetected && Player.Rating.UNRATED != hostUser.getRating());
         setVisible(separator2Label, hasDescription);
-        setVisible(descriptionLabel, hasDescription);
+        setVisible(descriptionLabel, hasDescription && !editingDescription);
     }
 
     public void rateHostUser() {
@@ -399,6 +397,10 @@ public class PeerStatus extends JPanel {
 
     public void focusOnEditField() {
         editField.requestFocusInWindow();
+    }
+
+    public boolean editing() {
+        return editingDescription;
     }
 
 }

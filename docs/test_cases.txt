@@ -48,4 +48,10 @@ e) Remove Connection 0 ==> Expected: should display username "DummyUserB" after 
 
 Scenario: typing a description while the connection disappears
 --------------------------------------------------------------
-TODO
+a) Add Connection 0
+b) Join Lobby A
+c) Edit description and leave the textfield open.
+d) Remove Connection 0
+e) Wait 5 seconds ==> Expected: The field should still be editable.
+                                After pressing Enter or Esc the connection should disappear.
+

@@ -95,8 +95,8 @@ public class Overlay extends JPanel implements Observer {
                 frame.setMinimumSize(new Dimension(500, 0));
                 frame.setFocusableWindowState(true);
                 peerStatus.update();
-                frame.pack();
                 peerStatus.focusOnEditField();
+                updated();
             }
 
             @Override
@@ -184,6 +184,11 @@ public class Overlay extends JPanel implements Observer {
 
     private void cleanConnections() {
         synchronized (connections) {
+            if (peerStatus.editing()) {
+                // if they are editing (like the description), try again later
+                return;
+            }
+
             long currentTime = System.currentTimeMillis();
             Set<Inet4Address> connectionsToRemove = connections.entrySet().stream()
                     .filter(e -> currentTime - e.getValue() >= PEER_TIMEOUT_MS)
@@ -199,7 +204,8 @@ public class Overlay extends JPanel implements Observer {
             if (connected && connectionCount == 0) {
                 clearUserHostStatus();
             } else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
-                /** we went from having 1+ connections to 1. If there's a host user in the queue, we must use it
+                /**
+                 * we went from having 1+ connections to 1. If there's a host user in the queue, we must use it
                  * to replace the current user in the status.
                  */
                 Player lobbyHost = lobbyHosts.poll();
