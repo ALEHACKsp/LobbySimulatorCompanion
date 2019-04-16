@@ -1,6 +1,6 @@
 package net.lobby_simulator_companion.loop.ui;
 
-import net.lobby_simulator_companion.loop.service.DbdSteamLogMonitor;
+import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.SteamUser;
 
 import javax.swing.*;
@@ -21,13 +21,13 @@ public class DebugPanel extends JPanel {
     private Set<Integer> connections = new HashSet<>();
 
     private Overlay mainPanel;
-    private DbdSteamLogMonitor logMonitor;
+    private DbdLogMonitor logMonitor;
     private JFrame frame;
 
     private Random random = new Random();
 
 
-    public DebugPanel(Overlay overlay, DbdSteamLogMonitor logMonitor) throws Exception {
+    public DebugPanel(Overlay overlay, DbdLogMonitor logMonitor) throws Exception {
         mainPanel = overlay;
         this.logMonitor = logMonitor;
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

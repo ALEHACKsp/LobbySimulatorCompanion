@@ -2,7 +2,7 @@ package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.Boot;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.service.DbdSteamLogMonitor;
+import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.Player;
 import net.lobby_simulator_companion.loop.service.PlayerService;
 import net.lobby_simulator_companion.loop.service.SteamUser;
@@ -21,7 +21,7 @@ public class Overlay extends JPanel implements Observer {
     private static final long serialVersionUID = -470849574354121503L;
     private static final Logger logger = LoggerFactory.getLogger(Overlay.class);
 
-    private DbdSteamLogMonitor logMonitor;
+    private DbdLogMonitor logMonitor;
     private final PlayerService playerService;
 
     private JFrame frame;
@@ -40,7 +40,7 @@ public class Overlay extends JPanel implements Observer {
     private static final int CLEANER_POLL_MS = 2500;
 
 
-    public Overlay(PlayerService playerService, DbdSteamLogMonitor logMonitor) throws Exception {
+    public Overlay(PlayerService playerService, DbdLogMonitor logMonitor) throws Exception {
         this.playerService = playerService;
         this.logMonitor = logMonitor;
         logMonitor.addObserver(this);
@@ -231,7 +231,7 @@ public class Overlay extends JPanel implements Observer {
 
     @Override
     public void update(Observable o, Object obj) {
-        if (o instanceof DbdSteamLogMonitor) {
+        if (o instanceof DbdLogMonitor) {
             SteamUser steamUser = (SteamUser) obj;
             String steamId = steamUser.getId();
             String steamName = steamUser.getName();
@@ -248,8 +248,10 @@ public class Overlay extends JPanel implements Observer {
             } else {
                 logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry...", steamId, steamName);
                 player.updateLastSeen();
-                player.addName(steamName);
-                playerService.save();
+
+                if (player.addName(steamName)) {
+                    playerService.save();
+                }
             }
 
             lobbyHosts.add(player);

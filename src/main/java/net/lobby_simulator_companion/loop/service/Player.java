@@ -74,11 +74,11 @@ public class Player implements Serializable {
         this.uid = uid.trim();
     }
 
-    public void addName(String name) {
+    public boolean addName(String name) {
         name = name.trim();
 
         if (name.equals(getMostRecentName())) {
-            return;
+            return false;
         }
 
         if (names.size() == MAX_NAMES_STORED) {
@@ -87,6 +87,8 @@ public class Player implements Serializable {
         }
 
         names.add(name);
+
+        return true;
     }
 
     public String getMostRecentName() {

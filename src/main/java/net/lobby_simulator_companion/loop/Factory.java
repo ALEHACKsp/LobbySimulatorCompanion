@@ -1,6 +1,6 @@
 package net.lobby_simulator_companion.loop;
 
-import net.lobby_simulator_companion.loop.service.DbdSteamLogMonitor;
+import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerbaseRepository;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.service.PlayerService;
@@ -9,7 +9,6 @@ import net.lobby_simulator_companion.loop.ui.Overlay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.channels.Channels;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,13 +84,13 @@ public final class Factory {
         instances.put(PlayerService.class, instance);
     }
 
-    private static DbdSteamLogMonitor getDbdLogMonitor() {
-        return (DbdSteamLogMonitor) instances.get(DbdSteamLogMonitor.class);
+    private static DbdLogMonitor getDbdLogMonitor() {
+        return (DbdLogMonitor) instances.get(DbdLogMonitor.class);
     }
 
     private static void createDbdLogMonitor() throws Exception {
-        Object instance = new DbdSteamLogMonitor();
-        instances.put(DbdSteamLogMonitor.class, instance);
+        Object instance = new DbdLogMonitor();
+        instances.put(DbdLogMonitor.class, instance);
     }
 
     public static Overlay getOverlay() throws Exception {

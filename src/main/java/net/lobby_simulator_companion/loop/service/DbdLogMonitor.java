@@ -22,11 +22,11 @@ import java.util.regex.Pattern;
  *
  * @author NickyRamone
  */
-public class DbdSteamLogMonitor extends Observable implements Runnable {
+public class DbdLogMonitor extends Observable implements Runnable {
 
     private static final int LOG_POLLING_PERIOD_MS = 1000;
 
-    private static final Logger logger = LoggerFactory.getLogger(DbdSteamLogMonitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(DbdLogMonitor.class);
 
     private static final Path USER_APPDATA_PATH = Paths.get(System.getenv("APPDATA")).getParent();
     private static final String LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
@@ -43,7 +43,7 @@ public class DbdSteamLogMonitor extends Observable implements Runnable {
     private long logSize;
 
 
-    public DbdSteamLogMonitor() throws IOException {
+    public DbdLogMonitor() throws IOException {
         initReader();
     }
 
