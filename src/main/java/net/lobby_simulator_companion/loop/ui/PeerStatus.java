@@ -232,7 +232,6 @@ public class PeerStatus extends JPanel {
                 }
             }
         });
-        steamLabel.addMouseListener(mouseListener);
         steamLabel.addMouseMotionListener(mouseMotionListener);
     }
 

@@ -44,3 +44,8 @@ b) Join Lobby A (killer's lobby) ==> Expected: username must be: DummyUserA
 c) Add Connection 1 (survivor friend)
 d) Join Lobby B (go back to the swf's lobby) ==> Expected: username must still be: DummyUserA (we are still connected to killer)
 e) Remove Connection 0 ==> Expected: should display username "DummyUserB" after a few seconds.
+
+
+Scenario: typing a description while the connection disappears
+--------------------------------------------------------------
+TODO
