@@ -20,7 +20,8 @@ import java.net.URL;
 public class PeerStatus extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(PeerStatus.class);
 
-    private static final int MAX_DESCRIPTION_LEN = 50;
+    private static final int MAX_DESCRIPTION_LEN = 100;
+    private static final int EDIT_FIELD_COLUMNS = 60;
     private static final Font font = ResourceFactory.getRobotoFont();
 
     private JLabel pingLabel;
@@ -270,7 +271,7 @@ public class PeerStatus extends JPanel {
         editField.setCaretPosition(description.length());
         editField.setBackground(Color.BLACK);
         editField.setForeground(Color.WHITE);
-        editField.setColumns(30);
+        editField.setColumns(EDIT_FIELD_COLUMNS);
         editField.setFont(font);
         editField.setVisible(false);
         editField.addKeyListener(new KeyAdapter() {
