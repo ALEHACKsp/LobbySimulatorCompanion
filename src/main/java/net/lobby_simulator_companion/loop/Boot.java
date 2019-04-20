@@ -78,8 +78,6 @@ public class Boot {
 
         logger.info("Setting up network interface...");
         setUpNetworkInterface();
-        Factory.getPlayerbaseRepository().setNetworkInterface(nif);
-        Factory.getPlayerService().init();
 
         logger.info("Starting UI...");
         ui = Factory.getOverlay();
@@ -101,7 +99,6 @@ public class Boot {
                     "Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
-        Security.nif = nif; // TODO: ugh! fix this asap!
         final int snapLen = 65536;
         final PromiscuousMode mode = PromiscuousMode.NONPROMISCUOUS;
         final int timeout = 0;

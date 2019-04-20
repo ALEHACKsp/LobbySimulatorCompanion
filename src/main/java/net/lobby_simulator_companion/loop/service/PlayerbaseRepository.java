@@ -4,13 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import net.lobby_simulator_companion.loop.Factory;
+import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.io.peer.Security;
 import net.lobby_simulator_companion.loop.util.FileUtil;
-import net.lobby_simulator_companion.loop.config.AppProperties;
-import net.lobby_simulator_companion.loop.Factory;
-import net.lobby_simulator_companion.loop.io.peer.PeerReader;
-import org.pcap4j.core.PcapNetworkInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +17,6 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -58,48 +54,21 @@ public class PlayerbaseRepository {
 
 
     public Playerbase load() throws FileNotFoundException {
-        // TODO: Use a single method after the first stable release
+        logger.info("Loading data...");
         Playerbase playerbase;
 
         try {
-            logger.info("Reading data using legacy beta cipher...");
-            playerbase = load_legacyBeta();
-
-            // if it succeeds, we immediately save it with the new format
-            save(playerbase);
-        } catch (Exception e) {
-            // mac-based cipher failed. Attempt with the new one
-            logger.info("Legacy beta cipher failed. Attempting with latest cipher...");
-            try {
-                Cipher cipher = Security.getCipher(true);
-                JsonReader reader = createJsonReader(cipher);
-                playerbase = gson.fromJson(reader, Playerbase.class);
-            }
-            catch (FileNotFoundException e2) {
-                throw e2;
-            } catch (Exception e3) {
-                throw new RuntimeException("Failed to load playerbase. Data file corrupt?", e3);
-            }
+            Cipher cipher = Security.getCipher(true);
+            JsonReader reader = createJsonReader(cipher);
+            playerbase = gson.fromJson(reader, Playerbase.class);
+        } catch (FileNotFoundException e1) {
+            throw e1;
+        } catch (Exception e2) {
+            throw new RuntimeException("Failed to load playerbase. Data file corrupt?", e2);
         }
-
         logger.info("Loaded {} tracked players.", playerbase.getPlayers().size());
 
         return playerbase;
-    }
-
-
-    private Playerbase load_legacyBeta() throws IOException {
-        PeerReader peerReader = new PeerReader(saveFile);
-        List<Player> peers = new ArrayList<>();
-
-        while (peerReader.hasNext()) {
-            Player ioPeer = peerReader.next();
-            if (!ioPeer.getRating().equals(Player.Rating.UNRATED) || !ioPeer.getDescription().isEmpty()) {
-                peers.add(ioPeer);
-            }
-        }
-
-        return new Playerbase(peers);
     }
 
 
@@ -157,8 +126,4 @@ public class PlayerbaseRepository {
         return new JsonWriter(new OutputStreamWriter(outputStream, "UTF-8"));
     }
 
-    // TODO: get rid of this
-    public void setNetworkInterface(PcapNetworkInterface nif) {
-        Security.nif = nif;
-    }
 }

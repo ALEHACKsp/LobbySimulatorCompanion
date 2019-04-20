@@ -53,14 +53,7 @@ public final class Factory {
     }
 
     public static PlayerbaseRepository getPlayerbaseRepository() {
-        Object instance = instances.get(PlayerbaseRepository.class);
-
-        if (instance == null) {
-            createPlayerbaseRepository();
-            instance = instances.get(PlayerbaseRepository.class);
-        }
-
-        return (PlayerbaseRepository) instance;
+        return (PlayerbaseRepository) instances.get(PlayerbaseRepository.class);
     }
 
     private static void createPlayerbaseRepository() {
@@ -68,14 +61,7 @@ public final class Factory {
     }
 
     public static PlayerService getPlayerService() throws Exception {
-        Object instance = instances.get(PlayerService.class);
-
-        if (instance == null) {
-            createPlayerService();
-            instance = instances.get(PlayerService.class);
-        }
-
-        return (PlayerService) instance;
+        return (PlayerService) instances.get(PlayerService.class);
     }
 
     private static void createPlayerService() throws Exception {
