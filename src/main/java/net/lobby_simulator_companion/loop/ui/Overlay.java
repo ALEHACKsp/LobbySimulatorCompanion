@@ -36,8 +36,8 @@ public class Overlay extends JPanel implements Observer {
     private boolean connected; // true if we are connected to any peer; otherwise, false
     private Queue<Player> lobbyHosts = new LinkedList<>();
 
-    private static final int PEER_TIMEOUT_MS = 5000;
-    private static final int CLEANER_POLL_MS = 2500;
+    private static final int PEER_TIMEOUT_MS = 6000;
+    private static final int CLEANER_POLL_MS = 3000;
 
 
     public Overlay(PlayerService playerService, DbdLogMonitor logMonitor) throws Exception {
