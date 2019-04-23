@@ -3,9 +3,7 @@ package net.lobby_simulator_companion.loop.service;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Wrapper used to save/load Peer settings.
@@ -99,6 +97,10 @@ public class Player implements Serializable {
         }
 
         return name;
+    }
+
+    public Set<String> getNames() {
+        return new HashSet<>(names);
     }
 
 

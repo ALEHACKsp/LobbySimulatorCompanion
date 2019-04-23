@@ -11,6 +11,8 @@ import java.awt.event.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Represents a status bar component for a single connection.
@@ -343,7 +345,6 @@ public class PeerStatus extends JPanel {
         }
 
         if (userDetected) {
-            userNameLabel.setText(hostUser.getMostRecentName());
             Player.Rating peerRating = hostUser.getRating();
 
             if (peerRating == Player.Rating.THUMBS_DOWN) {
@@ -377,7 +378,27 @@ public class PeerStatus extends JPanel {
 
     public void setHostUser(Player hostUser) {
         this.hostUser = hostUser;
-        String description = hostUser != null ? hostUser.getDescription() : "";
+        userNameLabel.setText(hostUser != null? hostUser.getMostRecentName(): "");
+
+        if (hostUser != null) {
+            Set<String> nameSet = hostUser.getNames();
+            nameSet.remove(hostUser.getMostRecentName());
+            String names = nameSet.stream().map(n -> String.valueOf(n)).collect(Collectors.joining(", ", "", ""));
+
+            String tooltip;
+            if (nameSet.isEmpty()) {
+                tooltip = "First time encountered.";
+            }
+            else {
+                tooltip = "Previously encountered as: " + names;
+            }
+            userNameLabel.setToolTipText(tooltip);
+        }
+        else {
+            userNameLabel.setToolTipText(null);
+        }
+
+        String description = hostUser != null? hostUser.getDescription(): "";
         editField.setText(description);
         lastDescription = description;
     }
