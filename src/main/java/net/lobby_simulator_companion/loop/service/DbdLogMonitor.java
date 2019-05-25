@@ -117,6 +117,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
                 logger.debug("Detected host user name: {}", steamUserName);
                 setChanged();
                 notifyObservers(new SteamUser(lastSteamIdFound, lastSteamNameFound));
+                lastSteamIdFound = null;
+                lastSteamNameFound = null;
             }
         }
     }

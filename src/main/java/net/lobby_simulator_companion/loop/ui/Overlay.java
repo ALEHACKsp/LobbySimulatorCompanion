@@ -91,26 +91,19 @@ public class Overlay extends JPanel implements Observer {
 
         peerStatusListener = new PeerStatus.PeerStatusListener() {
             @Override
-            public void startEdit() {
-                frame.setMinimumSize(new Dimension(500, 0));
+            public void beforeEditFieldEnable() {
                 frame.setFocusableWindowState(true);
-                peerStatus.update();
-                peerStatus.focusOnEditField();
-                updated();
+            }
+
+            @Override
+            public void afterEditFieldEnable() {
+                frame.pack();
             }
 
             @Override
             public void finishEdit() {
                 frame.setFocusableWindowState(false);
-                frame.setMinimumSize(new Dimension(0, 0));
                 frame.pack();
-            }
-
-            @Override
-            public void updated() {
-                frame.pack();
-                revalidate();
-                repaint();
             }
 
             @Override
@@ -153,7 +146,8 @@ public class Overlay extends JPanel implements Observer {
 
         ping = connections.size() == 1 ? ping : -1;
         peerStatus.setPing(ping);
-        peerStatus.update();
+        peerStatus.updatePing();
+        frame.pack();
     }
 
 
@@ -183,35 +177,33 @@ public class Overlay extends JPanel implements Observer {
 
 
     private void cleanConnections() {
-        synchronized (connections) {
-            if (peerStatus.editing()) {
-                // if they are editing (like the description), try again later
-                return;
-            }
+        if (peerStatus.editing()) {
+            // if they are editing (like the description), try again later
+            return;
+        }
 
-            long currentTime = System.currentTimeMillis();
-            Set<Inet4Address> connectionsToRemove = connections.entrySet().stream()
-                    .filter(e -> currentTime - e.getValue() >= PEER_TIMEOUT_MS)
-                    .map(e -> e.getKey()).collect(Collectors.toSet());
+        long currentTime = System.currentTimeMillis();
+        Set<Inet4Address> connectionsToRemove = connections.entrySet().stream()
+                .filter(e -> currentTime - e.getValue() >= PEER_TIMEOUT_MS)
+                .map(e -> e.getKey()).collect(Collectors.toSet());
 
-            for (Inet4Address connectionToRemove : connectionsToRemove) {
-                Boot.active.remove(connectionToRemove);
-                connections.remove(connectionToRemove);
-            }
+        for (Inet4Address connectionToRemove : connectionsToRemove) {
+            Boot.active.remove(connectionToRemove);
+            connections.remove(connectionToRemove);
+        }
 
-            int connectionCount = connections.size();
+        int connectionCount = connections.size();
 
-            if (connected && connectionCount == 0) {
-                clearUserHostStatus();
-            } else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
-                /**
-                 * we went from having 1+ connections to 1. If there's a host user in the queue, we must use it
-                 * to replace the current user in the status.
-                 */
-                Player lobbyHost = lobbyHosts.poll();
-                peerStatus.setHostUser(lobbyHost);
-                peerStatus.update();
-            }
+        if (connected && connectionCount == 0) {
+            clearUserHostStatus();
+        } else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
+            /**
+             * we went from having 1+ connections to 1. If there's a host user in the queue, we must use it
+             * to replace the current user in the status.
+             */
+            Player lobbyHost = lobbyHosts.poll();
+            peerStatus.setHostUser(lobbyHost);
+            peerStatus.updateUserInfo();
         }
         frame.pack();
         frame.revalidate();
@@ -223,7 +215,6 @@ public class Overlay extends JPanel implements Observer {
         logger.debug("Clearing user host status...");
         frame.remove(peerStatus);
         peerStatus.setHostUser(null);
-        peerStatus.update();
         frame.add(emptyStatus);
         connected = false;
     }
@@ -246,7 +237,7 @@ public class Overlay extends JPanel implements Observer {
                 player.addName(steamUser.getName());
                 playerService.addPlayer(steamId, player);
             } else {
-                logger.debug("User of id {} found in the storage. Adding name '{}' to the existing entry...", steamId, steamName);
+                logger.debug("User '{}' (id '{}') found in the storage. Updating entry...", steamName, steamId);
                 player.updateLastSeen();
                 player.addName(steamName);
                 playerService.save();
@@ -254,14 +245,15 @@ public class Overlay extends JPanel implements Observer {
 
             lobbyHosts.add(player);
             updateLobbyHost();
+            frame.pack();
         }
     }
 
-    private synchronized void updateLobbyHost() {
+    private void updateLobbyHost() {
         if (connected && !peerStatus.hasHostUser()) {
             Player lobbyHost = lobbyHosts.poll();
             peerStatus.setHostUser(lobbyHost);
-            peerStatus.update();
+            peerStatus.updateUserInfo();
         }
     }
 

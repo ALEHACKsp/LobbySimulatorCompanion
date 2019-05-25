@@ -1,7 +1,7 @@
 package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.service.PlayerbaseRepository;
+import net.lobby_simulator_companion.loop.dao.PlayerbaseRepository;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.service.PlayerService;
 import net.lobby_simulator_companion.loop.ui.DebugPanel;

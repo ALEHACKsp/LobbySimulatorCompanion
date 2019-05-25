@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.service;
+package net.lobby_simulator_companion.loop.dao;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -7,16 +7,18 @@ import com.google.gson.stream.JsonWriter;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.io.peer.Security;
+import net.lobby_simulator_companion.loop.service.Playerbase;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
+import javax.crypto.*;
+import javax.crypto.spec.DESKeySpec;
 import java.io.*;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -28,11 +30,10 @@ import java.util.zip.GZIPOutputStream;
 public class PlayerbaseRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(PlayerbaseRepository.class);
+    private static byte[] CIPHER_KEY_MATERIAL = new byte[]{2, 3, -57, 11, 73, 57, -66, 21};
 
     private File saveFile;
-
     private final Gson gson;
-
     private final String jsonIndent;
 
 
@@ -58,7 +59,7 @@ public class PlayerbaseRepository {
         Playerbase playerbase;
 
         try {
-            Cipher cipher = Security.getCipher(true);
+            Cipher cipher = getCipher(true);
             JsonReader reader = createJsonReader(cipher);
             playerbase = gson.fromJson(reader, Playerbase.class);
         } catch (FileNotFoundException e1) {
@@ -113,17 +114,41 @@ public class PlayerbaseRepository {
         if ("0".equals(Settings.get("encrypt"))) {
             outputStream = new FileOutputStream(this.saveFile.getAbsolutePath());
         } else {
-            Cipher c;
+            Cipher cipher;
             try {
-                c = Security.getCipher(false);
+                cipher = getCipher(false);
             } catch (Exception e) {
                 logger.error("Failed to configure encryption.", e);
                 throw new IOException(e.getMessage());
             }
-            outputStream = new GZIPOutputStream(new CipherOutputStream(new FileOutputStream(saveFile), c));
+            outputStream = new GZIPOutputStream(new CipherOutputStream(new FileOutputStream(saveFile), cipher));
         }
 
         return new JsonWriter(new OutputStreamWriter(outputStream, "UTF-8"));
+    }
+
+
+    /**
+     * Builds the Cipher Object used for encryption/decryption.
+     *
+     * @param readMode The Cipher will be initiated in either encrypt/decrypt mode.
+     * @return Cipher object, ready to go.
+     * @throws Exception Many possible issues can arise, so this is a catch-all.
+     */
+    public static Cipher getCipher(boolean readMode) throws InvalidKeyException, InvalidKeySpecException,
+            NoSuchPaddingException, NoSuchAlgorithmException {
+
+        DESKeySpec key = new DESKeySpec(CIPHER_KEY_MATERIAL);
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+        SecretKey desKey = keyFactory.generateSecret(key);
+        Cipher cipher = Cipher.getInstance("DES");
+
+        if (readMode) {
+            cipher.init(Cipher.DECRYPT_MODE, desKey);
+        } else {
+            cipher.init(Cipher.ENCRYPT_MODE, desKey);
+        }
+        return cipher;
     }
 
 }

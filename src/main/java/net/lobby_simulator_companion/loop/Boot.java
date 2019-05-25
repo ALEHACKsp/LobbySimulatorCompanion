@@ -2,7 +2,6 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.io.peer.Security;
 import net.lobby_simulator_companion.loop.ui.Overlay;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.*;
@@ -54,7 +53,7 @@ public class Boot {
         }
         catch (Exception e) {
             logger.error("Fatal error while sniffing packets.", e);
-            errorDialog("A fatal error occurred while processing connections. Please, send us the log files.F");
+            errorDialog("A fatal error occurred while processing connections. Please, send us the log files.");
         }
     }
 
@@ -299,6 +298,7 @@ public class Boot {
 
 
     private static void errorDialog(String msg) {
+        // TODO: we should abort the application on fatal errors
         JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 

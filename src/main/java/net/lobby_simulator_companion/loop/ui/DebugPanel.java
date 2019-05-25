@@ -44,7 +44,7 @@ public class DebugPanel extends JPanel {
         addComponents();
         startPingSimulator();
         frame.pack();
-        frame.setLocation(700, 300);
+        frame.setLocation(800, 300);
         frame.setVisible(true);
     }
 
@@ -54,7 +54,7 @@ public class DebugPanel extends JPanel {
         frame.add(button);
 
         JPanel connectionContainer = new JPanel();
-        connectionContainer.setLayout(new GridLayout(2, 2, 10, 10));
+        connectionContainer.setLayout(new GridLayout(3, 2, 10, 10));
         button = new JButton("Add Connection 0");
         button.addActionListener(e -> addConnection(0));
         connectionContainer.add(button);
@@ -69,6 +69,14 @@ public class DebugPanel extends JPanel {
 
         button = new JButton("Remove Connection 1");
         button.addActionListener(e -> removeConnection(1));
+        connectionContainer.add(button);
+
+        button = new JButton("Add Connection 2");
+        connectionContainer.add(button);
+        button.addActionListener(e -> addConnection(2));
+
+        button = new JButton("Remove Connection 2");
+        button.addActionListener(e -> removeConnection(2));
         connectionContainer.add(button);
 
         frame.add(connectionContainer);
@@ -127,6 +135,11 @@ public class DebugPanel extends JPanel {
     private int getConnectionPing(int connectionId) {
         int min = connectionId * 100;
         int max = (connectionId + 1) * 100;
+
+        if (connectionId == 2) {
+            min = 0;
+            max = 2000;
+        }
 
         return random.nextInt((max - min)) + min;
     }

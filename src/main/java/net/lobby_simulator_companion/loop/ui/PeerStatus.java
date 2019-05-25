@@ -54,11 +54,11 @@ public class PeerStatus extends JPanel {
      */
     public interface PeerStatusListener {
 
-        void startEdit();
+        void beforeEditFieldEnable();
+
+        void afterEditFieldEnable();
 
         void finishEdit();
-
-        void updated();
 
         void peerDataChanged();
 
@@ -155,15 +155,18 @@ public class PeerStatus extends JPanel {
             public void mouseClicked(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown() && hasHostUser()) {
                     rateHostUser();
-                    update();
+                    updateUserInfo();
                     listener.peerDataChanged();
                 } else if (SwingUtilities.isRightMouseButton(e) && hasHostUser()) {
                     // user wants to edit the description
+                    listener.beforeEditFieldEnable();
                     editingDescription = true;
                     setVisible(separator2Label, true);
                     setVisible(descriptionLabel, false);
                     setVisible(editField, true);
-                    listener.startEdit();
+                    editField.requestFocusInWindow();
+                    repaint();
+                    listener.afterEditFieldEnable();
                 } else {
                     for (MouseListener listener : getMouseListeners()) {
                         if (listener != this) {
@@ -212,6 +215,7 @@ public class PeerStatus extends JPanel {
         pingLabel.setOpaque(true);
         pingLabel.addMouseListener(mouseListener);
         pingLabel.addMouseMotionListener(mouseMotionListener);
+        pingLabel.setPreferredSize(new Dimension(65, 20));
     }
 
     private void createSteamLabel() {
@@ -304,21 +308,12 @@ public class PeerStatus extends JPanel {
             setVisible(editField, false);
             setVisible(descriptionLabel, true);
             editingDescription = false;
-            update();
             listener.finishEdit();
             listener.peerDataChanged();
         });
     }
 
-    public void update() {
-        updatePing();
-        updateUserInfo();
-        revalidate();
-        repaint();
-        listener.updated();
-    }
-
-    private void updatePing() {
+    public void updatePing() {
         int ping = this.ping;
         Color color;
 
@@ -333,10 +328,11 @@ public class PeerStatus extends JPanel {
         }
         pingLabel.setForeground(color);
         pingLabel.setText((ping >= 0 ? ping : " ? ") + " ms");
+        pingLabel.repaint();
     }
 
 
-    private void updateUserInfo() {
+    public void updateUserInfo() {
         boolean userDetected = hostUser != null;
         boolean hasDescription = userDetected && !hostUser.getDescription().isEmpty();
 
@@ -362,6 +358,7 @@ public class PeerStatus extends JPanel {
         setVisible(ratingLabel, userDetected && Player.Rating.UNRATED != hostUser.getRating());
         setVisible(separator2Label, hasDescription);
         setVisible(descriptionLabel, hasDescription && !editingDescription);
+        repaint();
     }
 
     public void rateHostUser() {
@@ -378,7 +375,7 @@ public class PeerStatus extends JPanel {
 
     public void setHostUser(Player hostUser) {
         this.hostUser = hostUser;
-        userNameLabel.setText(hostUser != null? hostUser.getMostRecentName(): "");
+        userNameLabel.setText(hostUser != null ? hostUser.getMostRecentName() : "");
 
         if (hostUser != null) {
             Set<String> nameSet = hostUser.getNames();
@@ -387,18 +384,16 @@ public class PeerStatus extends JPanel {
 
             String tooltip;
             if (nameSet.isEmpty()) {
-                tooltip = "First time encountered.";
-            }
-            else {
+                tooltip = null;
+            } else {
                 tooltip = "Previously encountered as: " + names;
             }
             userNameLabel.setToolTipText(tooltip);
-        }
-        else {
+        } else {
             userNameLabel.setToolTipText(null);
         }
 
-        String description = hostUser != null? hostUser.getDescription(): "";
+        String description = hostUser != null ? hostUser.getDescription() : "";
         editField.setText(description);
         lastDescription = description;
     }
@@ -415,10 +410,6 @@ public class PeerStatus extends JPanel {
         if (component.isVisible() != visible) {
             component.setVisible(visible);
         }
-    }
-
-    public void focusOnEditField() {
-        editField.requestFocusInWindow();
     }
 
     public boolean editing() {
