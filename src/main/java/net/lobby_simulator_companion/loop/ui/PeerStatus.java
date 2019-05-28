@@ -378,15 +378,14 @@ public class PeerStatus extends JPanel {
         userNameLabel.setText(hostUser != null ? hostUser.getMostRecentName() : "");
 
         if (hostUser != null) {
+            String currentName = hostUser.getMostRecentName();
             Set<String> nameSet = hostUser.getNames();
-            nameSet.remove(hostUser.getMostRecentName());
+            nameSet.remove(currentName);
             String names = nameSet.stream().map(n -> String.valueOf(n)).collect(Collectors.joining(", ", "", ""));
 
-            String tooltip;
-            if (nameSet.isEmpty()) {
-                tooltip = null;
-            } else {
-                tooltip = "Previously encountered as: " + names;
+            String tooltip = "Host: " + currentName;
+            if (!nameSet.isEmpty()) {
+                tooltip += ". Previously encountered as: " + names;
             }
             userNameLabel.setToolTipText(tooltip);
         } else {

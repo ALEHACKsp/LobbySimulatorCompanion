@@ -178,7 +178,7 @@ public class Overlay extends JPanel implements Observer {
 
     private void cleanConnections() {
         if (peerStatus.editing()) {
-            // if they are editing (like the description), try again later
+            // if they are editing player info (like the description), try again later
             return;
         }
 
