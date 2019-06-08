@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.service;
 
+import net.lobby_simulator_companion.loop.dao.SteamProfileDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,18 +33,16 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final String LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
     private static final File LOG_FILE = USER_APPDATA_PATH.resolve(LOG_PATH).toFile();
 
-    private static final String REGEX__QUEUE_JOIN_LOBBY = "MirrorsMatchmaking: OnJoinSessionLogDelegate \\(Platform\\): QueueJoinLobby (.+)";
-    private static final Pattern PATTERN__QUEUE_JOIN_LOBBY = Pattern.compile(REGEX__QUEUE_JOIN_LOBBY);
     private static final String REGEX__LOBBY_PARAMS = "steam.([0-9]+)//Game/Maps/OfflineLobby";
     private static final Pattern PATTERN__LOBBY_PARAMS = Pattern.compile(REGEX__LOBBY_PARAMS);
 
+    private SteamProfileDao steamProfileDao;
     private BufferedReader reader;
-    private String lastSteamIdFound;
-    private String lastSteamNameFound;
     private long logSize;
 
 
-    public DbdLogMonitor() throws IOException {
+    public DbdLogMonitor(SteamProfileDao steamProfileDao) throws IOException {
+        this.steamProfileDao = steamProfileDao;
         initReader();
     }
 
@@ -52,7 +51,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
         if (reader != null) {
             reader.close();
         }
-        clearUser();
         reader = new BufferedReader(new FileReader(LOG_FILE));
 
         // consume all entries in the log file, since they are old and cannot be related to any active connection.
@@ -83,40 +81,24 @@ public class DbdLogMonitor extends Observable implements Runnable {
                     Thread.sleep(LOG_POLLING_PERIOD_MS);
                 }
             } catch (IOException e) {
-                logger.error("Encountered error while reading from the log file.", e);
+                logger.error("Encountered error while processing log file.", e);
             } catch (InterruptedException e) {
                 // ignore
             }
         }
     }
 
-    private void processLine(String line) {
-        Matcher matcher = PATTERN__QUEUE_JOIN_LOBBY.matcher(line);
-        if (matcher.find()) {
-            String steamUserName = matcher.group(1).trim();
-            lastSteamNameFound = steamUserName;
-            lastSteamIdFound = null;
-            logger.debug("Detected user name: {}", steamUserName);
-            return;
-        }
-
-        // any of the below entries depend on having found the steam user name first
-        if (lastSteamNameFound == null) {
-            return;
-        }
-
-        matcher = PATTERN__LOBBY_PARAMS.matcher(line);
+    private void processLine(String line) throws IOException {
+        Matcher matcher = PATTERN__LOBBY_PARAMS.matcher(line);
         if (matcher.find()) {
             String steamUserId = matcher.group(1).trim();
-            lastSteamIdFound = steamUserId;
             logger.debug("Detected host user id: {}", steamUserId);
+            logger.debug("Fetching user name...");
+            String playerName = steamProfileDao.getPlayerName(steamUserId);
+            logger.debug("Retrieved Steam user name: {}", playerName);
             setChanged();
-            notifyObservers(new SteamUser(lastSteamIdFound, lastSteamNameFound));
+            notifyObservers(new SteamUser(steamUserId, playerName));
         }
     }
 
-    private void clearUser() {
-        lastSteamIdFound = null;
-        lastSteamNameFound = null;
-    }
 }

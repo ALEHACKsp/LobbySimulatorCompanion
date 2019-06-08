@@ -34,7 +34,7 @@ public class Overlay extends JPanel implements Observer {
     private Map<Inet4Address, Long> connections = new HashMap<>(); // keeps track of the last time we received ping for each IP
     private PeerStatus peerStatus;
     private boolean connected; // true if we are connected to any peer; otherwise, false
-    private Queue<Player> lobbyHosts = new LinkedList<>();
+    private Player lobbyHost;
 
     private static final int PEER_TIMEOUT_MS = 6000;
     private static final int CLEANER_POLL_MS = 3000;
@@ -140,8 +140,8 @@ public class Overlay extends JPanel implements Observer {
         }
         connections.put(ip, System.currentTimeMillis());
 
-        if (!peerStatus.hasHostUser() && !lobbyHosts.isEmpty()) {
-            peerStatus.setHostUser(lobbyHosts.poll());
+        if (!peerStatus.hasHostUser() && lobbyHost != null) {
+            peerStatus.setHostUser(lobbyHost);
         }
 
         ping = connections.size() == 1 ? ping : -1;
@@ -196,13 +196,13 @@ public class Overlay extends JPanel implements Observer {
 
         if (connected && connectionCount == 0) {
             clearUserHostStatus();
-        } else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && !lobbyHosts.isEmpty()) {
+        } else if (connectionCount == 1 && !connectionsToRemove.isEmpty() && lobbyHost != null) {
             /**
-             * we went from having 1+ connections to 1. If there's a host user in the queue, we must use it
+             * we went from having 1+ connections to 1. If there's a host user recently detected, we must use it
              * to replace the current user in the status.
              */
-            Player lobbyHost = lobbyHosts.poll();
             peerStatus.setHostUser(lobbyHost);
+            lobbyHost = null;
             peerStatus.updateUserInfo();
         }
         frame.pack();
@@ -243,7 +243,7 @@ public class Overlay extends JPanel implements Observer {
                 playerService.save();
             }
 
-            lobbyHosts.add(player);
+            lobbyHost = player;
             updateLobbyHost();
             frame.pack();
         }
@@ -251,7 +251,6 @@ public class Overlay extends JPanel implements Observer {
 
     private void updateLobbyHost() {
         if (connected && !peerStatus.hasHostUser()) {
-            Player lobbyHost = lobbyHosts.poll();
             peerStatus.setHostUser(lobbyHost);
             peerStatus.updateUserInfo();
         }

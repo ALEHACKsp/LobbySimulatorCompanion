@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop;
 
+import net.lobby_simulator_companion.loop.dao.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.dao.PlayerbaseRepository;
 import net.lobby_simulator_companion.loop.config.AppProperties;
@@ -40,6 +41,7 @@ public final class Factory {
         createAppProperties();
         createPlayerbaseRepository();
         createPlayerService();
+        createSteamProfileDao();
         createDbdLogMonitor();
     }
 
@@ -70,12 +72,22 @@ public final class Factory {
         instances.put(PlayerService.class, instance);
     }
 
+    private static SteamProfileDao getSteamProfileDao() {
+        return (SteamProfileDao) instances.get(SteamProfileDao.class);
+    }
+
+    private static void createSteamProfileDao() {
+        String steamProfileUrlPrefix = getAppProperties().get("steam.profile_url_prefix");
+        Object instance = new SteamProfileDao(steamProfileUrlPrefix);
+        instances.put(SteamProfileDao.class, instance);
+    }
+
     private static DbdLogMonitor getDbdLogMonitor() {
         return (DbdLogMonitor) instances.get(DbdLogMonitor.class);
     }
 
     private static void createDbdLogMonitor() throws Exception {
-        Object instance = new DbdLogMonitor();
+        Object instance = new DbdLogMonitor(getSteamProfileDao());
         instances.put(DbdLogMonitor.class, instance);
     }
 
