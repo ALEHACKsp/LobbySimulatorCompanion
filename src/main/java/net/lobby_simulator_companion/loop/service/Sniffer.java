@@ -57,16 +57,16 @@ public class Sniffer implements Runnable {
         connectionCleaner.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                cleanConnections();
+                purgeConnections();
             }
         }, 0, CLEANER_POLL_MS);
     }
 
 
-    private void cleanConnections() {
+    private void purgeConnections() {
         long currentTime = System.currentTimeMillis();
         Set<Inet4Address> connectionsToRemove = active.entrySet().stream().
-                filter(e -> currentTime - e.getValue() >= PEER_TIMEOUT_MS)
+                filter(e -> e.getValue() != null && (currentTime - e.getValue() >= PEER_TIMEOUT_MS))
                 .map(e -> e.getKey()).collect(Collectors.toSet());
 
         for (Inet4Address connectionToRemove : connectionsToRemove) {

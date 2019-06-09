@@ -1,5 +1,7 @@
 package net.lobby_simulator_companion.loop.dao;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -34,7 +36,8 @@ public class SteamProfileDao {
 
                 Matcher matcher = PATTERN__PROFILE_DATA.matcher(inputLine);
                 if (matcher.find()) {
-                    playerName = matcher.group(1);
+                    // We need to unescape literal unicode. Sometimes we find names like 'Jovem Dihn\u00e2mico'
+                    playerName = StringEscapeUtils.unescapeJava(matcher.group(1));
                 }
             }
         }
