@@ -27,7 +27,9 @@ public final class Factory {
     private Factory() {
     }
 
-
+    /**
+     * Eagerly create alle instances.
+     */
     public static void init() {
         try {
             createInstances();

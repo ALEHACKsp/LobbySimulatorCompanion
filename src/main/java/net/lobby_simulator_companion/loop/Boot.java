@@ -2,13 +2,15 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
+import net.lobby_simulator_companion.loop.service.Sniffer;
+import net.lobby_simulator_companion.loop.service.SnifferListener;
 import net.lobby_simulator_companion.loop.ui.Overlay;
 import net.lobby_simulator_companion.loop.util.FileUtil;
-import org.pcap4j.core.*;
-import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
-import org.pcap4j.packet.IpV4Packet;
-import org.pcap4j.packet.Packet;
-import org.pcap4j.packet.UdpPacket;
+import org.pcap4j.core.PcapAddress;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.PcapNetworkInterface;
+import org.pcap4j.core.Pcaps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,19 +22,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.nio.file.Path;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class Boot {
-    public static PcapNetworkInterface nif = null;
-    public static HashMap<Inet4Address, Timestamp> active = new HashMap<>();
-
     private static Logger logger;
     private static InetAddress localAddr;
-    private static PcapHandle handle = null;
     private static Overlay ui;
-    private static boolean running = true;
+    private static Sniffer sniffer;
+
 
     public static void main(String[] args) throws Exception {
         configureLogger();
@@ -40,7 +37,7 @@ public class Boot {
             init();
         } catch (Exception e) {
             logger.error("Failed to initialize application: {}", e.getMessage(), e);
-            errorDialog("Failed to initialize application: " + e.getMessage());
+            fatalErrorDialog("Failed to initialize application: " + e.getMessage());
             exitApplication(1);
         }
 
@@ -49,12 +46,26 @@ public class Boot {
         }
 
         try {
-            sniffPackets();
+            sniffer = new Sniffer(localAddr, new SnifferListener() {
+                @Override
+                public void updatePing(Inet4Address ip, int ping) {
+                    ui.setPing(ip, ping);
+                }
+
+                @Override
+                public void handleException(Exception e) {
+                    logger.error("Fatal error while sniffing packets.", e);
+                    fatalErrorDialog("A fatal error occurred while processing connections.\nPlease, send us the log files.");
+                }
+            });
+        } catch (InvalidNetworkInterfaceException e) {
+            fatalErrorDialog("The device you selected doesn't seem to exist. Double-check the IP you entered.");
         }
-        catch (Exception e) {
-            logger.error("Fatal error while sniffing packets.", e);
-            errorDialog("A fatal error occurred while processing connections. Please, send us the log files.");
-        }
+
+        // start sniffer thread
+        Thread thread = new Thread(sniffer);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private static void configureLogger() throws URISyntaxException {
@@ -76,7 +87,7 @@ public class Boot {
         setupTray();
 
         logger.info("Setting up network interface...");
-        setUpNetworkInterface();
+        getLocalAddr();
 
         logger.info("Starting UI...");
         ui = Factory.getOverlay();
@@ -85,67 +96,6 @@ public class Boot {
             Factory.getDebugPanel();
         }
     }
-
-    private static void setUpNetworkInterface() throws PcapNativeException, IllegalAccessException, InterruptedException,
-            UnknownHostException, InstantiationException, SocketException, UnsupportedLookAndFeelException,
-            ClassNotFoundException, NotOpenException {
-
-        getLocalAddr();
-        nif = Pcaps.getDevByAddress(localAddr);
-        if (nif == null) {
-            JOptionPane.showMessageDialog(null,
-                    "The device you selected doesn't seem to exist. Double-check the IP you entered.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
-        }
-        final int snapLen = 65536;
-        final PromiscuousMode mode = PromiscuousMode.NONPROMISCUOUS;
-        final int timeout = 0;
-        handle = nif.openLive(snapLen, mode, timeout);
-
-        // Berkley Packet Filter (BPF): http://biot.com/capstats/bpf.html
-        handle.setFilter("udp && less 150", BpfProgram.BpfCompileMode.OPTIMIZE);
-    }
-
-
-    private static void sniffPackets() throws Exception {
-        // TODO: use handle.loop() instead? (http://www.tcpdump.org/pcap.html)
-        while (running) {
-            final Packet packet = handle.getNextPacket();
-
-            if (packet != null) {
-                final IpV4Packet ippacket = packet.get(IpV4Packet.class);
-
-                if (ippacket != null) {
-                    final UdpPacket udppack = ippacket.get(UdpPacket.class);
-
-                    if (udppack != null && udppack.getPayload() != null) {
-                        final Inet4Address srcAddr = ippacket.getHeader().getSrcAddr();
-                        final Inet4Address dstAddr = ippacket.getHeader().getDstAddr();
-                        final int payloadLen = udppack.getPayload().getRawData().length;
-
-                        //Packets are STUN related: 56 is request, 68 is response
-                        if (active.containsKey(srcAddr) && !srcAddr.equals(localAddr)) {
-                            // it's a response from a peer to the local address
-                            if (active.get(srcAddr) != null && payloadLen == 68 && dstAddr.equals(localAddr)) {
-                                int ping = (int) (handle.getTimestamp().getTime() - active.get(srcAddr).getTime());
-                                ui.setPing(ippacket.getHeader().getSrcAddr(), ping);
-                                active.put(srcAddr, null); //No longer expect ping
-                            }
-                        } else {
-                            if (payloadLen == 56 && srcAddr.equals(localAddr)) {
-                                // it's a request from the local address to a peer
-                                // we will store the peer address
-                                Inet4Address peerAddresss = ippacket.getHeader().getDstAddr();
-                                active.put(peerAddresss, handle.getTimestamp());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
 
     public static void setupTray() throws AWTException, IOException {
         final AppProperties appProperties = Factory.getAppProperties();
@@ -198,7 +148,6 @@ public class Boot {
     }
 
     public static void exitApplication(int status) {
-        running = false;
         SystemTray systemTray = SystemTray.getSystemTray();
 
         for (TrayIcon trayIcon : systemTray.getTrayIcons()) {
@@ -209,19 +158,13 @@ public class Boot {
         }
 
         logger.info("Terminated UI.");
-
-        // TODO: Fix this. There seems to be an issue with Pcap where it hangs in a deadlock when trying to close.
-        // https://github.com/kaitoy/pcap4j/issues/199
-//        if (handle != null) {
-//            logger.info("Cleaning up system resources. Could take a while...");
-//            handle.close();
-//            logger.info("Freed network interface handle.");
-//        }
+        sniffer.close();
 
         System.exit(status);
     }
 
 
+    // TODO: This should be moved into its own component class
     public static void getLocalAddr() throws InterruptedException, PcapNativeException, UnknownHostException, SocketException,
             ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
 
@@ -297,9 +240,10 @@ public class Boot {
     }
 
 
-    private static void errorDialog(String msg) {
-        // TODO: we should abort the application on fatal errors
-        JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
+    private static void fatalErrorDialog(String msg) {
+        msg += "\nExiting application.";
+        JOptionPane.showMessageDialog(null, msg, "Fatal Error", JOptionPane.ERROR_MESSAGE);
+        System.exit(1);
     }
 
 }

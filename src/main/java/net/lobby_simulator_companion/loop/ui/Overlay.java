@@ -1,6 +1,5 @@
 package net.lobby_simulator_companion.loop.ui;
 
-import net.lobby_simulator_companion.loop.Boot;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.Player;
@@ -188,7 +187,6 @@ public class Overlay extends JPanel implements Observer {
                 .map(e -> e.getKey()).collect(Collectors.toSet());
 
         for (Inet4Address connectionToRemove : connectionsToRemove) {
-            Boot.active.remove(connectionToRemove);
             connections.remove(connectionToRemove);
         }
 
