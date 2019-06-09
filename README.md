@@ -67,11 +67,6 @@ You can see the LOOP bar showing a ping of 92ms, and that I have previously posi
    If you want to avoid having to select the network device IP every time you start the app, edit loop.settings.ini and change the autoload value to 1.
 
 
-# What's the current status?
-I'm releasing beta versions, so expect to encounter some bugs, and there's a possibility 
-that there can be some minor changes.
-
-
 ## How does it work?
 LOOP uses a packet capture library to detect STUN packets from any peer-to-peer connection in order to determine
 who you're connected to and get ping from. It also uses an encrypted file for storing user-provided data.
