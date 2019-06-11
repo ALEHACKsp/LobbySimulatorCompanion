@@ -74,7 +74,7 @@ public final class Factory {
         instances.put(PlayerService.class, instance);
     }
 
-    private static SteamProfileDao getSteamProfileDao() {
+    public static SteamProfileDao getSteamProfileDao() {
         return (SteamProfileDao) instances.get(SteamProfileDao.class);
     }
 
@@ -84,7 +84,7 @@ public final class Factory {
         instances.put(SteamProfileDao.class, instance);
     }
 
-    private static DbdLogMonitor getDbdLogMonitor() {
+    public static DbdLogMonitor getDbdLogMonitor() {
         return (DbdLogMonitor) instances.get(DbdLogMonitor.class);
     }
 

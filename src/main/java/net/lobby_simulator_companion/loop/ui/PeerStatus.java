@@ -21,10 +21,11 @@ import java.util.stream.Collectors;
  */
 public class PeerStatus extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(PeerStatus.class);
+    private static final Font font = ResourceFactory.getRobotoFont();
 
+    private static final char DEFAULT_NON_DISPLAYABLE_CHAR = '\u0387';
     private static final int MAX_DESCRIPTION_LEN = 100;
     private static final int EDIT_FIELD_COLUMNS = 60;
-    private static final Font font = ResourceFactory.getRobotoFont();
 
     private JLabel pingLabel;
     private JLabel separator1Label;
@@ -302,7 +303,7 @@ public class PeerStatus extends JPanel {
             }
         });
         editField.addActionListener(e -> {
-            lastDescription = editField.getText();
+            lastDescription = replaceNonDisplayableChars(editField.getText());
             hostUser.setDescription(lastDescription);
             descriptionLabel.setText(lastDescription);
             setVisible(editField, false);
@@ -375,7 +376,7 @@ public class PeerStatus extends JPanel {
 
     public void setHostUser(Player hostUser) {
         this.hostUser = hostUser;
-        userNameLabel.setText(hostUser != null ? hostUser.getMostRecentName() : "");
+        userNameLabel.setText(hostUser != null ? replaceNonDisplayableChars(hostUser.getMostRecentName()) : "");
 
         if (hostUser != null) {
             String currentName = hostUser.getMostRecentName();
@@ -392,7 +393,7 @@ public class PeerStatus extends JPanel {
             userNameLabel.setToolTipText(null);
         }
 
-        String description = hostUser != null ? hostUser.getDescription() : "";
+        String description = hostUser != null ? replaceNonDisplayableChars(hostUser.getDescription()) : "";
         editField.setText(description);
         lastDescription = description;
     }
@@ -413,6 +414,19 @@ public class PeerStatus extends JPanel {
 
     public boolean editing() {
         return editingDescription;
+    }
+
+    private String replaceNonDisplayableChars(String text) {
+        char[] result = text.toCharArray();
+
+        for (int i = 0; i < result.length; i++) {
+            char c = result[i];
+            if (!font.canDisplay(c)) {
+                result[i] = DEFAULT_NON_DISPLAYABLE_CHAR;
+            }
+        }
+
+        return String.valueOf(result);
     }
 
 }
