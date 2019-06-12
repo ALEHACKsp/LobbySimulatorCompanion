@@ -7,6 +7,7 @@
 
 
     <properties>
+        <exe.version>1.2.1.0</exe.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -27,7 +28,7 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <finalName>loop</finalName>
+                    <finalName>${project.artifactId}</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
@@ -48,6 +49,47 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>loop-gui</id>
+                        <phase>package</phase>
+                        <goals><goal>launch4j</goal></goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>${project.build.directory}/${project.artifactId}.exe</outfile>
+                            <jar>${project.build.directory}/${project.artifactId}.jar</jar>
+                            <icon>docs/images/loop_logo.ico</icon>
+                            <errTitle>${project.description}</errTitle>
+                            <classPath>
+                                <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
+                            </classPath>
+                            <jre>
+                                <minVersion>${maven.compiler.source}</minVersion>
+                            </jre>
+                            <singleInstance>
+                                <mutexName>${project.artifactId}</mutexName>
+                                <windowTitle>${project.description}</windowTitle>
+                            </singleInstance>
+                            <versionInfo>
+                                <fileVersion>${exe.version}</fileVersion>
+                                <txtFileVersion>${project.version}</txtFileVersion>
+                                <fileDescription>GUI</fileDescription>
+                                <copyright>Nicky Ramone, 2019</copyright>
+                                <productVersion>${exe.version}</productVersion>
+                                <txtProductVersion>${project.version}</txtProductVersion>
+                                <productName>${project.description}</productName>
+                                <internalName>${project.artifactId}</internalName>
+                                <originalFilename>${project.artifactId}.exe</originalFilename>
+                            </versionInfo>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.5.3</version>
