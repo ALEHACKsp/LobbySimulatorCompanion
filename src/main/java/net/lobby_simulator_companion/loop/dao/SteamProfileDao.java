@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +17,7 @@ import java.util.regex.Pattern;
  */
 public class SteamProfileDao {
 
+    private static final Charset HTML_ENCODING_CHARSET = Charset.forName("UTF-8");
     private static final String REGEX__PROFILE_DATA = "g_rgProfileData[ ]*=[ ]*\\{[^;]+?\"personaname\":\"([^\"]+)\"[^;]+?;";
     private static final Pattern PATTERN__PROFILE_DATA = Pattern.compile(REGEX__PROFILE_DATA);
 
@@ -28,8 +30,9 @@ public class SteamProfileDao {
 
     public String getPlayerName(String id64) throws IOException {
         String playerName = null;
-        URL oracle = new URL(profileUrlPrefix + id64);
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(oracle.openStream()))) {
+        URL profileUrl = new URL(profileUrlPrefix + id64);
+
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(profileUrl.openStream(), HTML_ENCODING_CHARSET))) {
             String inputLine;
 
             while ((inputLine = in.readLine()) != null && playerName == null) {
