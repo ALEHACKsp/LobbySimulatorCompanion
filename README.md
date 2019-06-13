@@ -42,25 +42,16 @@ You can see the LOOP bar showing a ping of 92ms, and that I have previously posi
     * Npcap (https://nmap.org/npcap/).
       * Tick "Install Npcap in WinPcap API-compatible Mode" during installation 
         (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
-1. Download loop.jar from the [releases page](https://github.com/nickyramone/LobbySimulatorCompanion/releases).
+1. Download loop.exe from the [releases page](https://github.com/nickyramone/LobbySimulatorCompanion/releases).
 1. Create a folder where you would like to install this app (Example, under C:\Program Files\LobbySimulatorCompanion) 
-   and place the jar there.
-   * Tip: Don't throw it under the desktop. Just create a folder where to contain this application, and then create
+   and place the exe there.
+   * Tip: Don't throw it under the desktop. Instead, create a folder where to contain this application, and then create
           a desktop launcher if you want.
-
-1. **If UAC (User Account Control) is enabled:**\
-  You may need to run the application via Command Prompt (this is due to the PCap4J library being unable to find devices).
-    * Copy the folder path that LOOP is in, for example: C:\Users\Dwight\Programs\LOOP\
-    * Right-click in the same directory as LOOP and create a new text document.
-    * Open it with Notepad and type, cd C:\The\Path\You\Copied\Earlier
-    * Start a new line with Enter and type, javaw -jar loop.jar
-    * Choose Save As and name it LOOP.bat with the option All Files selected
-    * Right-click the new batch file and Run as Administrator
 
 
 # How to run?
-1. Double click on LOOP.jar on your installation folder.\
-  **NOTE:** You may need to right-click the JAR file, select Properties, and choose "Unblock" if it appears below "Attributes".
+1. Double click on loop.exe on your installation folder.\
+  **NOTE:** You may need to right-click on the file, select Properties, and choose "Unblock" if it appears below "Attributes".
 1. If the application started successfully, you should see at least these two files in the installation directory:\
    loop.settings.ini, loop.hosts.dat
 1. **Advanced usage:**\
