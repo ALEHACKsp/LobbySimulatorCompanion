@@ -31,9 +31,9 @@ public class GithubPanel extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(GithubPanel.class);
     private static final long serialVersionUID = -8603001629015114181L;
     /**
-     * The project owner, name, and release JAR name, for this Github Repository. Used for lookup.
+     * The project owner, name, and release EXE name, for this Github Repository. Used for lookup.
      */
-    private static final String author = "nickyramone", project = "LobbySimulatorCompanion", directJAR = "loop.jar";
+    private static final String author = "nickyramone", project = "LobbySimulatorCompanion", directExe = "loop.exe";
     /**
      * The String flag to be included in the Release Notes Body if the update is mandatory for all below the new version.
      */
@@ -121,7 +121,7 @@ public class GithubPanel extends JFrame {
         formatted = hyperlinks(formatted, "\\!\\[(.+?)\\]\\s?+\\((.+?)\\)", "<img src='[2]' alt='[1]'></img>");// Images
         formatted = hyperlinks(formatted, "\\[(.+?)\\]\\s?+\\((.+?)\\)", "<a href='[2]'>[1]</a>");// Embedded Links
 
-        formatted += "<br><center><a style='color: #0366d6;' href='https://github.com/" + author + "/" + project + "/releases/download/" + releaseVersion + "/" + directJAR + "'><b>[ Direct Download ]</b></a></center>";
+        formatted += "<br><center><a style='color: #0366d6;' href='https://github.com/" + author + "/" + project + "/releases/download/" + releaseVersion + "/" + directExe + "'><b>[ Direct Download ]</b></a></center>";
         this.html += formatted;
     }
 
