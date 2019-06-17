@@ -41,6 +41,9 @@ public class SteamProfileDao {
                 if (matcher.find()) {
                     // We need to unescape literal unicode. Sometimes we find names like 'Jovem Dihn\u00e2mico'
                     playerName = StringEscapeUtils.unescapeJava(matcher.group(1));
+
+                    // We need to unescape HTML codes. Sometimes we find names like '&lt;&lt;ADuud&gt;&gt;' ('<<Aduud>>')
+                    playerName = StringEscapeUtils.unescapeHtml3(playerName);
                 }
             }
         }
