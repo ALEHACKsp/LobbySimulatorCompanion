@@ -248,7 +248,7 @@ public class Overlay extends JPanel implements Observer {
     }
 
     private void updateLobbyHost() {
-        if (connected && !peerStatus.hasHostUser()) {
+        if (connected) {
             peerStatus.setHostUser(lobbyHost);
             peerStatus.updateUserInfo();
         }
