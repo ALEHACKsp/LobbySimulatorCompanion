@@ -3,7 +3,7 @@ package net.lobby_simulator_companion.loop;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.*;
-import net.lobby_simulator_companion.loop.ui.MainPanel;
+import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.PcapAddress;
 import org.pcap4j.core.PcapNativeException;
@@ -25,7 +25,7 @@ import java.util.ArrayList;
 public class Boot {
     private static Logger logger;
     private static InetAddress localAddr;
-    private static MainPanel ui;
+    private static MainWindow ui;
     private static Sniffer sniffer;
     private static Settings settings;
 
@@ -35,7 +35,7 @@ public class Boot {
 //        init();
 
         SwingUtilities.invokeLater(() -> {
-            Factory.getMainPanel();
+            Factory.getMainWindow();
             Factory.getDebugPanel();
         });
 
@@ -105,7 +105,7 @@ public class Boot {
         getLocalAddr();
 
         logger.info("Starting UI...");
-        ui = Factory.getMainPanel();
+        ui = Factory.getMainWindow();
 
         logger.info("Starting log monitor...");
         DbdLogMonitor logMonitor = Factory.getDbdLogMonitor();

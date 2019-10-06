@@ -20,7 +20,7 @@ import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMon
 /**
  * @author NickyRamone
  */
-public class MainPanel extends JFrame implements Observer {
+public class MainWindow extends JFrame implements Observer {
 
     private static final String MSG_CONNECTED = "Connected";
     private static final String MSG_DISCONNECTED = "Disconnected";
@@ -49,7 +49,7 @@ public class MainPanel extends JFrame implements Observer {
     private boolean frameLocked = true;
 
 
-    public MainPanel(Settings settings, ServerPanel serverPanel, KillerPanel killerPanel) {
+    public MainWindow(Settings settings, ServerPanel serverPanel, KillerPanel killerPanel) {
         this.serverPanel = serverPanel;
         this.killerPanel = killerPanel;
         initSessionTimer();

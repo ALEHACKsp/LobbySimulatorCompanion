@@ -23,14 +23,14 @@ public class DebugPanel extends JPanel {
 
     private Set<Integer> connections = new HashSet<>();
 
-    private MainPanel mainPanel;
+    private MainWindow mainPanel;
     private DbdLogMonitor logMonitor;
     private JFrame frame;
 
     private Random random = new Random();
 
 
-    public DebugPanel(MainPanel mainPanel, DbdLogMonitor logMonitor) throws Exception {
+    public DebugPanel(MainWindow mainPanel, DbdLogMonitor logMonitor) throws Exception {
         this.mainPanel = mainPanel;
         this.logMonitor = logMonitor;
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

@@ -8,7 +8,7 @@ import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerService;
 import net.lobby_simulator_companion.loop.ui.DebugPanel;
 import net.lobby_simulator_companion.loop.ui.KillerPanel;
-import net.lobby_simulator_companion.loop.ui.MainPanel;
+import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.ui.ServerPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,9 +119,9 @@ public final class Factory {
                 new DbdLogMonitor(getSteamProfileDao())));
     }
 
-    public static MainPanel getMainPanel() {
-        return getInstance(MainPanel.class, () ->
-                new MainPanel(getSettings(), getServerPanel(), getKillerPanel()));
+    public static MainWindow getMainWindow() {
+        return getInstance(MainWindow.class, () ->
+                new MainWindow(getSettings(), getServerPanel(), getKillerPanel()));
     }
 
     public static ServerPanel getServerPanel() {
@@ -134,7 +134,7 @@ public final class Factory {
 
     public static DebugPanel getDebugPanel() {
         return getInstance(DebugPanel.class, unchecked(() ->
-                new DebugPanel(getMainPanel(), getDbdLogMonitor())));
+                new DebugPanel(getMainWindow(), getDbdLogMonitor())));
     }
 
 
