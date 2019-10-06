@@ -27,10 +27,13 @@ public class Boot {
     private static InetAddress localAddr;
     private static MainPanel ui;
     private static Sniffer sniffer;
+    private static Settings settings;
+
 
     public static void main(String[] args) throws Exception {
 //        configureLogger();
 //        init();
+
         SwingUtilities.invokeLater(() -> {
             Factory.getMainPanel();
             Factory.getDebugPanel();
@@ -48,7 +51,7 @@ public class Boot {
             exitApplication(1);
         }
 
-        if (Settings.ENABLE_DEBUG_PANEL) {
+        if (settings.getBoolean("debug")) {
             return;
         }
 
@@ -91,11 +94,11 @@ public class Boot {
     private static void init() throws Exception {
         logger.info("Initializing...");
         Factory.init();
+        settings = Factory.getSettings();
         System.setProperty("jna.nosys", "true");
         if (!Sanity.check()) {
             System.exit(1);
         }
-        Settings.set("autoload", Settings.get("autoload", "0")); //"autoload" is an ini-only toggle for advanced users.
         setupTray();
 
         logger.info("Setting up network interface...");
@@ -104,17 +107,16 @@ public class Boot {
         logger.info("Starting UI...");
         ui = Factory.getMainPanel();
 
-        logger.info("Start log monitor.");
+        logger.info("Starting log monitor...");
         DbdLogMonitor logMonitor = Factory.getDbdLogMonitor();
         logMonitor.addObserver(ui);
         Thread thread = new Thread(logMonitor);
         thread.setDaemon(true);
         thread.start();
 
-
         logger.info("Initialization finished.");
 
-        if (Settings.ENABLE_DEBUG_PANEL) {
+        if (settings.getBoolean("debug")) {
             Factory.getDebugPanel();
         }
     }
@@ -191,8 +193,8 @@ public class Boot {
     public static void getLocalAddr() throws InterruptedException, PcapNativeException, UnknownHostException, SocketException,
             ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
 
-        if (Settings.getDouble("autoload", 0) == 1) {
-            localAddr = InetAddress.getByName(Settings.get("addr", ""));
+        if (settings.getBoolean("autoload")) {
+            localAddr = InetAddress.getByName(settings.get("addr"));
             return;
         }
 
@@ -203,7 +205,7 @@ public class Boot {
         final JLabel ipLab = new JLabel("Select LAN IP obtained from Network Settings:", JLabel.LEFT);
         final JComboBox<String> lanIP = new JComboBox<>();
         final JLabel lanLabel = new JLabel("If your device IP isn't in the dropdown, provide it below.");
-        final JTextField lanText = new JTextField(Settings.get("addr", ""));
+        final JTextField lanText = new JTextField(settings.get("addr", ""));
 
         ArrayList<InetAddress> inets = new ArrayList<InetAddress>();
 
@@ -216,7 +218,7 @@ public class Boot {
                         inets.add(xAddr);
                         lanIP.addItem((lanIP.getItemCount() + 1) + " - " + inf.getDisplayName() + " ::: " + xAddr.getHostAddress());
                         logger.info("Found: {} - {} ::: {}", lanIP.getItemCount(), inf.getDisplayName(), xAddr.getHostAddress());
-                        Settings.set("addr", xAddr.getHostAddress().replaceAll("/", ""));
+                        settings.set("addr", xAddr.getHostAddress().replaceAll("/", ""));
                     }
                 }
             }
@@ -238,7 +240,7 @@ public class Boot {
                     localAddr = inets.get(lanIP.getSelectedIndex());
                     logger.debug("Using device from dropdown: {}", lanIP.getSelectedItem());
                 }
-                Settings.set("addr", localAddr.getHostAddress().replaceAll("/", ""));
+                settings.set("addr", localAddr.getHostAddress().replaceAll("/", ""));
                 frame.setVisible(false);
                 frame.dispose();
             } catch (UnknownHostException e1) {

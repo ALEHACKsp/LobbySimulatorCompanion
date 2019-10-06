@@ -2,6 +2,7 @@ package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
+import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.Server;
 import net.lobby_simulator_companion.loop.service.SteamUser;
@@ -17,7 +18,7 @@ import java.util.Observer;
 import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent;
 
 /**
- * @author Nicky Ramone
+ * @author NickyRamone
  */
 public class MainPanel extends JFrame implements Observer {
 
@@ -48,14 +49,22 @@ public class MainPanel extends JFrame implements Observer {
     private boolean frameLocked = true;
 
 
-    public MainPanel() {
+    public MainPanel(Settings settings, ServerPanel serverPanel, KillerPanel killerPanel) {
+        this.serverPanel = serverPanel;
+        this.killerPanel = killerPanel;
         initSessionTimer();
+
+        /* for now, panels only fire a property change when they are collapsed or expanded */
+        serverPanel.addPropertyChangeListener(evt -> pack());
+        killerPanel.addPropertyChangeListener(evt -> pack());
 
         mouseListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
                     frameLocked = !frameLocked;
+                    settings.set("frame_x", getLocationOnScreen().x);
+                    settings.set("frame_y", getLocationOnScreen().y);
                 }
             }
         };
@@ -74,46 +83,46 @@ public class MainPanel extends JFrame implements Observer {
         setMinimumSize(MINIMUM_SIZE);
         setMaximumSize(MAXIMUM_SIZE);
 
-        JPanel container = new JPanel();
-        container.setBackground(Color.BLACK);
-        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-        setContentPane(container);
-
         connectionPanel = createConnectionStatusBar();
-        container.setMaximumSize(new Dimension(INFINITE_SIZE, 30));
-        container.add(connectionPanel);
-
-
         messagePanel = createMessagePanel();
-        serverPanel = new ServerPanel(this);
-        killerPanel = new KillerPanel(this);
-
 
         detailPanel = new JPanel();
         detailPanel.setLayout(new BoxLayout(detailPanel, BoxLayout.Y_AXIS));
+        detailPanel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                connStatusMinimizeLabel.setIcon(ResourceFactory.getCollapseIcon());
+                pack();
+                super.componentShown(e);
+                settings.set("ui.panel.main.collapsed", false);
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                connStatusMinimizeLabel.setIcon(ResourceFactory.getExpandIcon());
+                pack();
+                super.componentHidden(e);
+                settings.set("ui.panel.main.collapsed", true);
+            }
+        });
         detailPanel.add(messagePanel);
         detailPanel.add(serverPanel);
         detailPanel.add(killerPanel);
         detailPanel.add(Box.createVerticalGlue());
+        detailPanel.setVisible(!settings.getBoolean("ui.panel.main.collapsed"));
 
-        connStatusMinimizeLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                boolean expanded = detailPanel.isVisible();
-                ImageIcon icon = expanded? ResourceFactory.getExpandIcon(): ResourceFactory.getCollapseIcon();
-                connStatusMinimizeLabel.setIcon(icon);
-                detailPanel.setVisible(!expanded);
-                pack();
-            }
-        });
-
+        JPanel container = new JPanel();
+        container.setMaximumSize(new Dimension(INFINITE_SIZE, 30));
+        container.setBackground(Color.BLACK);
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.add(connectionPanel);
         container.add(detailPanel);
 
+        setContentPane(container);
         addMouseListener(mouseListener);
         addMouseMotionListener(mouseMotionListener);
-
-        pack();
         setVisible(true);
+        pack();
     }
 
 
@@ -154,6 +163,12 @@ public class MainPanel extends JFrame implements Observer {
         connStatusMinimizeLabel.setIcon(ResourceFactory.getCollapseIcon());
         connStatusMinimizeLabel.setForeground(Color.WHITE);
         connStatusMinimizeLabel.setFont(font);
+        connStatusMinimizeLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                detailPanel.setVisible(!detailPanel.isVisible());
+            }
+        });
 
         JPanel container = new JPanel();
         container.setLayout(new BorderLayout());
@@ -167,10 +182,6 @@ public class MainPanel extends JFrame implements Observer {
     }
 
     private JPanel createMessagePanel() {
-        JPanel container = new JPanel();
-        container.setBackground(Colors.MSG_BAR_BACKGROUND);
-        container.setLayout(new FlowLayout());
-
         lastConnMsgLabel = new JLabel();
         lastConnMsgLabel.setForeground(Colors.MSG_BAR_FOREGROUND);
         lastConnMsgLabel.setFont(font);
@@ -181,6 +192,7 @@ public class MainPanel extends JFrame implements Observer {
 
         JLabel clearButton = new JLabel();
         clearButton.setIcon(ResourceFactory.getResetIcon());
+        clearButton.setToolTipText("Clear data (it will still be saved)");
         clearButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -190,6 +202,9 @@ public class MainPanel extends JFrame implements Observer {
             }
         });
 
+        JPanel container = new JPanel();
+        container.setBackground(Colors.MSG_BAR_BACKGROUND);
+        container.setLayout(new FlowLayout());
         container.add(lastConnMsgLabel);
         container.add(elapsedLabel);
         container.add(clearButton);
@@ -205,8 +220,12 @@ public class MainPanel extends JFrame implements Observer {
             DbdLogMonitorEvent event = (DbdLogMonitorEvent) arg;
 
             switch (event.type) {
-                case KILLER_STEAM_USER: updateKillerUser((SteamUser) event.argument); break;
-                case KILLER_CHARACTER: updateKillerCharacter((String) event.argument); break;
+                case KILLER_STEAM_USER:
+                    updateKillerUser((SteamUser) event.argument);
+                    break;
+                case KILLER_CHARACTER:
+                    updateKillerCharacter((String) event.argument);
+                    break;
             }
         }
     }
@@ -218,7 +237,6 @@ public class MainPanel extends JFrame implements Observer {
     private void updateKillerCharacter(String killerCharacter) {
         killerPanel.updateKillerCharacter(killerCharacter);
     }
-
 
 
     private void initSessionTimer() {
@@ -249,7 +267,7 @@ public class MainPanel extends JFrame implements Observer {
         connStatusLabel.setText(MSG_DISCONNECTED);
         connectionPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
-        lastConnMsgLabel.setText("Last connection [" + formatTimeElapsed(getConnectionUptimeSeconds()) + "]");
+        lastConnMsgLabel.setText("Last connection below: " + formatTimeElapsed(getConnectionUptimeSeconds()));
         connTimerLabel.setVisible(false);
         messagePanel.setVisible(true);
         pack();
@@ -261,11 +279,11 @@ public class MainPanel extends JFrame implements Observer {
 
     private String formatTimeElapsed(int totalSeconds) {
         int hours = totalSeconds / 3600;
-        int remaind = totalSeconds % 3600;
-        int minutes = remaind / 60;
-        int seconds = remaind % 60;
+        int mod = totalSeconds % 3600;
+        int minutes = mod / 60;
+        int seconds = mod % 60;
 
-        return hours == 0? String.format("%02d:%02d", minutes, seconds):
+        return hours == 0 ? String.format("%02d:%02d", minutes, seconds) :
                 String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 

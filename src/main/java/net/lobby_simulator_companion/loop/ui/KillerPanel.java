@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.SteamUser;
 
 import javax.swing.*;
@@ -14,10 +15,11 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Observable;
-import java.util.Observer;
 
 public class KillerPanel extends JPanel {
+
+    public static final String PROPERTY_PANEL_EXPANDED = "panel.expanded";
+    public static final String PROPERTY_PANEL_COLLAPSED = "panel.collapsed";
 
     private static final class DocumentSizeFilter extends DocumentFilter {
         private int maxChars;
@@ -40,20 +42,19 @@ public class KillerPanel extends JPanel {
 
     private static final Font font = ResourceFactory.getRobotoFont();
 
-    private Window window;
+    private Settings settings;
+
     private JPanel summaryBar;
     private JLabel summaryValueLabel;
     private JLabel detailCollapseButton;
     private JPanel detailsPanel;
     private JLabel characterValueLabel;
     private JLabel matchCountValueLabel;
-    private JPanel userDescriptionPanel;
     private JTextArea userNotesArea;
-    private SteamUser killerUser;
 
 
-    public KillerPanel(Window window) {
-        this.window = window;
+    public KillerPanel(Settings settings) {
+        this.settings = settings;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
         setBackground(new Color(0, 0, 200));
@@ -65,11 +66,6 @@ public class KillerPanel extends JPanel {
     }
 
     private JPanel createSummaryBar() {
-        JPanel container = new JPanel();
-        container.setPreferredSize(new Dimension(200, 25));
-        container.setMinimumSize(new Dimension(300, 25));
-        container.setBackground(Colors.STATUS_BAR_BACKGROUND);
-        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
 
         Border border = new EmptyBorder(5, 5, 5, 5);
 
@@ -83,7 +79,6 @@ public class KillerPanel extends JPanel {
 
         detailCollapseButton = new JLabel();
         detailCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
-
         detailCollapseButton.setBorder(border);
         detailCollapseButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -92,6 +87,11 @@ public class KillerPanel extends JPanel {
             }
         });
 
+        JPanel container = new JPanel();
+        container.setPreferredSize(new Dimension(200, 25));
+        container.setMinimumSize(new Dimension(300, 25));
+        container.setBackground(Colors.STATUS_BAR_BACKGROUND);
+        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
         container.add(summaryLabel);
         container.add(summaryValueLabel);
         container.add(Box.createHorizontalGlue());
@@ -101,12 +101,6 @@ public class KillerPanel extends JPanel {
     }
 
     private JPanel createDetailsPanel() {
-        JPanel container = new JPanel();
-        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-
-        JPanel statsContainer = new JPanel();
-        statsContainer.setBackground(Colors.INFO_PANEL_BACKGROUND);
-        statsContainer.setLayout(new GridLayout(3, 2, 10, 10));
 
         JLabel characterLabel = new JLabel("Character:", JLabel.RIGHT);
         characterLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
@@ -126,48 +120,46 @@ public class KillerPanel extends JPanel {
         notesLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         notesLabel.setFont(font);
 
+        JPanel statsContainer = new JPanel();
+        statsContainer.setBackground(Colors.INFO_PANEL_BACKGROUND);
+        statsContainer.setLayout(new GridLayout(3, 2, 10, 10));
         statsContainer.add(characterLabel);
         statsContainer.add(characterValueLabel);
         statsContainer.add(matchCountLabel);
         statsContainer.add(matchCountValueLabel);
         statsContainer.add(notesLabel);
 
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
         container.add(statsContainer);
         container.add(Box.createVerticalStrut(10));
         container.add(createUserDescriptionPanel());
-
         container.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
                 detailCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
-                window.pack();
                 super.componentShown(e);
+                settings.set("ui.panel.killer.collapsed", false);
+                firePropertyChange(PROPERTY_PANEL_EXPANDED, false,  true);
             }
 
             @Override
             public void componentHidden(ComponentEvent e) {
                 detailCollapseButton.setIcon(ResourceFactory.getExpandIcon());
-                window.pack();
                 super.componentHidden(e);
+                settings.set("ui.panel.killer.collapsed", true);
+                firePropertyChange(PROPERTY_PANEL_COLLAPSED, false,  true);
             }
         });
 
+        container.setVisible(!settings.getBoolean("ui.panel.server.collapsed"));
 
         return container;
     }
 
     private JPanel createUserDescriptionPanel() {
-        String description = "" +
-                "nurse (1): noed, 7 blinks\n" +
-                "billy (5): high curve\n" +
-                "Tryhard. Sucks ass. Moonwalks and talks shit.\n" +
-                "Gave me hatch.";
 
-        JPanel container = new JPanel();
-        container.setBackground(Colors.INFO_PANEL_BACKGROUND);
-        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
-
-        userNotesArea = new JTextArea(description, 10, 30);
+        userNotesArea = new JTextArea("", 10, 30);
         ((AbstractDocument) userNotesArea.getDocument()).setDocumentFilter(new DocumentSizeFilter(1256));
         userNotesArea.setMargin(new Insets(5, 5, 5, 5));
         userNotesArea.setForeground(Color.WHITE);
@@ -179,6 +171,9 @@ public class KillerPanel extends JPanel {
 
         JScrollPane descAreacontainer = new JScrollPane(userNotesArea);
 
+        JPanel container = new JPanel();
+        container.setBackground(Colors.INFO_PANEL_BACKGROUND);
+        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
         container.add(Box.createHorizontalGlue());
         container.add(descAreacontainer);
 
@@ -187,22 +182,14 @@ public class KillerPanel extends JPanel {
 
 
     public void updateKillerUser(SteamUser killerUser) {
-        this.killerUser = killerUser;
         summaryValueLabel.setText(killerUser.getName());
     }
 
     public void clearKillerInfo() {
-        killerUser = null;
         characterValueLabel.setText("");
         summaryValueLabel.setText("");
         matchCountValueLabel.setText("");
         userNotesArea.setText("");
-    }
-
-    private void collapseDetails() {
-        if (detailsPanel.isVisible()) {
-            detailsPanel.setVisible(false);
-        }
     }
 
     public void updateKillerCharacter(String killerCharacter) {

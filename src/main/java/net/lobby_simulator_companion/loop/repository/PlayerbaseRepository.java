@@ -1,10 +1,9 @@
-package net.lobby_simulator_companion.loop.dao;
+package net.lobby_simulator_companion.loop.repository;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.Playerbase;
@@ -32,22 +31,23 @@ public class PlayerbaseRepository {
     private static final Logger logger = LoggerFactory.getLogger(PlayerbaseRepository.class);
     private static byte[] CIPHER_KEY_MATERIAL = new byte[]{2, 3, -57, 11, 73, 57, -66, 21};
 
+    private Settings settings;
     private File saveFile;
     private final Gson gson;
     private final String jsonIndent;
 
 
-    public PlayerbaseRepository() {
-        AppProperties appProperties = Factory.getAppProperties();
+    public PlayerbaseRepository(Settings settings, AppProperties appProperties) {
+        this.settings = settings;
         saveFile = Paths.get(appProperties.get("app.home"))
                 .resolve(appProperties.get("storage.playerbase.file")).toFile();
         GsonBuilder gsonBuilder = new GsonBuilder();
 
-        if ("0".equals(Settings.get("encrypt"))) {
+        if (settings.getBoolean("encrypt")) {
+            jsonIndent = "";
+        } else {
             gsonBuilder.setPrettyPrinting();
             jsonIndent = "    ";
-        } else {
-            jsonIndent = "";
         }
 
         gson = gsonBuilder.create();
@@ -90,9 +90,7 @@ public class PlayerbaseRepository {
     private JsonReader createJsonReader(Cipher cipher) throws IOException {
         InputStream inputStream;
 
-        if ("0".equals(Settings.get("encrypt"))) {
-            inputStream = new FileInputStream(saveFile);
-        } else {
+        if (settings.getBoolean("encrypt")) {
             CipherInputStream decStream;
             FileInputStream fis = new FileInputStream(saveFile);
             try {
@@ -102,6 +100,8 @@ public class PlayerbaseRepository {
                 throw new IOException(e.getMessage());
             }
             inputStream = new GZIPInputStream(decStream);
+        } else {
+            inputStream = new FileInputStream(saveFile);
         }
 
         return new JsonReader(new InputStreamReader(inputStream, "UTF-8"));
@@ -111,9 +111,7 @@ public class PlayerbaseRepository {
     private JsonWriter createJsonWriter() throws IOException {
         OutputStream outputStream;
 
-        if ("0".equals(Settings.get("encrypt"))) {
-            outputStream = new FileOutputStream(this.saveFile.getAbsolutePath());
-        } else {
+        if (settings.getBoolean("encrypt")) {
             Cipher cipher;
             try {
                 cipher = getCipher(false);
@@ -122,6 +120,8 @@ public class PlayerbaseRepository {
                 throw new IOException(e.getMessage());
             }
             outputStream = new GZIPOutputStream(new CipherOutputStream(new FileOutputStream(saveFile), cipher));
+        } else {
+            outputStream = new FileOutputStream(this.saveFile.getAbsolutePath());
         }
 
         return new JsonWriter(new OutputStreamWriter(outputStream, "UTF-8"));

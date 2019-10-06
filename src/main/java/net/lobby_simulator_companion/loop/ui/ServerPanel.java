@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.Server;
 
 import javax.swing.*;
@@ -13,13 +14,16 @@ import java.awt.event.MouseEvent;
 
 /**
  *
- * @author Nicky Ramone
+ * @author NickyRamone
  */
 public class ServerPanel extends JPanel {
 
+    public static final String PROPERTY_PANEL_EXPANDED = "panel.expanded";
+    public static final String PROPERTY_PANEL_COLLAPSED = "panel.collapsed";
     private static final Font font = ResourceFactory.getRobotoFont();
 
-    private Window window;
+    private Settings settings;
+
     private JPanel summaryBar;
     private JPanel detailsPanel;
     private JLabel detailsCollapseButton;
@@ -29,8 +33,9 @@ public class ServerPanel extends JPanel {
     private JLabel serverIdValueLabel;
 
 
-    public ServerPanel(Window window) {
-        this.window = window;
+    public ServerPanel(Settings settings) {
+        this.settings = settings;
+
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(new Color(0, 0, 250));
         summaryBar = createSummaryBar();
@@ -125,15 +130,17 @@ public class ServerPanel extends JPanel {
             @Override
             public void componentShown(ComponentEvent e) {
                 detailsCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
-                window.pack();
                 super.componentShown(e);
+                settings.set("ui.panel.server.collapsed", false);
+                firePropertyChange(PROPERTY_PANEL_EXPANDED, false,  true);
             }
 
             @Override
             public void componentHidden(ComponentEvent e) {
                 detailsCollapseButton.setIcon(ResourceFactory.getExpandIcon());
-                window.pack();
                 super.componentHidden(e);
+                settings.set("ui.panel.server.collapsed", true);
+                firePropertyChange(PROPERTY_PANEL_COLLAPSED, false,  true);
             }
         });
 

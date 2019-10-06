@@ -1,22 +1,25 @@
 package net.lobby_simulator_companion.loop;
 
-import net.lobby_simulator_companion.loop.dao.SteamProfileDao;
-import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.dao.PlayerbaseRepository;
 import net.lobby_simulator_companion.loop.config.AppProperties;
+import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.repository.PlayerbaseRepository;
+import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
+import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerService;
 import net.lobby_simulator_companion.loop.ui.DebugPanel;
+import net.lobby_simulator_companion.loop.ui.KillerPanel;
 import net.lobby_simulator_companion.loop.ui.MainPanel;
-import net.lobby_simulator_companion.loop.ui.Overlay;
+import net.lobby_simulator_companion.loop.ui.ServerPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Factory for all classes.
- * Can eventually be replaced by an IOC container like Guice.
+ * Can eventually be replaced by an IOC container like Guice or Spring.
  *
  * @author NickyRamone
  */
@@ -27,6 +30,27 @@ public final class Factory {
 
     private Factory() {
     }
+
+
+    public interface ThrowingFunction<T, R> {
+        R apply() throws Exception;
+
+        @SuppressWarnings("unchecked")
+        static <T extends Exception, R> R sneakyThrow(Exception t) throws T {
+            throw (T) t;
+        }
+    }
+
+    static Supplier unchecked(ThrowingFunction f) {
+        return () -> {
+            try {
+                return f.apply();
+            } catch (Exception ex) {
+                return ThrowingFunction.sneakyThrow(ex);
+            }
+        };
+    }
+
 
     /**
      * Eagerly create all instances.
@@ -41,115 +65,76 @@ public final class Factory {
     }
 
     private static void createInstances() throws Exception {
-        createAppProperties();
-        createPlayerbaseRepository();
-        createPlayerService();
-        createSteamProfileDao();
-        createDbdLogMonitor();
+        getSettings();
+        getAppProperties();
+        getPlayerbaseRepository();
+        getPlayerService();
+        getSteamProfileDao();
+        getDbdLogMonitor();
     }
 
-
-    public static AppProperties getAppProperties() {
-        Object instance = instances.get(AppProperties.class);
+    private static <T> T getInstance(Class<T> clazz, Supplier<T> objFactory) {
+        T instance = clazz.cast(instances.get(clazz));
 
         if (instance == null) {
             try {
-                instance = createAppProperties();
+                instance = objFactory.get();
+                instances.put(clazz, instance);
             } catch (Exception e) {
                 logger.error("Failed to instantiate class.", e);
             }
         }
 
-        return (AppProperties) instance;
+        return instance;
     }
 
-    private static AppProperties createAppProperties() throws Exception {
-        AppProperties instance = new AppProperties();
-        instances.put(AppProperties.class, instance);
+    public static AppProperties getAppProperties() {
+        return getInstance(AppProperties.class, unchecked(AppProperties::new));
+    }
 
-        return instance;
+    public static Settings getSettings() {
+        return getInstance(Settings.class, unchecked(Settings::new));
     }
 
     public static PlayerbaseRepository getPlayerbaseRepository() {
-        return (PlayerbaseRepository) instances.get(PlayerbaseRepository.class);
+        return getInstance(PlayerbaseRepository.class,
+                () -> new PlayerbaseRepository(getSettings(), getAppProperties()));
     }
 
-    private static void createPlayerbaseRepository() {
-        instances.put(PlayerbaseRepository.class, new PlayerbaseRepository());
-    }
-
-    public static PlayerService getPlayerService() throws Exception {
-        return (PlayerService) instances.get(PlayerService.class);
-    }
-
-    private static void createPlayerService() throws Exception {
-        PlayerbaseRepository playerbaseRepository = getPlayerbaseRepository();
-        PlayerService instance = new PlayerService(playerbaseRepository);
-        instances.put(PlayerService.class, instance);
+    public static PlayerService getPlayerService() {
+        return (PlayerService) getInstance(PlayerService.class, unchecked(
+                () -> new PlayerService(getPlayerbaseRepository())));
     }
 
     public static SteamProfileDao getSteamProfileDao() {
-        return (SteamProfileDao) instances.get(SteamProfileDao.class);
+        return getInstance(SteamProfileDao.class, () -> {
+            String steamProfileUrlPrefix = getAppProperties().get("steam.profile_url_prefix");
+            return new SteamProfileDao(steamProfileUrlPrefix);
+        });
     }
 
-    private static void createSteamProfileDao() {
-        String steamProfileUrlPrefix = getAppProperties().get("steam.profile_url_prefix");
-        Object instance = new SteamProfileDao(steamProfileUrlPrefix);
-        instances.put(SteamProfileDao.class, instance);
-    }
 
     public static DbdLogMonitor getDbdLogMonitor() {
-        Object instance = instances.get(DbdLogMonitor.class);
-
-        if (instance == null) {
-            try {
-                instance = createDbdLogMonitor();
-            } catch (Exception e) {
-                logger.error("Failed to instantiate class.", e);
-            }
-        }
-
-        return (DbdLogMonitor) instance;
-    }
-
-    private static DbdLogMonitor createDbdLogMonitor() throws Exception {
-        DbdLogMonitor instance = new DbdLogMonitor(getSteamProfileDao());
-        instances.put(DbdLogMonitor.class, instance);
-
-        return instance;
+        return getInstance(DbdLogMonitor.class, unchecked(() ->
+                new DbdLogMonitor(getSteamProfileDao())));
     }
 
     public static MainPanel getMainPanel() {
-        Object instance = instances.get(MainPanel.class);
+        return getInstance(MainPanel.class, () ->
+                new MainPanel(getSettings(), getServerPanel(), getKillerPanel()));
+    }
 
-        if (instance == null) {
-            MainPanel mainPanelInstance = new MainPanel();
-            instances.put(MainPanel.class, mainPanelInstance);
-            instance = mainPanelInstance;
-        }
+    public static ServerPanel getServerPanel() {
+        return getInstance(ServerPanel.class, () -> new ServerPanel(getSettings()));
+    }
 
-        return (MainPanel) instance;
+    public static KillerPanel getKillerPanel() {
+        return getInstance(KillerPanel.class, () -> new KillerPanel(getSettings()));
     }
 
     public static DebugPanel getDebugPanel() {
-        Object instance = instances.get(DebugPanel.class);
-
-        if (instance == null) {
-            try {
-                instance = createDebugPanel();
-            } catch (Exception e) {
-                logger.error("Failed to instantiate debug panel.", e);
-            }
-        }
-
-        return (DebugPanel) instance;
-    }
-
-    private static DebugPanel createDebugPanel() throws Exception {
-        DebugPanel instance = new DebugPanel(getMainPanel(), getDbdLogMonitor());
-        instances.put(DebugPanel.class, instance);
-
-        return instance;
+        return getInstance(DebugPanel.class, unchecked(() ->
+                new DebugPanel(getMainPanel(), getDbdLogMonitor())));
     }
 
 

@@ -2,7 +2,7 @@ package net.lobby_simulator_companion.loop.service;
 
 /**
  *
- * @author Nicky Ramone
+ * @author NickyRamone
  */
 public class GeoLocation {
 

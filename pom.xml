@@ -138,6 +138,11 @@
             <artifactId>commons-text</artifactId>
             <version>1.6</version>
         </dependency>
+        <dependency>
+            <groupId>org.ini4j</groupId>
+            <artifactId>ini4j</artifactId>
+            <version>0.5.4</version>
+        </dependency>
     </dependencies>
     <scm>
         <connection>scm:git:https://github.com/nickyramone/LobbySimulatorCompanion.git</connection>

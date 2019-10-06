@@ -4,7 +4,7 @@ import java.net.InetAddress;
 
 /**
  *
- * @author Nicky Ramone
+ * @author NickyRamone
  *
  */
 public class Connection {

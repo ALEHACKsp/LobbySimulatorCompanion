@@ -1,6 +1,6 @@
 package net.lobby_simulator_companion.loop.ui;
 
-import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.config.Settings_old;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.Player;
 import net.lobby_simulator_companion.loop.service.PlayerService;
@@ -61,7 +61,7 @@ public class Overlay extends JPanel implements Observer {
         frame.add(emptyStatus);
         frame.setAlwaysOnTop(true);
         frame.pack();
-        frame.setLocation((int) Settings.getDouble("frame_x", 5), (int) Settings.getDouble("frame_y", 400));
+        frame.setLocation((int) Settings_old.getDouble("frame_x", 5), (int) Settings_old.getDouble("frame_y", 400));
         frame.setVisible(true);
 
         startConnectionCleaner();
@@ -74,8 +74,8 @@ public class Overlay extends JPanel implements Observer {
             public void mouseClicked(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && !e.isShiftDown() && e.getClickCount() >= 2) {
                     frameMove = !frameMove;
-                    Settings.set("frame_x", frame.getLocationOnScreen().x);
-                    Settings.set("frame_y", frame.getLocationOnScreen().y);
+                    Settings_old.set("frame_x", frame.getLocationOnScreen().x);
+                    Settings_old.set("frame_y", frame.getLocationOnScreen().y);
                 }
             }
         };

@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.dao;
+package net.lobby_simulator_companion.loop.repository;
 
 import org.apache.commons.text.StringEscapeUtils;
 

@@ -1,6 +1,6 @@
 package net.lobby_simulator_companion.loop.service;
 
-import net.lobby_simulator_companion.loop.dao.SteamProfileDao;
+import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
