@@ -2,10 +2,8 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
-import net.lobby_simulator_companion.loop.service.Sniffer;
-import net.lobby_simulator_companion.loop.service.SnifferListener;
-import net.lobby_simulator_companion.loop.ui.Overlay;
+import net.lobby_simulator_companion.loop.service.*;
+import net.lobby_simulator_companion.loop.ui.MainPanel;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.PcapAddress;
 import org.pcap4j.core.PcapNativeException;
@@ -27,11 +25,20 @@ import java.util.ArrayList;
 public class Boot {
     private static Logger logger;
     private static InetAddress localAddr;
-    private static Overlay ui;
+    private static MainPanel ui;
     private static Sniffer sniffer;
 
-
     public static void main(String[] args) throws Exception {
+//        configureLogger();
+//        init();
+        SwingUtilities.invokeLater(() -> {
+            Factory.getMainPanel();
+            Factory.getDebugPanel();
+        });
+
+    }
+
+    public static void main2(String[] args) throws Exception {
         configureLogger();
         try {
             init();
@@ -48,8 +55,13 @@ public class Boot {
         try {
             sniffer = new Sniffer(localAddr, new SnifferListener() {
                 @Override
-                public void updatePing(Inet4Address ip, int ping) {
-                    ui.setPing(ip, ping);
+                public void notifyNewConnection(Connection connection) {
+                    ui.connect();
+                }
+
+                @Override
+                public void notifyDisconnect() {
+                    ui.disconnect();
                 }
 
                 @Override
@@ -90,12 +102,23 @@ public class Boot {
         getLocalAddr();
 
         logger.info("Starting UI...");
-        ui = Factory.getOverlay();
+        ui = Factory.getMainPanel();
+
+        logger.info("Start log monitor.");
+        DbdLogMonitor logMonitor = Factory.getDbdLogMonitor();
+        logMonitor.addObserver(ui);
+        Thread thread = new Thread(logMonitor);
+        thread.setDaemon(true);
+        thread.start();
+
+
+        logger.info("Initialization finished.");
 
         if (Settings.ENABLE_DEBUG_PANEL) {
             Factory.getDebugPanel();
         }
     }
+
 
     public static void setupTray() throws AWTException, IOException {
         final AppProperties appProperties = Factory.getAppProperties();

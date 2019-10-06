@@ -132,7 +132,7 @@ public class PlayerbaseRepository {
      * Builds the Cipher Object used for encryption/decryption.
      *
      * @param readMode The Cipher will be initiated in either encrypt/decrypt mode.
-     * @return Cipher object, ready to go.
+     * @return Cipher argument, ready to go.
      * @throws Exception Many possible issues can arise, so this is a catch-all.
      */
     public static Cipher getCipher(boolean readMode) throws InvalidKeyException, InvalidKeySpecException,

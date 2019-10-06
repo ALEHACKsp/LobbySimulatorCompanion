@@ -12,6 +12,8 @@ import java.net.URL;
 /**
  * A factory for obtaining singleton instances of different resources.
  *
+ * TODO: refactor this class
+ *
  * @author NickyRamone
  */
 public final class ResourceFactory {
@@ -19,14 +21,21 @@ public final class ResourceFactory {
     private static final Logger logger = LoggerFactory.getLogger(ResourceFactory.class);
 
     private static final String ROBOTO_FONT_PATH = "/Roboto-Medium.ttf";
+
+    private static final String COLLAPSE_ICON_PATH = "/collapse_icon.png";
+    private static final String EXPAND_ICON_PATH = "/expand_icon.png";
+    private static final String RESET_ICON_PATH = "/reset_icon.png";
     private static final String STEAM_ICON_PATH = "/steam_icon.png";
     private static final String THUMBS_DOWN_ICON_PATH = "/thumbs-down_icon.png";
     private static final String THUMBS_UP_ICON_PATH = "/thumbs-up_icon.png";
 
     private static Font roboto;
+    private static ImageIcon collapseIcon;
+    private static ImageIcon expandIcon;
     private static ImageIcon thumbsUpIcon;
     private static ImageIcon thumbsDownIcon;
     private static ImageIcon steamIcon;
+    private static ImageIcon resetIcon;
 
 
     private ResourceFactory() {
@@ -37,7 +46,7 @@ public final class ResourceFactory {
         if (roboto == null) {
             InputStream is = ResourceFactory.class.getResourceAsStream(ROBOTO_FONT_PATH);
             try {
-                roboto = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(15f);
+                roboto = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(16f);
             } catch (FontFormatException e) {
                 logger.error("Font file is corrupt.", e);
             } catch (IOException e) {
@@ -89,6 +98,48 @@ public final class ResourceFactory {
         }
 
         return steamIcon;
+    }
+
+    public static synchronized ImageIcon getResetIcon() {
+        if (resetIcon == null) {
+            URL imgURL = ResourceFactory.class.getResource(RESET_ICON_PATH);
+
+            if (imgURL != null) {
+                resetIcon = new ImageIcon(imgURL, "reset");
+            } else {
+                logger.error("Failed to load the 'reset' icon.");
+            }
+        }
+
+        return resetIcon;
+    }
+
+    public static synchronized ImageIcon getCollapseIcon() {
+        if (collapseIcon == null) {
+            URL imgURL = ResourceFactory.class.getResource(COLLAPSE_ICON_PATH);
+
+            if (imgURL != null) {
+                collapseIcon = new ImageIcon(imgURL, "collapse");
+            } else {
+                logger.error("Failed to load the 'collapse' icon.");
+            }
+        }
+
+        return collapseIcon;
+    }
+
+    public static synchronized ImageIcon getExpandIcon() {
+        if (expandIcon == null) {
+            URL imgURL = ResourceFactory.class.getResource(EXPAND_ICON_PATH);
+
+            if (imgURL != null) {
+                expandIcon = new ImageIcon(imgURL, "expand");
+            } else {
+                logger.error("Failed to load the 'expand' icon.");
+            }
+        }
+
+        return expandIcon;
     }
 
 }

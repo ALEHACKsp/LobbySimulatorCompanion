@@ -6,6 +6,7 @@ import net.lobby_simulator_companion.loop.dao.PlayerbaseRepository;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.service.PlayerService;
 import net.lobby_simulator_companion.loop.ui.DebugPanel;
+import net.lobby_simulator_companion.loop.ui.MainPanel;
 import net.lobby_simulator_companion.loop.ui.Overlay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public final class Factory {
     }
 
     /**
-     * Eagerly create alle instances.
+     * Eagerly create all instances.
      */
     public static void init() {
         try {
@@ -49,11 +50,24 @@ public final class Factory {
 
 
     public static AppProperties getAppProperties() {
-        return (AppProperties) instances.get(AppProperties.class);
+        Object instance = instances.get(AppProperties.class);
+
+        if (instance == null) {
+            try {
+                instance = createAppProperties();
+            } catch (Exception e) {
+                logger.error("Failed to instantiate class.", e);
+            }
+        }
+
+        return (AppProperties) instance;
     }
 
-    private static void createAppProperties() throws Exception {
-        instances.put(AppProperties.class, new AppProperties());
+    private static AppProperties createAppProperties() throws Exception {
+        AppProperties instance = new AppProperties();
+        instances.put(AppProperties.class, instance);
+
+        return instance;
     }
 
     public static PlayerbaseRepository getPlayerbaseRepository() {
@@ -85,45 +99,57 @@ public final class Factory {
     }
 
     public static DbdLogMonitor getDbdLogMonitor() {
-        return (DbdLogMonitor) instances.get(DbdLogMonitor.class);
-    }
-
-    private static void createDbdLogMonitor() throws Exception {
-        Object instance = new DbdLogMonitor(getSteamProfileDao());
-        instances.put(DbdLogMonitor.class, instance);
-    }
-
-    public static Overlay getOverlay() throws Exception {
-        Object instance = instances.get(Overlay.class);
+        Object instance = instances.get(DbdLogMonitor.class);
 
         if (instance == null) {
-            createOverlay();
-            instance = instances.get(Overlay.class);
+            try {
+                instance = createDbdLogMonitor();
+            } catch (Exception e) {
+                logger.error("Failed to instantiate class.", e);
+            }
         }
 
-        return (Overlay) instance;
+        return (DbdLogMonitor) instance;
     }
 
-    private static void createOverlay() throws Exception {
-        Overlay instance = new Overlay(getPlayerService(), getDbdLogMonitor());
-        instances.put(Overlay.class, instance);
+    private static DbdLogMonitor createDbdLogMonitor() throws Exception {
+        DbdLogMonitor instance = new DbdLogMonitor(getSteamProfileDao());
+        instances.put(DbdLogMonitor.class, instance);
+
+        return instance;
     }
 
+    public static MainPanel getMainPanel() {
+        Object instance = instances.get(MainPanel.class);
 
-    public static DebugPanel getDebugPanel() throws Exception {
+        if (instance == null) {
+            MainPanel mainPanelInstance = new MainPanel();
+            instances.put(MainPanel.class, mainPanelInstance);
+            instance = mainPanelInstance;
+        }
+
+        return (MainPanel) instance;
+    }
+
+    public static DebugPanel getDebugPanel() {
         Object instance = instances.get(DebugPanel.class);
 
         if (instance == null) {
-            createDebugPanel();
-            instance = instances.get(DebugPanel.class);
+            try {
+                instance = createDebugPanel();
+            } catch (Exception e) {
+                logger.error("Failed to instantiate debug panel.", e);
+            }
         }
 
         return (DebugPanel) instance;
     }
 
-    private static void createDebugPanel() throws Exception {
-        DebugPanel instance = new DebugPanel(getOverlay(), getDbdLogMonitor());
+    private static DebugPanel createDebugPanel() throws Exception {
+        DebugPanel instance = new DebugPanel(getMainPanel(), getDbdLogMonitor());
         instances.put(DebugPanel.class, instance);
+
+        return instance;
     }
 
 

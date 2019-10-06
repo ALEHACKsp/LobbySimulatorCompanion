@@ -85,7 +85,7 @@ public class FileUtil {
     }
 
     /**
-     * Get a File object representing version <i>version</i> of the given File <i>f</i>.<br>
+     * Get a File argument representing version <i>version</i> of the given File <i>f</i>.<br>
      * It is crucial (for ease of tracking) that all backup files follow the same naming conventions.<br>
      * This function exists to enforce those conventions.
      */

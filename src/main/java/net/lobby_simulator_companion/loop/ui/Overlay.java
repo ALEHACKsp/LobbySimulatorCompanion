@@ -16,6 +16,7 @@ import java.util.Timer;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Deprecated
 public class Overlay extends JPanel implements Observer {
     private static final long serialVersionUID = -470849574354121503L;
     private static final Logger logger = LoggerFactory.getLogger(Overlay.class);
@@ -128,7 +129,7 @@ public class Overlay extends JPanel implements Observer {
 
 
     /**
-     * Sets a peer's ping, or creates their object.
+     * Sets a peer's ping, or creates their argument.
      */
     public void setPing(Inet4Address ip, int ping) {
         if (!connected) {

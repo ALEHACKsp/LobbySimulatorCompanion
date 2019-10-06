@@ -10,9 +10,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Observable;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent.EventType;
 
 /**
  * DBD log parser daemon.
@@ -33,12 +35,71 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final String LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
     private static final File LOG_FILE = USER_APPDATA_PATH.resolve(LOG_PATH).toFile();
 
-    private static final String REGEX__LOBBY_PARAMS = "steam.([0-9]+)//Game/Maps/OfflineLobby";
-    private static final Pattern PATTERN__LOBBY_PARAMS = Pattern.compile(REGEX__LOBBY_PARAMS);
+//    private static final String REGEX__LOBBY_PARAMS = "steam.([0-9]+)//Game/Maps/OfflineLobby";
+//    private static final Pattern PATTERN__LOBBY_PARAMS = Pattern.compile(REGEX__LOBBY_PARAMS);
+    private static final String REGEX__LOBBY_KILLER = "MatchMembersA=\\[\"([0-9a-f\\-]+)\"\\]";
+    private static final Pattern PATTERN__LOBBY_KILLER = Pattern.compile(REGEX__LOBBY_KILLER);
+
+    private static final String REGEX__LOBBY_ADD_PLAYER = "AddSessionPlayer Session:GameSession PlayerId:([0-9a-f\\-]+)\\|([0-9]+)";
+    private static final Pattern PATTERN__LOBBY_ADD_PLAYER = Pattern.compile(REGEX__LOBBY_ADD_PLAYER);
+
+
+    private static final String REGEX__KILLER_OUTFIT = "LogCustomization: --> ([A-Z][A-Z])_[a-zA-Z]+";
+    private static final Pattern PATTERN__KILLER_OUTFIT = Pattern.compile(REGEX__KILLER_OUTFIT);
+
+    private static final String[][] KILLER_NAME_TO_OUTFIT_CODES_MAPPING = new String[][]{
+            {"Cannibal", "CA"},
+            {"Clown", "GK"},
+            {"Demogorgon", "QK"},
+            {"Doctor", "DO"},
+            {"Ghostface", "OK"},
+            {"Hag", "HA", "WI"},
+            {"Hillbilly", "HB", "TC"},
+            {"Huntress", "BE"},
+            {"Legion", "KK"},
+            {"Nightmare", "SD"},
+            {"Nurse", "TN"},
+            {"Pig", "FK"},
+            {"Plague", "ML"},
+            {"Shape", "MM"},
+            {"Spirit", "HK"},
+            {"Trapper", "TR"},
+            {"Wraith", "TW", "WR"}
+    };
+
+    private static final Map<String, String> OUTFIT_CODE_TO_KILLER_NAME_MAPPING = new HashMap<>();
+
+    static {
+        for (String[] e: KILLER_NAME_TO_OUTFIT_CODES_MAPPING) {
+            String killerName = e[0];
+
+            for (int i = 1, n = e.length; i < n; i++) {
+                String outfitCode = e[i];
+                OUTFIT_CODE_TO_KILLER_NAME_MAPPING.put(outfitCode, killerName);
+            }
+
+        }
+    }
+
+
+    public static final class DbdLogMonitorEvent {
+        public enum EventType {KILLER_STEAM_USER, KILLER_CHARACTER};
+
+        public final EventType type;
+        public final Object argument;
+
+        public DbdLogMonitorEvent(EventType type, Object argument) {
+            this.type = type;
+            this.argument = argument;
+        }
+    }
+
 
     private SteamProfileDao steamProfileDao;
     private BufferedReader reader;
     private long logSize;
+    private Map<String, String> dbdPlayerIdToSteamId = new HashMap<>();
+    private String killerDbdId;
 
 
     public DbdLogMonitor(SteamProfileDao steamProfileDao) throws IOException {
@@ -89,15 +150,64 @@ public class DbdLogMonitor extends Observable implements Runnable {
     }
 
     private void processLine(String line) throws IOException {
-        Matcher matcher = PATTERN__LOBBY_PARAMS.matcher(line);
+        Matcher matcher;
+//        = PATTERN__LOBBY_PARAMS.matcher(line);
+//        if (matcher.find()) {
+//            String steamUserId = matcher.group(1).trim();
+//            logger.debug("Detected host user id: {}", steamUserId);
+//            logger.debug("Fetching user name...");
+//            String playerName = steamProfileDao.getPlayerName(steamUserId);
+//            logger.debug("Retrieved Steam user name: {}", playerName);
+//            setChanged();
+//            notifyObservers(new SteamUser(steamUserId, playerName));
+//            return;
+//        }
+
+        matcher = PATTERN__KILLER_OUTFIT.matcher(line);
         if (matcher.find()) {
-            String steamUserId = matcher.group(1).trim();
-            logger.debug("Detected host user id: {}", steamUserId);
-            logger.debug("Fetching user name...");
-            String playerName = steamProfileDao.getPlayerName(steamUserId);
-            logger.debug("Retrieved Steam user name: {}", playerName);
-            setChanged();
-            notifyObservers(new SteamUser(steamUserId, playerName));
+            String outfitCode = matcher.group(1);
+            String killerName = OUTFIT_CODE_TO_KILLER_NAME_MAPPING.get(outfitCode);
+
+            if (killerName != null) {
+                setChanged();
+                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_CHARACTER, killerName);
+                notifyObservers(event);
+            }
+            return;
+        }
+
+        matcher = PATTERN__LOBBY_KILLER.matcher(line);
+        if (matcher.find()) {
+            killerDbdId = matcher.group(1);
+            String steamUserId = dbdPlayerIdToSteamId.get(killerDbdId);
+
+            if (steamUserId != null) {
+                setChanged();
+                String playerName = steamProfileDao.getPlayerName(steamUserId);
+                SteamUser steamUser = new SteamUser(steamUserId, playerName);
+                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_STEAM_USER, steamUser);
+                killerDbdId = null;
+                dbdPlayerIdToSteamId.clear();
+                notifyObservers(event);
+            }
+            return;
+        }
+
+        matcher = PATTERN__LOBBY_ADD_PLAYER.matcher(line);
+        if (matcher.find()) {
+            String dbdPlayerId = matcher.group(1);
+            String steamUserId = matcher.group(2);
+            dbdPlayerIdToSteamId.put(dbdPlayerId, steamUserId);
+
+            if (dbdPlayerId.equals(killerDbdId)) {
+                setChanged();
+                String playerName = steamProfileDao.getPlayerName(steamUserId);
+                SteamUser steamUser = new SteamUser(steamUserId, playerName);
+                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_STEAM_USER, steamUser);
+                killerDbdId = null;
+                dbdPlayerIdToSteamId.clear();
+                notifyObservers(event);
+            }
         }
     }
 

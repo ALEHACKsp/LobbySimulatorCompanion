@@ -1,6 +1,7 @@
 package net.lobby_simulator_companion.loop.service;
 
 import org.pcap4j.core.*;
+import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.Packet;
 import org.pcap4j.packet.UdpPacket;
@@ -9,25 +10,32 @@ import org.slf4j.LoggerFactory;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class Sniffer implements Runnable {
 
-    private static final int CAPTURED_PACKET_SIZE = 1024;
-    private static final int CLEANER_POLL_MS = 60000;
-    private static final int PEER_TIMEOUT_MS = 5000;
+    private static final int CAPTURED_PACKET_SIZE = 128;
+    private static final int CLEANER_POLL_MS = 5000;
+    private static final int CONNECTION_TIMEOUT_MS = 6000;
+
+    /**
+     * Berkley Packet Filter (BPF):
+     * http://biot.com/capstats/bpf.html
+     * https://www.tcpdump.org/manpages/pcap-filter.7.html
+     *
+     * The initial handshake seems through WireGuard protocol:
+     * https://www.wireguard.com/protocol/
+    */
+    private static final String BPF_EXPR__NEW_CONNECTION = "udp[8:4] = 0x01000000 and (src host %s)";
+    private static final String BPF_EXPR__KEEP_ALIVE = "udp and ((udp[8:4] = 0x01000000) and (src host %s)) or ((host %s and %s) and (port %s and %s))";
 
     private static final Logger logger = LoggerFactory.getLogger(Sniffer.class);
 
     private InetAddress localAddr;
     private SnifferListener snifferListener;
     private PcapNetworkInterface networkInterface;
-    private HashMap<Inet4Address, Long> active = new HashMap<>();
-    private PcapHandle handle = null;
+    private Connection connection;
+    private PcapHandle pcapHandle;
 
 
     public Sniffer(InetAddress localAddr, SnifferListener snifferListener) throws PcapNativeException, NotOpenException, InvalidNetworkInterfaceException {
@@ -45,33 +53,10 @@ public class Sniffer implements Runnable {
         }
 
         final PcapNetworkInterface.PromiscuousMode mode = PcapNetworkInterface.PromiscuousMode.NONPROMISCUOUS;
-        handle = networkInterface.openLive(CAPTURED_PACKET_SIZE, mode, 0);
+        pcapHandle = networkInterface.openLive(CAPTURED_PACKET_SIZE, mode, 1000);
 
-        // Berkley Packet Filter (BPF): http://biot.com/capstats/bpf.html
-        handle.setFilter("udp && less 150", BpfProgram.BpfCompileMode.OPTIMIZE);
-    }
-
-
-    private void startConnectionCleaner() {
-        Timer connectionCleaner = new Timer();
-        connectionCleaner.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                purgeConnections();
-            }
-        }, 0, CLEANER_POLL_MS);
-    }
-
-
-    private void purgeConnections() {
-        long currentTime = System.currentTimeMillis();
-        Set<Inet4Address> connectionsToRemove = active.entrySet().stream().
-                filter(e -> e.getValue() != null && (currentTime - e.getValue() >= PEER_TIMEOUT_MS))
-                .map(e -> e.getKey()).collect(Collectors.toSet());
-
-        for (Inet4Address connectionToRemove : connectionsToRemove) {
-            active.remove(connectionToRemove);
-        }
+        String filterExpr = String.format(BPF_EXPR__NEW_CONNECTION, localAddr.getHostAddress());
+        pcapHandle.setFilter(filterExpr, BpfProgram.BpfCompileMode.NONOPTIMIZE);
     }
 
 
@@ -86,46 +71,63 @@ public class Sniffer implements Runnable {
 
     private void sniffPackets() throws PcapNativeException, NotOpenException {
         // Create a listener that defines what to do with the received packets
-        PacketListener listener = packet -> handlePacket(packet);
+        PacketListener listener = packet -> {
+            try {
+                handlePacket(packet);
+            } catch (PcapNativeException e) {
+                e.printStackTrace();
+            } catch (NotOpenException e) {
+                e.printStackTrace();
+            }
+        };
 
-        logger.info("Started sniffing packets...");
+        logger.info("Started sniffing packets.");
 
         try {
-            handle.loop(-1, listener);
+            pcapHandle.loop(-1, listener);
         } catch (InterruptedException e) {
             // can be interrupted on purpose
+            e.printStackTrace();
         }
     }
 
-    private void handlePacket(Packet packet) {
-        final IpV4Packet ippacket = packet.get(IpV4Packet.class);
+    private void handlePacket(Packet packet) throws PcapNativeException, NotOpenException {
+        final IpV4Packet ipPacket = packet.get(IpV4Packet.class);
+        final UdpPacket udpPacket = ipPacket.get(UdpPacket.class);
 
-        if (ippacket != null) {
-            final UdpPacket udppack = ippacket.get(UdpPacket.class);
+        if (isWireGuardHandshakeInit(ipPacket, udpPacket)) {
+            createConnection(ipPacket, udpPacket);
+        } else {
+            final Inet4Address srcAddr = ipPacket.getHeader().getSrcAddr();
 
-            if (udppack != null && udppack.getPayload() != null) {
-                final Inet4Address srcAddr = ippacket.getHeader().getSrcAddr();
-                final Inet4Address dstAddr = ippacket.getHeader().getDstAddr();
-                final int payloadLen = udppack.getPayload().getRawData().length;
-
-                //Packets are STUN related: 56 is request, 68 is response
-                if (active.containsKey(srcAddr) && !srcAddr.equals(localAddr)) {
-                    // it's a response from a peer to the local address
-                    if (active.get(srcAddr) != null && payloadLen == 68 && dstAddr.equals(localAddr)) {
-                        int ping = (int) (handle.getTimestamp().getTime() - active.get(srcAddr));
-                        snifferListener.updatePing(ippacket.getHeader().getSrcAddr(), ping);
-                        active.put(srcAddr, null); // no longer expect ping
-                    }
-                } else {
-                    if (payloadLen == 56 && srcAddr.equals(localAddr)) {
-                        // it's a request from the local address to a peer
-                        // we will store the peer address
-                        Inet4Address peerAddresss = ippacket.getHeader().getDstAddr();
-                        active.put(peerAddresss, handle.getTimestamp().getTime());
-                    }
-                }
+            if (connection != null && srcAddr.equals(connection.getRemoteAddr())) {
+                // keep connection alive
+                connection.setLastSeen(pcapHandle.getTimestamp().getTime());
             }
         }
+    }
+
+    private boolean isWireGuardHandshakeInit(IpPacket ipPacket, UdpPacket udpPacket) {
+        byte[] rawData = udpPacket.getPayload().getRawData();
+
+        return ipPacket.getHeader().getSrcAddr().equals(localAddr)
+                && rawData.length >= 4
+                && rawData[0] == 0x01 && rawData[1] == 0x00 && rawData[2] == 0x00 && rawData[3] == 0x00;
+    }
+
+
+    private void createConnection(IpPacket ipPacket, UdpPacket udpPacket) throws PcapNativeException, NotOpenException {
+        connection = new Connection(localAddr, udpPacket.getHeader().getSrcPort().valueAsInt(),
+                ipPacket.getHeader().getDstAddr(), udpPacket.getHeader().getDstPort().valueAsInt(),
+                pcapHandle.getTimestamp().getTime());
+        snifferListener.notifyNewConnection(connection);
+
+        String filterExpr = String.format(
+                BPF_EXPR__KEEP_ALIVE,
+                connection.getLocalAddr().getHostAddress(),
+                connection.getLocalAddr().getHostAddress(), connection.getRemoteAddr().getHostAddress(),
+                connection.getLocalPort(), connection.getRemotePort());
+        pcapHandle.setFilter(filterExpr, BpfProgram.BpfCompileMode.OPTIMIZE);
     }
 
 
@@ -151,23 +153,44 @@ public class Sniffer implements Runnable {
 //
 //        try {
 //            logger.info("Try to send a bogus packet to let the captor break.");
-//            handle.sendPacket(eb.build());
+//            pcapHandle.sendPacket(eb.build());
 //        } catch (PcapNativeException e) {
 //            logger.error("Failed to send bogus packet", e);
 //        } catch (NotOpenException e) {
 //            throw new AssertionError("Never get here.");
 //        }
 //
-//        if (handle != null) {
+//        if (pcapHandle != null) {
 //            logger.info("Cleaning up system resources...");
 //            try {
-//                handle.breakLoop();
+//                pcapHandle.breakLoop();
 //            } catch (NotOpenException e) {
 //                e.printStackTrace();
 //            }
-//            handle.close();
-//            logger.info("Freed network interface handle.");
+//            pcapHandle.close();
+//            logger.info("Freed network interface pcapHandle.");
 //        }
     }
+
+
+    private void startConnectionCleaner() {
+        Timer connectionCleanerTimer = new Timer();
+        connectionCleanerTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (connection == null) {
+                    return;
+                }
+
+                long currentTime = System.currentTimeMillis();
+
+                if (currentTime > connection.getLastSeen() + CONNECTION_TIMEOUT_MS) {
+                    connection = null;
+                    snifferListener.notifyDisconnect();
+                }
+            }
+        }, 0, CLEANER_POLL_MS);
+    }
+
 
 }

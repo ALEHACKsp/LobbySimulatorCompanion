@@ -1,14 +1,17 @@
 package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.Server;
 import net.lobby_simulator_companion.loop.service.SteamUser;
 
 import javax.swing.*;
 import java.awt.*;
-import java.net.Inet4Address;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.Timer;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+
+import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent;
+import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent.EventType;
 
 /**
  * A panel for debugging purposes.
@@ -20,15 +23,15 @@ public class DebugPanel extends JPanel {
 
     private Set<Integer> connections = new HashSet<>();
 
-    private Overlay mainPanel;
+    private MainPanel mainPanel;
     private DbdLogMonitor logMonitor;
     private JFrame frame;
 
     private Random random = new Random();
 
 
-    public DebugPanel(Overlay overlay, DbdLogMonitor logMonitor) throws Exception {
-        mainPanel = overlay;
+    public DebugPanel(MainPanel mainPanel, DbdLogMonitor logMonitor) throws Exception {
+        this.mainPanel = mainPanel;
         this.logMonitor = logMonitor;
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
@@ -42,7 +45,6 @@ public class DebugPanel extends JPanel {
         frame.setLayout(new GridLayout(0, 1, 10, 10));
         frame.setAlwaysOnTop(true);
         addComponents();
-        startPingSimulator();
         frame.pack();
         frame.setLocation(800, 300);
         frame.setVisible(true);
@@ -54,93 +56,51 @@ public class DebugPanel extends JPanel {
         frame.add(button);
 
         JPanel connectionContainer = new JPanel();
-        connectionContainer.setLayout(new GridLayout(3, 2, 10, 10));
-        button = new JButton("Add Connection 0");
-        button.addActionListener(e -> addConnection(0));
+        connectionContainer.setLayout(new BoxLayout(connectionContainer, BoxLayout.X_AXIS));
+        button = new JButton("Connect");
+        button.addActionListener(e -> mainPanel.connect());
         connectionContainer.add(button);
 
-        button = new JButton("Remove Connection 0");
-        button.addActionListener(e -> removeConnection(0));
-        connectionContainer.add(button);
-
-        button = new JButton("Add Connection 1");
-        connectionContainer.add(button);
-        button.addActionListener(e -> addConnection(1));
-
-        button = new JButton("Remove Connection 1");
-        button.addActionListener(e -> removeConnection(1));
-        connectionContainer.add(button);
-
-        button = new JButton("Add Connection 2");
-        connectionContainer.add(button);
-        button.addActionListener(e -> addConnection(2));
-
-        button = new JButton("Remove Connection 2");
-        button.addActionListener(e -> removeConnection(2));
+        button = new JButton("Disconnect");
+        button.addActionListener(e -> mainPanel.disconnect());
         connectionContainer.add(button);
 
         frame.add(connectionContainer);
 
+
+        button = new JButton("update server");
+        button.addActionListener(e -> mainPanel.updateServer(generateRandomServer()));
+        frame.add(button);
+
         JPanel userContainer = new JPanel();
         userContainer.setLayout(new GridLayout(2, 1, 10, 10));
-        button = new JButton("Join lobby A");
-        button.addActionListener(e -> simulateLobby("DummyUserA"));
+        button = new JButton("Detect killer A");
+        button.addActionListener(e -> simulateKillerUserUpdate("DummyUserA"));
         userContainer.add(button);
 
-        button = new JButton("Join Lobby B");
-        button.addActionListener(e -> simulateLobby("DummyUserB"));
+        button = new JButton("Detect killer B");
+        button.addActionListener(e -> simulateKillerUserUpdate("DummyUserB"));
         userContainer.add(button);
         frame.add(userContainer);
+    }
+
+    private Server generateRandomServer() {
+        Server server = new Server();
+        server.setCountry("some country");
+        server.setRegion("some region");
+        server.setCity("some city");
+
+        return server;
     }
 
     private void reset() {
         connections.clear();
     }
 
+    private void simulateKillerUserUpdate(String userName) {
+        SteamUser killerUser = new SteamUser(String.valueOf(userName.hashCode()), userName);
 
-    private void addConnection(int connectionId) {
-        connections.add(connectionId);
+        mainPanel.update(logMonitor, new DbdLogMonitorEvent(EventType.KILLER_STEAM_USER, killerUser));
     }
 
-    private void removeConnection(int connectionId) {
-        connections.remove(connectionId);
-    }
-
-    private void simulateLobby(String userName) {
-        SteamUser user = new SteamUser(String.valueOf(userName.hashCode()), userName);
-        mainPanel.update(logMonitor, user);
-    }
-
-
-    private void startPingSimulator() {
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-
-                for (Integer connectionId : connections) {
-                    try {
-                        Inet4Address ip = (Inet4Address) Inet4Address.getByName("1.2.3." + connectionId);
-                        int ping = getConnectionPing(connectionId);
-                        mainPanel.setPing(ip, ping);
-                    } catch (UnknownHostException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }, 0, 1000);
-
-    }
-
-    private int getConnectionPing(int connectionId) {
-        int min = connectionId * 100;
-        int max = (connectionId + 1) * 100;
-
-        if (connectionId == 2) {
-            min = 0;
-            max = 2000;
-        }
-
-        return random.nextInt((max - min)) + min;
-    }
 }

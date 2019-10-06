@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
  *
  * @author NickyRamone
  */
+@Deprecated
 public class PeerStatus extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(PeerStatus.class);
     private static final Font font = ResourceFactory.getRobotoFont();
