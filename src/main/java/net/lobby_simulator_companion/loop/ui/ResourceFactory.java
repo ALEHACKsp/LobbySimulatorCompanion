@@ -23,19 +23,25 @@ public final class ResourceFactory {
     private static final String ROBOTO_FONT_PATH = "/Roboto-Medium.ttf";
 
     private static final String COLLAPSE_ICON_PATH = "/collapse_icon.png";
+    private static final String EDIT_ICON_PATH = "/edit_icon.png";
     private static final String EXPAND_ICON_PATH = "/expand_icon.png";
+    private static final String RATE_ICON_PATH = "/rate_icon.png";
     private static final String RESET_ICON_PATH = "/reset_icon.png";
     private static final String STEAM_ICON_PATH = "/steam_icon.png";
+    private static final String SWITCH_OFF_ICON_PATH = "/switch-off_icon.png";
     private static final String THUMBS_DOWN_ICON_PATH = "/thumbs-down_icon.png";
     private static final String THUMBS_UP_ICON_PATH = "/thumbs-up_icon.png";
 
     private static Font roboto;
     private static ImageIcon collapseIcon;
+    private static ImageIcon editIcon;
     private static ImageIcon expandIcon;
+    private static ImageIcon rateIcon;
+    private static ImageIcon resetIcon;
+    private static ImageIcon steamIcon;
+    private static ImageIcon switchOffIcon;
     private static ImageIcon thumbsUpIcon;
     private static ImageIcon thumbsDownIcon;
-    private static ImageIcon steamIcon;
-    private static ImageIcon resetIcon;
 
 
     private ResourceFactory() {
@@ -56,18 +62,35 @@ public final class ResourceFactory {
         return roboto;
     }
 
-    public static synchronized ImageIcon getThumbsUpIcon() {
-        if (thumbsUpIcon == null) {
-            URL imgURL = ResourceFactory.class.getResource(THUMBS_UP_ICON_PATH);
+    public static synchronized ImageIcon getIcon(ImageIcon icon, String path, String description) {
 
-            if (imgURL != null) {
-                thumbsUpIcon = new ImageIcon(imgURL, "thumbs up");
-            } else {
-                logger.error("Failed to load thumbs-up icon.");
+        if (icon == null) {
+            URL imageUrl = ResourceFactory.class.getResource(path);
+
+            if (imageUrl != null) {
+                icon = new ImageIcon(imageUrl, description);
+            }
+            else {
+                logger.error("Failed to load '{}' icon.", description);
             }
         }
 
-        return thumbsUpIcon;
+        return icon;
+    }
+
+    public static synchronized ImageIcon getThumbsUpIcon() {
+        return getIcon(thumbsUpIcon, THUMBS_UP_ICON_PATH, "thumbs up");
+//        if (thumbsUpIcon == null) {
+//            URL imgURL = ResourceFactory.class.getResource(THUMBS_UP_ICON_PATH);
+//
+//            if (imgURL != null) {
+//                thumbsUpIcon = new ImageIcon(imgURL, "thumbs up");
+//            } else {
+//                logger.error("Failed to load thumbs-up icon.");
+//            }
+//        }
+//
+//        return thumbsUpIcon;
     }
 
 
@@ -128,6 +151,10 @@ public final class ResourceFactory {
         return collapseIcon;
     }
 
+    public static synchronized ImageIcon getEditIcon() {
+        return getIcon(editIcon, EDIT_ICON_PATH, "edit");
+    }
+
     public static synchronized ImageIcon getExpandIcon() {
         if (expandIcon == null) {
             URL imgURL = ResourceFactory.class.getResource(EXPAND_ICON_PATH);
@@ -140,6 +167,14 @@ public final class ResourceFactory {
         }
 
         return expandIcon;
+    }
+
+    public static synchronized ImageIcon getRateIcon() {
+        return getIcon(rateIcon, RATE_ICON_PATH, "rate");
+    }
+
+    public static synchronized ImageIcon getSwitchOffIcon() {
+        return getIcon(switchOffIcon, SWITCH_OFF_ICON_PATH, "switch-off");
     }
 
 }

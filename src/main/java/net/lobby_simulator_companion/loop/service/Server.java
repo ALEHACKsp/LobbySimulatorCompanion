@@ -1,16 +1,38 @@
 package net.lobby_simulator_companion.loop.service;
 
 /**
- *
  * @author NickyRamone
  */
 public class Server {
 
+    private final int address; // 32-bit IPv4 address.
+    private String hostName;
     private String country;
     private String region;
     private String city;
-    private GeoLocation geoLocation;
+    private Long latitude;
+    private Long longitude;
     private Integer discoveryNumber;
+    private long lastUpdate;
+
+
+    public Server(int address) {
+        this.address = address;
+        this.lastUpdate = System.currentTimeMillis();
+    }
+
+
+    public int getAddress() {
+        return address;
+    }
+
+    public String getHostName() {
+        return hostName;
+    }
+
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
+    }
 
     public String getCountry() {
         return country;
@@ -36,12 +58,20 @@ public class Server {
         this.city = city;
     }
 
-    public GeoLocation getGeoLocation() {
-        return geoLocation;
+    public Long getLatitude() {
+        return latitude;
     }
 
-    public void setGeoLocation(GeoLocation geoLocation) {
-        this.geoLocation = geoLocation;
+    public void setLatitude(Long latitude) {
+        this.latitude = latitude;
+    }
+
+    public Long getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Long longitude) {
+        this.longitude = longitude;
     }
 
     public Integer getDiscoveryNumber() {

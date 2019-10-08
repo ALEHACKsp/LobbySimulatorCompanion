@@ -2,10 +2,10 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.repository.PlayerbaseRepository;
+import net.lobby_simulator_companion.loop.repository.LoopRepository;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.service.PlayerService;
+import net.lobby_simulator_companion.loop.service.LoopDataService;
 import net.lobby_simulator_companion.loop.ui.DebugPanel;
 import net.lobby_simulator_companion.loop.ui.KillerPanel;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
@@ -67,8 +67,8 @@ public final class Factory {
     private static void createInstances() throws Exception {
         getSettings();
         getAppProperties();
-        getPlayerbaseRepository();
-        getPlayerService();
+        getLoopRepository();
+        getLoopDataService();
         getSteamProfileDao();
         getDbdLogMonitor();
     }
@@ -96,14 +96,14 @@ public final class Factory {
         return getInstance(Settings.class, unchecked(Settings::new));
     }
 
-    public static PlayerbaseRepository getPlayerbaseRepository() {
-        return getInstance(PlayerbaseRepository.class,
-                () -> new PlayerbaseRepository(getSettings(), getAppProperties()));
+    public static LoopRepository getLoopRepository() {
+        return getInstance(LoopRepository.class,
+                () -> new LoopRepository(getSettings(), getAppProperties()));
     }
 
-    public static PlayerService getPlayerService() {
-        return (PlayerService) getInstance(PlayerService.class, unchecked(
-                () -> new PlayerService(getPlayerbaseRepository())));
+    public static LoopDataService getLoopDataService() {
+        return getInstance(LoopDataService.class, unchecked(
+                () -> new LoopDataService(getLoopRepository())));
     }
 
     public static SteamProfileDao getSteamProfileDao() {
@@ -129,7 +129,8 @@ public final class Factory {
     }
 
     public static KillerPanel getKillerPanel() {
-        return getInstance(KillerPanel.class, () -> new KillerPanel(getSettings()));
+        return getInstance(KillerPanel.class, () ->
+                new KillerPanel(getSettings(), getAppProperties(), getLoopDataService(), getSteamProfileDao()));
     }
 
     public static DebugPanel getDebugPanel() {

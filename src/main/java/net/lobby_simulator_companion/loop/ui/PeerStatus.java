@@ -11,6 +11,7 @@ import java.awt.event.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -381,7 +382,7 @@ public class PeerStatus extends JPanel {
 
         if (hostUser != null) {
             String currentName = hostUser.getMostRecentName();
-            Set<String> nameSet = hostUser.getNames();
+            Set<String> nameSet = new HashSet<>(hostUser.getNames());
             nameSet.remove(currentName);
             String names = nameSet.stream().map(n -> String.valueOf(n)).collect(Collectors.joining(", ", "", ""));
 

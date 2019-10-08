@@ -60,7 +60,7 @@ public class FileUtil {
         try {
             if (f.exists()) {
                 Files.copy(f.toPath(), copy.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                logger.info("Made backup of file.");
+                logger.debug("Made backup of file.");
             }
         } catch (IOException e) {
             logger.error("Failed to copy file for backup.", e);

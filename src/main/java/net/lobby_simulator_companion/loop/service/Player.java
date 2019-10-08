@@ -5,14 +5,8 @@ import com.google.gson.annotations.SerializedName;
 import java.io.Serializable;
 import java.util.*;
 
-/**
- * Wrapper used to save/load Peer settings.
- * Must be serializable, so GSON can stream-encode them as objects.
- */
+
 public class Player implements Serializable {
-
-    private static final int MAX_NAMES_STORED = 5;
-
 
     public enum Rating {
         @SerializedName("-1") THUMBS_DOWN,
@@ -20,35 +14,51 @@ public class Player implements Serializable {
         @SerializedName("1") THUMBS_UP
     }
 
-    /**
-     * The UID of this peer, which is the user Steam Id.
-     */
-    private String uid = "";
+    private static final int MAX_NAMES_STORED = 5;
+
 
     /**
-     * When this peer was first discovered.
+     * The UID of this player, which is the user Steam Id.
+     */
+    private String uid;
+
+    private String dbdPlayerId;
+
+    /**
+     * When this player was first discovered.
      */
     private long firstSeen;
 
     /**
-     * When this peer was last seen.
+     * When this player was last seen.
      */
     private long lastSeen;
 
+    private int timesEncountered;
+
     /**
-     * The last Steam names used by this peer.
+     * Contrary to "encountered", it is considered "played" if the time spent connected to that player
+     * is above some minimum threshold (to assume that there was actually a match and not just waiting
+     * in the lobby.
+     */
+    private int matchesPlayed;
+
+    private int secondsPlayed;
+
+    /**
+     * The last Steam names used by this player.
      * We will constrain this to a fixed number (for example, the last 5 used names).
      * The last one in the array is the most recent.
      */
     private List<String> names = new ArrayList<>();
 
     /**
-     * This peer's rating value.
+     * This player's rating value.
      */
     private Rating rating = Rating.UNRATED;
 
     /**
-     * A description for this peer.
+     * A description for this player.
      */
     private String description;
 
@@ -60,19 +70,77 @@ public class Player implements Serializable {
     }
 
 
-    public void setDescription(String description) {
-        description = description.trim();
-
-        if (description != this.description) {
-            this.description = description;
-        }
+    public String getUID() {
+        return this.uid;
     }
 
     public void setUID(String uid) {
         this.uid = uid.trim();
     }
 
+    public String getDbdPlayerId() {
+        return dbdPlayerId;
+    }
+
+    public void setDbdPlayerId(String dbdPlayerId) {
+        this.dbdPlayerId = dbdPlayerId;
+    }
+
+    public long getFirstSeen() {
+        return firstSeen;
+    }
+
+    public long getLastSeen() {
+        return lastSeen;
+    }
+
+    public void updateLastSeen() {
+        lastSeen = System.currentTimeMillis();
+    }
+
+    public int getTimesEncountered() {
+        return timesEncountered;
+    }
+
+    public void setTimesEncountered(int timesEncountered) {
+        this.timesEncountered = timesEncountered;
+    }
+
+    public int getMatchesPlayed() {
+        return matchesPlayed;
+    }
+
+    public void incrementMatchesPlayed() {
+        matchesPlayed++;
+    }
+
+    public int getSecondsPlayed() {
+        return secondsPlayed;
+    }
+
+    public void incrementSecondsPlayed(int secondsPlayed) {
+        secondsPlayed += secondsPlayed;
+    }
+
+    public List<String> getNames() {
+        return names;
+    }
+
+    public String getMostRecentName() {
+        String name = "";
+
+        if (!names.isEmpty()) {
+            name = names.get(names.size() - 1);
+        }
+
+        return name;
+    }
+
     public boolean addName(String name) {
+        if (name == null) {
+            return false;
+        }
+
         name = name.trim();
 
         if (name.equals(getMostRecentName())) {
@@ -89,69 +157,27 @@ public class Player implements Serializable {
         return true;
     }
 
-    public String getMostRecentName() {
-        String name = "";
-
-        if (!names.isEmpty()) {
-            name = names.get(names.size() - 1);
-        }
-
-        return name;
+    public Rating getRating() {
+        return rating;
     }
-
-    public Set<String> getNames() {
-        return new HashSet<>(names);
-    }
-
 
     public void setRating(Rating rating) {
         this.rating = rating;
     }
 
-
-    public String getUID() {
-        return this.uid;
-    }
-
-
-    public Rating getRating() {
-        return rating;
-    }
-
     public String getDescription() {
-        return description == null ? "" : description;
+        return description;
     }
 
-    public void updateLastSeen() {
-        lastSeen = System.currentTimeMillis();
+    public void setDescription(String description) {
+        if (description != null) {
+            description = description.trim();
+
+            if (description.isEmpty()) {
+                description = null;
+            }
+        }
+        this.description = description;
     }
 
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Player ioPeer = (Player) o;
-        return firstSeen == ioPeer.firstSeen &&
-                Objects.equals(uid, ioPeer.uid) &&
-                names.equals(ioPeer.names) &&
-                rating == ioPeer.rating &&
-                Objects.equals(description, ioPeer.description);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(firstSeen, uid, names, rating, description);
-    }
-
-    @Override
-    public String toString() {
-        return "IOPeer{" +
-                "uid='" + uid + '\'' +
-                ", firstSeen=" + firstSeen +
-                ", names=" + names +
-                ", rating=" + rating +
-                ", description='" + description + '\'' +
-                '}';
-    }
 }

@@ -21,7 +21,10 @@ import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMon
  * Parses logs to extract information about the Steam users that we are connecting to.
  * <p>
  * Note: This approach is quite hacky and not a great solution to the problem, but it does its job fairly easily.
- * A better way would be to obtain the information from the UDP packets, if possible.
+ * A better way would be to obtain the information from the UDP packets, but that's probably not feasible due to
+ * encrypted traffic.
+ *
+ * TODO: see if we can use something better than {@link Observer}.
  *
  * @author NickyRamone
  */
@@ -42,7 +45,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
     private static final String REGEX__LOBBY_ADD_PLAYER = "AddSessionPlayer Session:GameSession PlayerId:([0-9a-f\\-]+)\\|([0-9]+)";
     private static final Pattern PATTERN__LOBBY_ADD_PLAYER = Pattern.compile(REGEX__LOBBY_ADD_PLAYER);
-
 
     private static final String REGEX__KILLER_OUTFIT = "LogCustomization: --> ([A-Z][A-Z])_[a-zA-Z]+";
     private static final Pattern PATTERN__KILLER_OUTFIT = Pattern.compile(REGEX__KILLER_OUTFIT);
@@ -83,7 +85,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
 
     public static final class DbdLogMonitorEvent {
-        public enum EventType {KILLER_STEAM_USER, KILLER_CHARACTER};
+        public enum EventType {KILLER_ID, KILLER_CHARACTER}
 
         public final EventType type;
         public final Object argument;
@@ -95,7 +97,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
     }
 
 
-    private SteamProfileDao steamProfileDao;
     private BufferedReader reader;
     private long logSize;
     private Map<String, String> dbdPlayerIdToSteamId = new HashMap<>();
@@ -103,7 +104,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
 
     public DbdLogMonitor(SteamProfileDao steamProfileDao) throws IOException {
-        this.steamProfileDao = steamProfileDao;
         initReader();
     }
 
@@ -149,7 +149,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
         }
     }
 
-    private void processLine(String line) throws IOException {
+    private void processLine(String line){
         Matcher matcher;
 //        = PATTERN__LOBBY_PARAMS.matcher(line);
 //        if (matcher.find()) {
@@ -183,9 +183,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
             if (steamUserId != null) {
                 setChanged();
-                String playerName = steamProfileDao.getPlayerName(steamUserId);
-                SteamUser steamUser = new SteamUser(steamUserId, playerName);
-                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_STEAM_USER, steamUser);
+                PlayerIdWrapper id = new PlayerIdWrapper(steamUserId, killerDbdId);
+                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_ID, id);
                 killerDbdId = null;
                 dbdPlayerIdToSteamId.clear();
                 notifyObservers(event);
@@ -201,9 +200,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
             if (dbdPlayerId.equals(killerDbdId)) {
                 setChanged();
-                String playerName = steamProfileDao.getPlayerName(steamUserId);
-                SteamUser steamUser = new SteamUser(steamUserId, playerName);
-                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_STEAM_USER, steamUser);
+                PlayerIdWrapper id = new PlayerIdWrapper(steamUserId, killerDbdId);
+                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_ID, id);
                 killerDbdId = null;
                 dbdPlayerIdToSteamId.clear();
                 notifyObservers(event);

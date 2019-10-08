@@ -61,9 +61,15 @@ public class Settings {
     }
 
     public void set(String key, Object value) {
-        globalSection.put(key, value);
-        dirty = true;
-        lastChange = System.currentTimeMillis();
+        String oldValue = get(key);
+        String newValue = (value == null || value instanceof String)? (String) value: String.valueOf(value);
+
+        // only set it if the new value differs from the old one
+        if (oldValue != newValue && !oldValue.equals(newValue)) {
+            globalSection.put(key, value);
+            dirty = true;
+            lastChange = System.currentTimeMillis();
+        }
     }
 
     public void save() {

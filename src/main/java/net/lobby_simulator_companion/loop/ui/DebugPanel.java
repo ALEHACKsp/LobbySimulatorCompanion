@@ -1,13 +1,12 @@
 package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
 import net.lobby_simulator_companion.loop.service.Server;
-import net.lobby_simulator_companion.loop.service.SteamUser;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
 
 import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent;
@@ -26,8 +25,6 @@ public class DebugPanel extends JPanel {
     private MainWindow mainPanel;
     private DbdLogMonitor logMonitor;
     private JFrame frame;
-
-    private Random random = new Random();
 
 
     public DebugPanel(MainWindow mainPanel, DbdLogMonitor logMonitor) throws Exception {
@@ -75,20 +72,21 @@ public class DebugPanel extends JPanel {
         JPanel userContainer = new JPanel();
         userContainer.setLayout(new GridLayout(2, 1, 10, 10));
         button = new JButton("Detect killer A");
-        button.addActionListener(e -> simulateKillerUserUpdate("DummyUserA"));
+        button.addActionListener(e -> simulateKillerUserUpdate());
         userContainer.add(button);
 
         button = new JButton("Detect killer B");
-        button.addActionListener(e -> simulateKillerUserUpdate("DummyUserB"));
+        button.addActionListener(e -> simulateKillerUserUpdate());
         userContainer.add(button);
         frame.add(userContainer);
     }
 
     private Server generateRandomServer() {
-        Server server = new Server();
+        Server server = new Server(0);
         server.setCountry("some country");
         server.setRegion("some region");
         server.setCity("some city");
+        server.setDiscoveryNumber(10);
 
         return server;
     }
@@ -97,10 +95,9 @@ public class DebugPanel extends JPanel {
         connections.clear();
     }
 
-    private void simulateKillerUserUpdate(String userName) {
-        SteamUser killerUser = new SteamUser(String.valueOf(userName.hashCode()), userName);
-
-        mainPanel.update(logMonitor, new DbdLogMonitorEvent(EventType.KILLER_STEAM_USER, killerUser));
+    private void simulateKillerUserUpdate() {
+        PlayerIdWrapper idWrapper = new PlayerIdWrapper("76561198961125794", "ab-cd-ef");
+        mainPanel.update(logMonitor, new DbdLogMonitorEvent(EventType.KILLER_ID, idWrapper));
     }
 
 }

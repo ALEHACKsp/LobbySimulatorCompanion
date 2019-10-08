@@ -20,6 +20,11 @@
         </encoder>
     </appender>
 
+    <logger name="org.pcap4j" level="error" >
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="ROLLING-FILE"/>
+    </logger>
+
     <root level="debug">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ROLLING-FILE"/>

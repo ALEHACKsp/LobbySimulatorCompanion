@@ -6,7 +6,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.service.Playerbase;
+import net.lobby_simulator_companion.loop.service.LoopData;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,13 +22,13 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * File-based repository for the playerbase (user-provided data about hosts).
+ * File-based repository for Loop-data storage.
  *
  * @author NickyRamone, ShadowMoose
  */
-public class PlayerbaseRepository {
+public class LoopRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(PlayerbaseRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoopRepository.class);
     private static byte[] CIPHER_KEY_MATERIAL = new byte[]{2, 3, -57, 11, 73, 57, -66, 21};
 
     private Settings settings;
@@ -37,10 +37,10 @@ public class PlayerbaseRepository {
     private final String jsonIndent;
 
 
-    public PlayerbaseRepository(Settings settings, AppProperties appProperties) {
+    public LoopRepository(Settings settings, AppProperties appProperties) {
         this.settings = settings;
         saveFile = Paths.get(appProperties.get("app.home"))
-                .resolve(appProperties.get("storage.playerbase.file")).toFile();
+                .resolve(appProperties.get("storage.file")).toFile();
         GsonBuilder gsonBuilder = new GsonBuilder();
 
         if (settings.getBoolean("encrypt")) {
@@ -54,35 +54,38 @@ public class PlayerbaseRepository {
     }
 
 
-    public Playerbase load() throws FileNotFoundException {
+    public LoopData load() throws FileNotFoundException {
         logger.info("Loading data...");
-        Playerbase playerbase;
+        LoopData loopData;
 
         try {
             Cipher cipher = getCipher(true);
             JsonReader reader = createJsonReader(cipher);
-            playerbase = gson.fromJson(reader, Playerbase.class);
+            loopData = gson.fromJson(reader, LoopData.class);
         } catch (FileNotFoundException e1) {
             throw e1;
         } catch (Exception e2) {
-            throw new RuntimeException("Failed to load playerbase. Data file corrupt?", e2);
+            throw new RuntimeException("Failed to load data. File corrupt?", e2);
         }
-        logger.info("Loaded {} tracked players.", playerbase.getPlayers().size());
+        logger.info("Loaded {} players and {} servers.",
+                loopData.getPlayers().size(), loopData.getServers().size());
 
-        return playerbase;
+        return loopData;
     }
 
 
-    public void save(Playerbase playerbase) throws IOException {
+    public void save(LoopData loopData) throws IOException {
         // Keep a rolling backup of the Peers file, for safety.
-        logger.info("Saving playerbase of {} players...", playerbase.getPlayers().size());
+        logger.debug("Saving data ({} players and {} servers)...",
+                loopData.getPlayers().size(), loopData.getServers().size());
+
         if (this.saveFile.exists()) {
             FileUtil.saveFile(this.saveFile, "");
         }
 
         JsonWriter writer = createJsonWriter();
         writer.setIndent(jsonIndent);
-        gson.toJson(playerbase, Playerbase.class, writer);
+        gson.toJson(loopData, LoopData.class, writer);
         writer.close();
     }
 

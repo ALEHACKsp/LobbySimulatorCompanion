@@ -90,7 +90,7 @@ public class Sanity {
                     + "Please update LOOP before running!");
             return false;
         } else {
-            logger.info("Up to date!");
+            logger.info("Application is up to date!");
         }
         return true;
     }

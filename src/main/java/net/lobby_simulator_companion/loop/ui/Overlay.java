@@ -3,7 +3,7 @@ package net.lobby_simulator_companion.loop.ui;
 import net.lobby_simulator_companion.loop.config.Settings_old;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.Player;
-import net.lobby_simulator_companion.loop.service.PlayerService;
+import net.lobby_simulator_companion.loop.service.LoopDataService;
 import net.lobby_simulator_companion.loop.service.SteamUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ public class Overlay extends JPanel implements Observer {
     private static final Logger logger = LoggerFactory.getLogger(Overlay.class);
 
     private DbdLogMonitor logMonitor;
-    private final PlayerService playerService;
+    private final LoopDataService playerService;
 
     private JFrame frame;
     private JLabel emptyStatus;
@@ -40,7 +40,7 @@ public class Overlay extends JPanel implements Observer {
     private static final int CLEANER_POLL_MS = 3000;
 
 
-    public Overlay(PlayerService playerService, DbdLogMonitor logMonitor) throws Exception {
+    public Overlay(LoopDataService playerService, DbdLogMonitor logMonitor) throws Exception {
         this.playerService = playerService;
         this.logMonitor = logMonitor;
         logMonitor.addObserver(this);

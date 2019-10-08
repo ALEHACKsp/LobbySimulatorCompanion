@@ -5,6 +5,7 @@ package net.lobby_simulator_companion.loop.service;
  *
  * @author NickyRamone
  */
+@Deprecated
 public class SteamUser {
 
     private final String id;

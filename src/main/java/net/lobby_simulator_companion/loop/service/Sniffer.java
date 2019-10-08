@@ -56,7 +56,7 @@ public class Sniffer implements Runnable {
         pcapHandle = networkInterface.openLive(CAPTURED_PACKET_SIZE, mode, 1000);
 
         String filterExpr = String.format(BPF_EXPR__NEW_CONNECTION, localAddr.getHostAddress());
-        pcapHandle.setFilter(filterExpr, BpfProgram.BpfCompileMode.NONOPTIMIZE);
+        pcapHandle.setFilter(filterExpr, BpfProgram.BpfCompileMode.OPTIMIZE);
     }
 
 
@@ -75,9 +75,9 @@ public class Sniffer implements Runnable {
             try {
                 handlePacket(packet);
             } catch (PcapNativeException e) {
-                e.printStackTrace();
+                logger.error("Encountered a problem while handling a packet.", e);
             } catch (NotOpenException e) {
-                e.printStackTrace();
+                logger.error("Encountered a problem while handling a packet.", e);
             }
         };
 
@@ -87,7 +87,6 @@ public class Sniffer implements Runnable {
             pcapHandle.loop(-1, listener);
         } catch (InterruptedException e) {
             // can be interrupted on purpose
-            e.printStackTrace();
         }
     }
 
@@ -132,44 +131,16 @@ public class Sniffer implements Runnable {
 
 
     public void close() {
-        // TODO: Fix this. There seems to be an issue with Pcap where it hangs when trying to close.
-        // https://github.com/kaitoy/pcap4j/issues/199
-
-//        byte[] mac = new byte[6];
-//
-//        int i = 0;
-//        if (networkInterface.getLinkLayerAddresses().get(0) != null) {
-//            for (byte b : networkInterface.getLinkLayerAddresses().get(0).getAddress()) {
-//                mac[i] = b;
-//                i++;
-//            }
-//        }
-//        EthernetPacket.Builder eb = new EthernetPacket.Builder();
-//        eb.type(EtherType.ARP)
-//                .srcAddr(MacAddress.getByAddress(mac))
-//                .dstAddr(MacAddress.ETHER_BROADCAST_ADDRESS)
-//                .paddingAtBuild(true)
-//                .payloadBuilder(new UnknownPacket.Builder().rawData(new byte[5]));
-//
-//        try {
-//            logger.info("Try to send a bogus packet to let the captor break.");
-//            pcapHandle.sendPacket(eb.build());
-//        } catch (PcapNativeException e) {
-//            logger.error("Failed to send bogus packet", e);
-//        } catch (NotOpenException e) {
-//            throw new AssertionError("Never get here.");
-//        }
-//
-//        if (pcapHandle != null) {
-//            logger.info("Cleaning up system resources...");
-//            try {
-//                pcapHandle.breakLoop();
-//            } catch (NotOpenException e) {
-//                e.printStackTrace();
-//            }
-//            pcapHandle.close();
-//            logger.info("Freed network interface pcapHandle.");
-//        }
+        if (pcapHandle != null) {
+            logger.info("Cleaning up sniffer...");
+            try {
+                pcapHandle.breakLoop();
+            } catch (NotOpenException e) {
+                logger.error("Failed when attempting to stop sniffer.", e);
+            }
+            pcapHandle.close();
+            logger.info("Freed network interface pcapHandle.");
+        }
     }
 
 

@@ -24,7 +24,7 @@ public class ServerPanel extends JPanel {
 
     private Settings settings;
 
-    private JPanel summaryBar;
+    private JPanel titleBar;
     private JPanel detailsPanel;
     private JLabel detailsCollapseButton;
     private JLabel countryValueLabel;
@@ -38,15 +38,15 @@ public class ServerPanel extends JPanel {
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(new Color(0, 0, 250));
-        summaryBar = createSummaryBar();
+        titleBar = createTitleBar();
         detailsPanel = createDetailsPanel();
 
-        add(summaryBar);
+        add(titleBar);
         add(detailsPanel);
     }
 
 
-    private JPanel createSummaryBar() {
+    private JPanel createTitleBar() {
         JPanel container = new JPanel();
         container.setPreferredSize(new Dimension(200, 25));
         container.setMinimumSize(new Dimension(300, 25));
@@ -60,7 +60,7 @@ public class ServerPanel extends JPanel {
         serverLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
         serverLabel.setFont(font);
 
-        JLabel summaryLabel = new JLabel("N/A");
+        JLabel summaryLabel = new JLabel();
         summaryLabel.setBorder(border);
         summaryLabel.setFont(font);
 
@@ -86,34 +86,34 @@ public class ServerPanel extends JPanel {
     private JPanel createDetailsPanel() {
         JPanel container = new JPanel();
         container.setBackground(Colors.INFO_PANEL_BACKGROUND);
-        container.setLayout(new GridLayout(4, 2, 10, 10));
+        container.setLayout(new GridLayout(0, 2, 10, 5));
         container.setMaximumSize(new Dimension(500, 100));
 
         JLabel countryLabel = new JLabel("Country:", JLabel.RIGHT);
         countryLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         countryLabel.setFont(font);
-        countryValueLabel = new JLabel("dummy_country");
+        countryValueLabel = new JLabel();
         countryValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         countryValueLabel.setFont(font);
 
         JLabel regionLabel = new JLabel("Region:", JLabel.RIGHT);
         regionLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         regionLabel.setFont(font);
-        regionValueLabel = new JLabel("dummy_region");
+        regionValueLabel = new JLabel();
         regionValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         regionValueLabel.setFont(font);
 
         JLabel cityLabel = new JLabel("City:", JLabel.RIGHT);
         cityLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         cityLabel.setFont(font);
-        cityValueLabel = new JLabel("dummy_city");
+        cityValueLabel = new JLabel();
         cityValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         cityValueLabel.setFont(font);
 
         JLabel serverIdLabel = new JLabel("Encountered server #:", JLabel.RIGHT);
         serverIdLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         serverIdLabel.setFont(font);
-        serverIdValueLabel = new JLabel("5");
+        serverIdValueLabel = new JLabel();
         serverIdValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         serverIdValueLabel.setFont(font);
 
@@ -125,7 +125,6 @@ public class ServerPanel extends JPanel {
         container.add(cityValueLabel);
         container.add(serverIdLabel);
         container.add(serverIdValueLabel);
-
         container.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
@@ -143,19 +142,16 @@ public class ServerPanel extends JPanel {
                 firePropertyChange(PROPERTY_PANEL_COLLAPSED, false,  true);
             }
         });
+        container.setVisible(!settings.getBoolean("ui.panel.server.collapsed"));
 
         return container;
     }
 
     public void clearServer() {
-        updateServer(null);
+        updateServer(new Server(0));
     }
 
     public void updateServer(Server server) {
-        if (server == null) {
-            server = new Server();
-        }
-
         countryValueLabel.setText(server.getCountry());
         regionValueLabel.setText(server.getRegion());
         cityValueLabel.setText(server.getCity());

@@ -2,7 +2,11 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.service.*;
+import net.lobby_simulator_companion.loop.service.Connection;
+import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
+import net.lobby_simulator_companion.loop.service.Sniffer;
+import net.lobby_simulator_companion.loop.service.SnifferListener;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.PcapAddress;
@@ -18,7 +22,12 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
@@ -30,18 +39,14 @@ public class Boot {
     private static Settings settings;
 
 
-    public static void main(String[] args) throws Exception {
-//        configureLogger();
-//        init();
-
+    public static void main2(String[] args) throws Exception {
         SwingUtilities.invokeLater(() -> {
             Factory.getMainWindow();
             Factory.getDebugPanel();
         });
-
     }
 
-    public static void main2(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         configureLogger();
         try {
             init();
@@ -50,37 +55,6 @@ public class Boot {
             fatalErrorDialog("Failed to initialize application: " + e.getMessage());
             exitApplication(1);
         }
-
-        if (settings.getBoolean("debug")) {
-            return;
-        }
-
-        try {
-            sniffer = new Sniffer(localAddr, new SnifferListener() {
-                @Override
-                public void notifyNewConnection(Connection connection) {
-                    ui.connect();
-                }
-
-                @Override
-                public void notifyDisconnect() {
-                    ui.disconnect();
-                }
-
-                @Override
-                public void handleException(Exception e) {
-                    logger.error("Fatal error while sniffing packets.", e);
-                    fatalErrorDialog("A fatal error occurred while processing connections.\nPlease, send us the log files.");
-                }
-            });
-        } catch (InvalidNetworkInterfaceException e) {
-            fatalErrorDialog("The device you selected doesn't seem to exist. Double-check the IP you entered.");
-        }
-
-        // start sniffer thread
-        Thread thread = new Thread(sniffer);
-        thread.setDaemon(true);
-        thread.start();
     }
 
     private static void configureLogger() throws URISyntaxException {
@@ -104,21 +78,54 @@ public class Boot {
         logger.info("Setting up network interface...");
         getLocalAddr();
 
-        logger.info("Starting UI...");
-        ui = Factory.getMainWindow();
-
         logger.info("Starting log monitor...");
         DbdLogMonitor logMonitor = Factory.getDbdLogMonitor();
-        logMonitor.addObserver(ui);
         Thread thread = new Thread(logMonitor);
         thread.setDaemon(true);
         thread.start();
 
-        logger.info("Initialization finished.");
+        if (!settings.getBoolean("debug")) {
+            logger.info("Starting net traffic sniffer...");
+            try {
+                sniffer = new Sniffer(localAddr, new SnifferListener() {
+                    @Override
+                    public void notifyNewConnection(Connection connection) {
+                        SwingUtilities.invokeLater(() -> ui.connect());
+                    }
 
-        if (settings.getBoolean("debug")) {
-            Factory.getDebugPanel();
+                    @Override
+                    public void notifyDisconnect() {
+                        ui.disconnect();
+                    }
+
+                    @Override
+                    public void handleException(Exception e) {
+                        logger.error("Fatal error while sniffing packets.", e);
+                        fatalErrorDialog("A fatal error occurred while processing connections.\nPlease, send us the log files.");
+                    }
+                });
+            } catch (InvalidNetworkInterfaceException e) {
+                fatalErrorDialog("The device you selected doesn't seem to exist. Double-check the IP you entered.");
+            }
+
+            // start sniffer thread
+            thread = new Thread(sniffer);
+            thread.setDaemon(true);
+            thread.start();
         }
+
+        logger.info("Starting UI...");
+        SwingUtilities.invokeLater(() -> {
+            if (settings.getBoolean("debug")) {
+                Factory.getDebugPanel();
+            }
+            ui = Factory.getMainWindow();
+            ui.addPropertyChangeListener(ui.PROPERTY_EXIT_REQUEST, evt -> {
+                exitApplication(0);
+            });
+            logMonitor.addObserver(ui);
+            logger.info(Factory.getAppProperties().get("app.name.short") + " is ready.");
+        });
     }
 
 
