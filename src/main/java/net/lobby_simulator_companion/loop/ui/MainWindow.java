@@ -35,7 +35,7 @@ public class MainWindow extends JFrame implements Observer {
      * Minimum time connected from which we can assume that a match has taken place and it was not just
      * lobby waiting time.
      */
-    private static final int MINIMUM_MATCH_SECONDS = 6 * 60;
+    private static final int MINIMUM_MATCH_SECONDS = 7 * 60;
 
     private AppProperties appProperties = Factory.getAppProperties();
     private long sessionStartTime;
@@ -212,7 +212,7 @@ public class MainWindow extends JFrame implements Observer {
         elapsedLabel.setFont(font);
 
         JLabel clearButton = new JLabel();
-        clearButton.setIcon(ResourceFactory.getResetIcon());
+        clearButton.setIcon(ResourceFactory.getClearIcon());
         clearButton.setToolTipText("Clear data (it will still be saved)");
         clearButton.addMouseListener(new MouseAdapter() {
             @Override

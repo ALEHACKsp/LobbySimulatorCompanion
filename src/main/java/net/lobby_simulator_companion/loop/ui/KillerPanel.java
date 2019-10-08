@@ -52,7 +52,7 @@ public class KillerPanel extends JPanel {
     private LoopDataService dataService;
     private SteamProfileDao steamProfileDao;
 
-    private JPanel summaryBar;
+    private JPanel titleBar;
     private JLabel playerNameLabel;
     private JLabel playerSteamButton;
     private JLabel titleBarCharacterLabel;
@@ -79,14 +79,14 @@ public class KillerPanel extends JPanel {
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(new Color(0, 0, 200));
-        summaryBar = createSummaryBar();
+        titleBar = createTitleBar();
         detailsPanel = createDetailsPanel();
 
-        add(summaryBar);
+        add(titleBar);
         add(detailsPanel);
     }
 
-    private JPanel createSummaryBar() {
+    private JPanel createTitleBar() {
 
         Border border = new EmptyBorder(5, 5, 5, 5);
 
@@ -94,6 +94,19 @@ public class KillerPanel extends JPanel {
         summaryLabel.setBorder(border);
         summaryLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
         summaryLabel.setFont(font);
+
+        playerRateLabel = new JLabel();
+        playerRateLabel.setBorder(border);
+        playerRateLabel.setIcon(ResourceFactory.getRateIcon());
+        playerRateLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                rateKiller();
+            }
+        });
+        playerRateLabel.setVisible(false);
+
         playerNameLabel = new JLabel();
         playerNameLabel.setBorder(border);
         playerNameLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
@@ -126,18 +139,6 @@ public class KillerPanel extends JPanel {
         titleBarCharacterLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
         titleBarCharacterLabel.setFont(font);
 
-        playerRateLabel = new JLabel();
-        playerRateLabel.setBorder(border);
-        playerRateLabel.setIcon(ResourceFactory.getRateIcon());
-        playerRateLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                rateKiller();
-            }
-        });
-        playerRateLabel.setVisible(false);
-
         detailCollapseButton = new JLabel();
         detailCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
         detailCollapseButton.setBorder(border);
@@ -154,10 +155,10 @@ public class KillerPanel extends JPanel {
         container.setBackground(Colors.STATUS_BAR_BACKGROUND);
         container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
         container.add(summaryLabel);
+        container.add(playerRateLabel);
         container.add(playerNameLabel);
         container.add(playerSteamButton);
         container.add(titleBarCharacterLabel);
-        container.add(playerRateLabel);
         container.add(Box.createHorizontalGlue());
         container.add(detailCollapseButton);
 
@@ -277,9 +278,6 @@ public class KillerPanel extends JPanel {
             public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
                 super.remove(fb, offset, length);
                 deferDescriptionUpdate();
-                if (fb.getDocument().getLength() == 0) {
-                    userNotesArea.setVisible(false);
-                }
             }
 
             @Override

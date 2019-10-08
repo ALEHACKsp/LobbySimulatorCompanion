@@ -12,7 +12,10 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.util.*;
 
-public class Sniffer implements Runnable {
+/**
+ * @author NickyRamone
+ */
+public class DedicatedServerConnectionManager implements ConnectionManager {
 
     private static final int CAPTURED_PACKET_SIZE = 128;
     private static final int CLEANER_POLL_MS = 5000;
@@ -29,16 +32,17 @@ public class Sniffer implements Runnable {
     private static final String BPF_EXPR__NEW_CONNECTION = "udp[8:4] = 0x01000000 and (src host %s)";
     private static final String BPF_EXPR__KEEP_ALIVE = "udp and ((udp[8:4] = 0x01000000) and (src host %s)) or ((host %s and %s) and (port %s and %s))";
 
-    private static final Logger logger = LoggerFactory.getLogger(Sniffer.class);
+    private static final Logger logger = LoggerFactory.getLogger(DedicatedServerConnectionManager.class);
 
     private InetAddress localAddr;
     private SnifferListener snifferListener;
     private PcapNetworkInterface networkInterface;
     private Connection connection;
+    private Map<InetAddress, Connection> connections = new HashMap<>();
     private PcapHandle pcapHandle;
 
 
-    public Sniffer(InetAddress localAddr, SnifferListener snifferListener) throws PcapNativeException, NotOpenException, InvalidNetworkInterfaceException {
+    public DedicatedServerConnectionManager(InetAddress localAddr, SnifferListener snifferListener) throws PcapNativeException, NotOpenException, InvalidNetworkInterfaceException {
         this.localAddr = localAddr;
         this.snifferListener = snifferListener;
         initNetworkInterface();
@@ -61,7 +65,7 @@ public class Sniffer implements Runnable {
 
 
     @Override
-    public void run() {
+    public void start() {
         try {
             sniffPackets();
         } catch (Exception e) {
@@ -129,8 +133,8 @@ public class Sniffer implements Runnable {
         pcapHandle.setFilter(filterExpr, BpfProgram.BpfCompileMode.OPTIMIZE);
     }
 
-
-    public void close() {
+    @Override
+    public void stop() {
         if (pcapHandle != null) {
             logger.info("Cleaning up sniffer...");
             try {
@@ -138,9 +142,13 @@ public class Sniffer implements Runnable {
             } catch (NotOpenException e) {
                 logger.error("Failed when attempting to stop sniffer.", e);
             }
-            pcapHandle.close();
-            logger.info("Freed network interface pcapHandle.");
         }
+    }
+
+    public void close() {
+        stop();
+        pcapHandle.close();
+        logger.info("Freed network interface pcapHandle.");
     }
 
 

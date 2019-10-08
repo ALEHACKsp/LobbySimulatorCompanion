@@ -5,7 +5,8 @@ import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.service.Connection;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
-import net.lobby_simulator_companion.loop.service.Sniffer;
+import net.lobby_simulator_companion.loop.service.P2pConnectionManager;
+import net.lobby_simulator_companion.loop.service.ConnectionManager;
 import net.lobby_simulator_companion.loop.service.SnifferListener;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.util.FileUtil;
@@ -35,7 +36,7 @@ public class Boot {
     private static Logger logger;
     private static InetAddress localAddr;
     private static MainWindow ui;
-    private static Sniffer sniffer;
+    private static ConnectionManager connectionManager;
     private static Settings settings;
 
 
@@ -87,7 +88,7 @@ public class Boot {
         if (!settings.getBoolean("debug")) {
             logger.info("Starting net traffic sniffer...");
             try {
-                sniffer = new Sniffer(localAddr, new SnifferListener() {
+                connectionManager = new P2pConnectionManager(localAddr, new SnifferListener() {
                     @Override
                     public void notifyNewConnection(Connection connection) {
                         SwingUtilities.invokeLater(() -> ui.connect());
@@ -108,8 +109,8 @@ public class Boot {
                 fatalErrorDialog("The device you selected doesn't seem to exist. Double-check the IP you entered.");
             }
 
-            // start sniffer thread
-            thread = new Thread(sniffer);
+            // start connection manager thread
+            thread = new Thread(() -> connectionManager.start());
             thread.setDaemon(true);
             thread.start();
         }
@@ -190,7 +191,7 @@ public class Boot {
         }
 
         logger.info("Terminated UI.");
-        sniffer.close();
+        connectionManager.close();
 
         System.exit(status);
     }
