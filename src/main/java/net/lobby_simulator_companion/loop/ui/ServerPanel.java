@@ -1,7 +1,7 @@
 package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.service.Server;
+import net.lobby_simulator_companion.loop.domain.Server;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -18,8 +18,7 @@ import java.awt.event.MouseEvent;
  */
 public class ServerPanel extends JPanel {
 
-    public static final String PROPERTY_PANEL_EXPANDED = "panel.expanded";
-    public static final String PROPERTY_PANEL_COLLAPSED = "panel.collapsed";
+    public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
     private static final Font font = ResourceFactory.getRobotoFont();
 
     private Settings settings;
@@ -131,7 +130,7 @@ public class ServerPanel extends JPanel {
                 detailsCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
                 super.componentShown(e);
                 settings.set("ui.panel.server.collapsed", false);
-                firePropertyChange(PROPERTY_PANEL_EXPANDED, false,  true);
+                firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
             }
 
             @Override
@@ -139,7 +138,7 @@ public class ServerPanel extends JPanel {
                 detailsCollapseButton.setIcon(ResourceFactory.getExpandIcon());
                 super.componentHidden(e);
                 settings.set("ui.panel.server.collapsed", true);
-                firePropertyChange(PROPERTY_PANEL_COLLAPSED, false,  true);
+                firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
             }
         });
         container.setVisible(!settings.getBoolean("ui.panel.server.collapsed"));

@@ -82,6 +82,7 @@ public final class Factory {
                 instances.put(clazz, instance);
             } catch (Exception e) {
                 logger.error("Failed to instantiate class.", e);
+                throw new RuntimeException("tu vieja");
             }
         }
 
@@ -98,7 +99,7 @@ public final class Factory {
 
     public static LoopRepository getLoopRepository() {
         return getInstance(LoopRepository.class,
-                () -> new LoopRepository(getSettings(), getAppProperties()));
+                () -> new LoopRepository(getAppProperties()));
     }
 
     public static LoopDataService getLoopDataService() {

@@ -35,4 +35,14 @@ public class AppProperties {
         return (String) properties.get(key);
     }
 
+    public boolean getBoolean(String key) {
+        return getBoolean(key, false);
+    }
+
+    public boolean getBoolean(String key, boolean defaultValue) {
+        String value = properties.getProperty(key);
+
+        return value == null ? defaultValue : Boolean.parseBoolean(value);
+    }
+
 }

@@ -2,7 +2,7 @@ package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
-import net.lobby_simulator_companion.loop.service.Server;
+import net.lobby_simulator_companion.loop.domain.Server;
 
 import javax.swing.*;
 import java.awt.*;

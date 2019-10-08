@@ -5,7 +5,7 @@ import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
-import net.lobby_simulator_companion.loop.service.Player;
+import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
 import net.lobby_simulator_companion.loop.util.FontUtil;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ import java.util.TimerTask;
 
 public class KillerPanel extends JPanel {
 
-    public static final String PROPERTY_STRUCTURE_CHANGED = "structure_changed";
+    public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
 
     /**
      * When the user updates the killer player description, the change is not applied immediately
@@ -235,7 +235,7 @@ public class KillerPanel extends JPanel {
                 detailCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
                 super.componentShown(e);
                 settings.set("ui.panel.killer.collapsed", false);
-                firePropertyChange(PROPERTY_STRUCTURE_CHANGED, null, null);
+                firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
             }
 
             @Override
@@ -243,7 +243,7 @@ public class KillerPanel extends JPanel {
                 detailCollapseButton.setIcon(ResourceFactory.getExpandIcon());
                 super.componentHidden(e);
                 settings.set("ui.panel.killer.collapsed", true);
-                firePropertyChange(PROPERTY_STRUCTURE_CHANGED, null, null);
+                firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
             }
         });
         container.setVisible(!settings.getBoolean("ui.panel.killer.collapsed"));
@@ -413,7 +413,7 @@ public class KillerPanel extends JPanel {
 
     private void toggleUserNotesAreaVisibility(boolean visible) {
         userNotesPane.setVisible(visible);
-        firePropertyChange(PROPERTY_STRUCTURE_CHANGED, null, null);
+        firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
     }
 
     public void updateMatchCount() {

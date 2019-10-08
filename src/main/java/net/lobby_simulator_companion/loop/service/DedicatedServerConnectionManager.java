@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.service;
 
+import net.lobby_simulator_companion.loop.domain.Connection;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.IpPacket;
 import org.pcap4j.packet.IpV4Packet;

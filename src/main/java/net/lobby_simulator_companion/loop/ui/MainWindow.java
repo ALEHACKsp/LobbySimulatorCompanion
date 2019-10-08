@@ -3,6 +3,7 @@ package net.lobby_simulator_companion.loop.ui;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +23,11 @@ import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMon
  */
 public class MainWindow extends JFrame implements Observer {
 
-    private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
     public static final String PROPERTY_EXIT_REQUEST = "exit.request";
+
+    private static final String SETTING__WINDOW_FRAME_X = "ui.window.position.x";
+    private static final String SETTING__WINDOW_FRAME_Y = "ui.window.position.y";
+    private static final String SETTING__MAIN_PANEL_COLLAPSED = "ui.panel.main.collapsed";
     private static final String MSG_CONNECTED = "Connected";
     private static final String MSG_DISCONNECTED = "Disconnected";
     private static final Dimension MINIMUM_SIZE = new Dimension(500, 25);
@@ -71,8 +75,8 @@ public class MainWindow extends JFrame implements Observer {
             public void mouseClicked(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
                     frameLocked = !frameLocked;
-                    settings.set("frame_x", getLocationOnScreen().x);
-                    settings.set("frame_y", getLocationOnScreen().y);
+                    settings.set(SETTING__WINDOW_FRAME_X, getLocationOnScreen().x);
+                    settings.set(SETTING__WINDOW_FRAME_Y, getLocationOnScreen().y);
                 }
             }
         };
@@ -102,7 +106,7 @@ public class MainWindow extends JFrame implements Observer {
                 titleBarMinimizeLabel.setIcon(ResourceFactory.getCollapseIcon());
                 pack();
                 super.componentShown(e);
-                settings.set("ui.panel.main.collapsed", false);
+                settings.set(SETTING__MAIN_PANEL_COLLAPSED, false);
             }
 
             @Override
@@ -110,14 +114,14 @@ public class MainWindow extends JFrame implements Observer {
                 titleBarMinimizeLabel.setIcon(ResourceFactory.getExpandIcon());
                 pack();
                 super.componentHidden(e);
-                settings.set("ui.panel.main.collapsed", true);
+                settings.set(SETTING__MAIN_PANEL_COLLAPSED, true);
             }
         });
         detailPanel.add(messagePanel);
         detailPanel.add(serverPanel);
         detailPanel.add(killerPanel);
         detailPanel.add(Box.createVerticalGlue());
-        detailPanel.setVisible(!settings.getBoolean("ui.panel.main.collapsed"));
+        detailPanel.setVisible(!settings.getBoolean(SETTING__MAIN_PANEL_COLLAPSED));
 
         JPanel container = new JPanel();
         container.setMaximumSize(new Dimension(INFINITE_SIZE, 30));

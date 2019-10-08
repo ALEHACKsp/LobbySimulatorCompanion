@@ -6,7 +6,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.service.LoopData;
+import net.lobby_simulator_companion.loop.domain.LoopData;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,21 +29,23 @@ import java.util.zip.GZIPOutputStream;
 public class LoopRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(LoopRepository.class);
-    private static byte[] CIPHER_KEY_MATERIAL = new byte[]{2, 3, -57, 11, 73, 57, -66, 21};
+    private static final byte[] CIPHER_KEY_MATERIAL = new byte[]{2, 3, -57, 11, 73, 57, -66, 21};
+    private static final String PROPERTY__READ_ENCRYPTED = "storage.read.encrypted";
+    private static final String PROPERTY__WRITE_ENCRYPTED = "storage.write.encrypted";
 
-    private Settings settings;
+    private AppProperties properties;
     private File saveFile;
     private final Gson gson;
     private final String jsonIndent;
 
 
-    public LoopRepository(Settings settings, AppProperties appProperties) {
-        this.settings = settings;
-        saveFile = Paths.get(appProperties.get("app.home"))
-                .resolve(appProperties.get("storage.file")).toFile();
+    public LoopRepository(AppProperties properties) {
+        this.properties = properties;
+        saveFile = Paths.get(properties.get("app.home"))
+                .resolve(properties.get("storage.file")).toFile();
         GsonBuilder gsonBuilder = new GsonBuilder();
 
-        if (settings.getBoolean("encrypt")) {
+        if (properties.getBoolean(PROPERTY__WRITE_ENCRYPTED)) {
             jsonIndent = "";
         } else {
             gsonBuilder.setPrettyPrinting();
@@ -54,7 +56,7 @@ public class LoopRepository {
     }
 
 
-    public LoopData load() throws FileNotFoundException {
+    public LoopData load() throws IOException {
         logger.info("Loading data...");
         LoopData loopData;
 
@@ -65,7 +67,7 @@ public class LoopRepository {
         } catch (FileNotFoundException e1) {
             throw e1;
         } catch (Exception e2) {
-            throw new RuntimeException("Failed to load data. File corrupt?", e2);
+            throw new IOException("Failed to load data. File corrupt?", e2);
         }
         logger.info("Loaded {} players and {} servers.",
                 loopData.getPlayers().size(), loopData.getServers().size());
@@ -93,7 +95,7 @@ public class LoopRepository {
     private JsonReader createJsonReader(Cipher cipher) throws IOException {
         InputStream inputStream;
 
-        if (settings.getBoolean("encrypt")) {
+        if (properties.getBoolean(PROPERTY__READ_ENCRYPTED)) {
             CipherInputStream decStream;
             FileInputStream fis = new FileInputStream(saveFile);
             try {
@@ -114,7 +116,7 @@ public class LoopRepository {
     private JsonWriter createJsonWriter() throws IOException {
         OutputStream outputStream;
 
-        if (settings.getBoolean("encrypt")) {
+        if (properties.getBoolean(PROPERTY__WRITE_ENCRYPTED)) {
             Cipher cipher;
             try {
                 cipher = getCipher(false);

@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.service;
+package net.lobby_simulator_companion.loop.domain;
 
 import java.util.ArrayList;
 import java.util.Collection;

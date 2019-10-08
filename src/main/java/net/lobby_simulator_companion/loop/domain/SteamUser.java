@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.service;
+package net.lobby_simulator_companion.loop.domain;
 
 /**
  * Represents a Steam user.

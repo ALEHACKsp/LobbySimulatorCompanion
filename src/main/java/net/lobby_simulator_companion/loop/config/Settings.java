@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -31,7 +32,17 @@ public class Settings {
 
 
     public Settings() throws IOException {
+        if (!SETTINGS_FILE.exists()) {
+            if (!SETTINGS_FILE.createNewFile()) {
+                throw new IOException("Failed to initialize settings manager. File does not exist "
+                        + "and it could not be created.");
+            }
+        }
         ini = new Wini(SETTINGS_FILE);
+
+        if (ini.isEmpty()) {
+            ini.add("?");
+        }
         globalSection = ini.get("?");
 
         Timer timer = new Timer();
@@ -55,17 +66,21 @@ public class Settings {
     }
 
     public boolean getBoolean(String key) {
+        return getBoolean(key, false);
+    }
+
+    public boolean getBoolean(String key, boolean defaultValue) {
         String val = globalSection.get(key);
 
-        return val != null && "true".equals(val);
+        return val != null? Boolean.parseBoolean(val): defaultValue;
     }
 
     public void set(String key, Object value) {
         String oldValue = get(key);
-        String newValue = (value == null || value instanceof String)? (String) value: String.valueOf(value);
+        String newValue = (value == null || value instanceof String)? (String) value : String.valueOf(value);
 
         // only set it if the new value differs from the old one
-        if (oldValue != newValue && !oldValue.equals(newValue)) {
+        if (!Objects.equals(oldValue, newValue)) {
             globalSection.put(key, value);
             dirty = true;
             lastChange = System.currentTimeMillis();

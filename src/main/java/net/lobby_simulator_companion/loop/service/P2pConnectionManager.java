@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.service;
 
+import net.lobby_simulator_companion.loop.domain.Connection;
 import org.pcap4j.core.BpfProgram;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PacketListener;
