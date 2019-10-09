@@ -117,7 +117,7 @@ public final class Factory {
 
     public static DbdLogMonitor getDbdLogMonitor() {
         return getInstance(DbdLogMonitor.class, unchecked(() ->
-                new DbdLogMonitor(getSteamProfileDao())));
+                new DbdLogMonitor()));
     }
 
     public static MainWindow getMainWindow() {

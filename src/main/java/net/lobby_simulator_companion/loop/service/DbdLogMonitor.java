@@ -51,22 +51,22 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
     private static final String[][] KILLER_NAME_TO_OUTFIT_CODES_MAPPING = new String[][]{
             {"Cannibal", "CA"},
-            {"Clown", "GK"},
+            {"Clown", "GK", "Clown"},
             {"Demogorgon", "QK"},
-            {"Doctor", "DO"},
+            {"Doctor", "DO", "DOW04", "Killer07"},
             {"Ghostface", "OK"},
-            {"Hag", "HA", "WI"},
-            {"Hillbilly", "HB", "TC"},
+            {"Hag", "HA", "WI", "Witch"},
+            {"Hillbilly", "HB", "TC", "Hillbilly"},
             {"Huntress", "BE"},
-            {"Legion", "KK"},
+            {"Legion", "KK", "Legion"},
             {"Nightmare", "SD"},
-            {"Nurse", "TN"},
+            {"Nurse", "TN", "Nurse"},
             {"Pig", "FK"},
-            {"Plague", "ML"},
+            {"Plague", "ML", "MK", "Plague"},
             {"Shape", "MM"},
-            {"Spirit", "HK"},
-            {"Trapper", "TR"},
-            {"Wraith", "TW", "WR"}
+            {"Spirit", "HK", "Spirit"},
+            {"Trapper", "TR", "TRW03", "TRW04", "Chuckles", "S01", "Trapper"},
+            {"Wraith", "TW", "WR", "Wraith"}
     };
 
     private static final Map<String, String> OUTFIT_CODE_TO_KILLER_NAME_MAPPING = new HashMap<>();
@@ -103,7 +103,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private String killerDbdId;
 
 
-    public DbdLogMonitor(SteamProfileDao steamProfileDao) throws IOException {
+    public DbdLogMonitor() throws IOException {
         initReader();
     }
 
