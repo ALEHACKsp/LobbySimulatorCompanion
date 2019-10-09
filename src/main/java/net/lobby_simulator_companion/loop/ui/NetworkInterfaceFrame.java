@@ -87,4 +87,8 @@ public class NetworkInterfaceFrame extends JFrame {
         while (frame.isVisible())
             Thread.sleep(500);
     }
+
+    public InetAddress getLocalAddr() {
+        return localAddr;
+    }
 }

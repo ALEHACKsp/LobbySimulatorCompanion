@@ -32,7 +32,6 @@ public class Boot {
     private static final String SETTING__NIF_ADDRESS = "network.interface.address";
 
     private static Logger logger;
-    private static InetAddress localAddr;
     private static MainWindow ui;
     private static DbdLogMonitor logMonitor;
     private static ConnectionManager connectionManager;
@@ -79,14 +78,16 @@ public class Boot {
         setupTray();
 
         logger.info("Setting up network interface...");
+        InetAddress localAddr;
         if (settings.getBoolean(SETTING__NIF_AUTOLOAD, false)) {
             localAddr = InetAddress.getByName(settings.get(SETTING__NIF_ADDRESS));
         } else {
-            new NetworkInterfaceFrame(settings);
+            NetworkInterfaceFrame nifFrame = new NetworkInterfaceFrame(settings);
+            localAddr = nifFrame.getLocalAddr();
         }
 
         initLogMonitor();
-        initConnectionManager();
+        initConnectionManager(localAddr);
         initUi();
     }
 
@@ -99,7 +100,7 @@ public class Boot {
         thread.start();
     }
 
-    private static void initConnectionManager() throws PcapNativeException, NotOpenException {
+    private static void initConnectionManager(InetAddress localAddr) throws PcapNativeException, NotOpenException {
         if (!appProperties.getBoolean("debug")) {
             logger.info("Starting net traffic sniffer...");
             try {
