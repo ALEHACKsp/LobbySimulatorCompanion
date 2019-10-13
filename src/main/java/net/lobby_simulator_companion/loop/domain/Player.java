@@ -3,7 +3,8 @@ package net.lobby_simulator_companion.loop.domain;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Player implements Serializable {
@@ -119,7 +120,7 @@ public class Player implements Serializable {
     }
 
     public void incrementSecondsPlayed(int secondsPlayed) {
-        secondsPlayed += secondsPlayed;
+        this.secondsPlayed += secondsPlayed;
     }
 
     public List<String> getNames() {

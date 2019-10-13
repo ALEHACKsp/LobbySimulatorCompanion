@@ -5,6 +5,7 @@ import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Connection;
 import net.lobby_simulator_companion.loop.service.ConnectionManager;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.DedicatedServerConnectionManager;
 import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
 import net.lobby_simulator_companion.loop.service.P2pConnectionManager;
 import net.lobby_simulator_companion.loop.service.SnifferListener;
@@ -38,13 +39,6 @@ public class Boot {
     private static Settings settings;
     private static AppProperties appProperties;
 
-
-    public static void main2(String[] args) throws Exception {
-        SwingUtilities.invokeLater(() -> {
-            Factory.getMainWindow();
-            Factory.getDebugPanel();
-        });
-    }
 
     public static void main(String[] args) throws Exception {
         configureLogger();
@@ -104,15 +98,21 @@ public class Boot {
         if (!appProperties.getBoolean("debug")) {
             logger.info("Starting net traffic sniffer...");
             try {
-                connectionManager = new P2pConnectionManager(localAddr, new SnifferListener() {
+                connectionManager = new DedicatedServerConnectionManager(localAddr, new SnifferListener() {
                     @Override
                     public void notifyNewConnection(Connection connection) {
-                        SwingUtilities.invokeLater(() -> ui.connect());
+                        logger.debug("Detected new connection: {}", connection);
+                        SwingUtilities.invokeLater(() -> ui.connect(connection.getRemoteAddr().getHostAddress()));
+                    }
+
+                    @Override
+                    public void notifyMatchStart() {
+                        SwingUtilities.invokeLater(() -> ui.startMatch());
                     }
 
                     @Override
                     public void notifyDisconnect() {
-                        ui.disconnect();
+                        SwingUtilities.invokeLater(() -> ui.disconnect());
                     }
 
                     @Override

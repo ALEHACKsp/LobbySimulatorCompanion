@@ -9,11 +9,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Service for managing players data provided by user.
+ * Service for managing data related to players and servers.
  *
  * @author NickyRamone
  */
@@ -23,8 +25,8 @@ public class LoopDataService {
     private static final long SAVE_PERIOD_MS = 5000;
 
     private final LoopRepository repository;
-    private final Map<String, Player> players = new HashMap<>();
-    private final Map<Integer, Server> servers = new HashMap<>();
+    private final Map<String, Player> players = new ConcurrentHashMap<>();
+    private final Map<String, Server> servers = new ConcurrentHashMap<>();
     private boolean dirty;
 
 
@@ -59,8 +61,21 @@ public class LoopDataService {
         return players.get(steamId);
     }
 
+    public Server getServerByIpAddress(String ipAddress) {
+        return servers.get(ipAddress);
+    }
+
     public void addPlayer(String steamId, Player player) {
         players.put(steamId, player);
+        dirty = true;
+    }
+
+    public void addServer(Server server) {
+        if (server.getDiscoveryNumber() == null) {
+            server.setDiscoveryNumber(servers.size() + 1);
+        }
+
+        servers.put(server.getAddress(), server);
         dirty = true;
     }
 

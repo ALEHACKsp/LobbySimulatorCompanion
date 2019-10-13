@@ -3,11 +3,12 @@ package net.lobby_simulator_companion.loop.ui;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
-import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
 import net.lobby_simulator_companion.loop.util.FontUtil;
+import net.lobby_simulator_companion.loop.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +64,7 @@ public class KillerPanel extends JPanel {
     private JLabel otherNamesValueLabel;
     private JLabel timesEncounteredValueLabel;
     private JLabel matchCountValueLabel;
+    private JLabel timePlayedValueLabel;
     private JScrollPane userNotesPane;
     private JLabel userNotesEditButton;
     private JTextArea userNotesArea;
@@ -109,7 +111,6 @@ public class KillerPanel extends JPanel {
 
         playerNameLabel = new JLabel();
         playerNameLabel.setBorder(border);
-        playerNameLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
         playerNameLabel.setFont(font);
 
         playerSteamButton = new JLabel();
@@ -136,7 +137,6 @@ public class KillerPanel extends JPanel {
 
         titleBarCharacterLabel = new JLabel();
         titleBarCharacterLabel.setBorder(border);
-        titleBarCharacterLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
         titleBarCharacterLabel.setFont(font);
 
         detailCollapseButton = new JLabel();
@@ -195,6 +195,13 @@ public class KillerPanel extends JPanel {
         matchCountValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         matchCountValueLabel.setFont(font);
 
+        JLabel timePlayedLabel = new JLabel("Total time played against:", JLabel.RIGHT);
+        timePlayedLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
+        timePlayedLabel.setFont(font);
+        timePlayedValueLabel = new JLabel();
+        timePlayedValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
+        timePlayedValueLabel.setFont(font);
+
         JLabel notesLabel = new JLabel("Your notes:", JLabel.RIGHT);
         notesLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         notesLabel.setFont(font);
@@ -220,6 +227,8 @@ public class KillerPanel extends JPanel {
         statsContainer.add(timesEncounteredValueLabel);
         statsContainer.add(matchCountLabel);
         statsContainer.add(matchCountValueLabel);
+        statsContainer.add(timePlayedLabel);
+        statsContainer.add(timePlayedValueLabel);
         statsContainer.add(notesLabel);
         statsContainer.add(userNotesEditButton);
 
@@ -260,7 +269,7 @@ public class KillerPanel extends JPanel {
                 public void run() {
                     if (killerPlayer != null) {
                         String notes = userNotesArea.getText().trim();
-                        notes = notes.isEmpty()? null: notes;
+                        notes = notes.isEmpty() ? null : notes;
                         killerPlayer.setDescription(notes);
                         userNotesUpdateTimer = null;
                         dataService.notifyChange();
@@ -364,6 +373,7 @@ public class KillerPanel extends JPanel {
         timesEncounteredValueLabel.setText("");
         characterValueLabel.setText("");
         matchCountValueLabel.setText("");
+        timePlayedValueLabel.setText("");
         userNotesEditButton.setVisible(false);
         userNotesArea.setText("");
         toggleUserNotesAreaVisibility(false);
@@ -374,7 +384,7 @@ public class KillerPanel extends JPanel {
         dataService.save();
         killerPlayer = player;
 
-        playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName(): "");
+        playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName() : "");
         playerSteamButton.setVisible(true);
         otherNamesValueLabel.setText("");
         otherNamesValueLabel.setToolTipText("");
@@ -396,6 +406,7 @@ public class KillerPanel extends JPanel {
 
         timesEncounteredValueLabel.setText(String.valueOf(player.getTimesEncountered()));
         matchCountValueLabel.setText(String.valueOf(player.getMatchesPlayed()));
+        timePlayedValueLabel.setText(TimeUtil.formatTimeElapsed(player.getSecondsPlayed()));
 
         playerRateLabel.setVisible(true);
         updateRating();
@@ -404,11 +415,16 @@ public class KillerPanel extends JPanel {
         if (player.getDescription() == null) {
             userNotesArea.setText("");
             toggleUserNotesAreaVisibility(false);
-        }
-        else {
+        } else {
             userNotesArea.setText(player.getDescription());
             toggleUserNotesAreaVisibility(true);
-       }
+        }
+    }
+
+    public void updateKillerMatchTime(int matchSeconds) {
+        killerPlayer.incrementSecondsPlayed(matchSeconds);
+        timePlayedValueLabel.setText(TimeUtil.formatTimeElapsed(killerPlayer.getSecondsPlayed()));
+        dataService.notifyChange();
     }
 
     private void toggleUserNotesAreaVisibility(boolean visible) {
@@ -417,12 +433,19 @@ public class KillerPanel extends JPanel {
     }
 
     public void updateMatchCount() {
+        if (killerPlayer == null) {
+            return;
+        }
         killerPlayer.incrementMatchesPlayed();
         matchCountValueLabel.setText(String.valueOf(killerPlayer.getMatchesPlayed()));
         dataService.notifyChange();
     }
 
     private void updateRating() {
+        if (killerPlayer == null) {
+            return;
+        }
+
         Player.Rating peerRating = killerPlayer.getRating();
         if (peerRating == Player.Rating.UNRATED) {
             playerRateLabel.setIcon(ResourceFactory.getRateIcon());

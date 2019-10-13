@@ -9,6 +9,8 @@ public interface SnifferListener {
 
     void notifyNewConnection(Connection connection);
 
+    void notifyMatchStart();
+
     void notifyDisconnect();
 
     void handleException(Exception e);

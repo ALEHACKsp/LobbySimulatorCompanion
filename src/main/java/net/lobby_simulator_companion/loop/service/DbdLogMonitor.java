@@ -1,6 +1,5 @@
 package net.lobby_simulator_companion.loop.service;
 
-import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +9,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,7 +25,7 @@ import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMon
  * Note: This approach is quite hacky and not a great solution to the problem, but it does its job fairly easily.
  * A better way would be to obtain the information from the UDP packets, but that's probably not feasible due to
  * encrypted traffic.
- *
+ * <p>
  * TODO: see if we can use something better than {@link Observer}.
  *
  * @author NickyRamone
@@ -38,15 +40,13 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final String LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
     private static final File LOG_FILE = USER_APPDATA_PATH.resolve(LOG_PATH).toFile();
 
-//    private static final String REGEX__LOBBY_PARAMS = "steam.([0-9]+)//Game/Maps/OfflineLobby";
-//    private static final Pattern PATTERN__LOBBY_PARAMS = Pattern.compile(REGEX__LOBBY_PARAMS);
     private static final String REGEX__LOBBY_KILLER = "MatchMembersA=\\[\"([0-9a-f\\-]+)\"\\]";
     private static final Pattern PATTERN__LOBBY_KILLER = Pattern.compile(REGEX__LOBBY_KILLER);
 
     private static final String REGEX__LOBBY_ADD_PLAYER = "AddSessionPlayer Session:GameSession PlayerId:([0-9a-f\\-]+)\\|([0-9]+)";
     private static final Pattern PATTERN__LOBBY_ADD_PLAYER = Pattern.compile(REGEX__LOBBY_ADD_PLAYER);
 
-    private static final String REGEX__KILLER_OUTFIT = "LogCustomization: --> ([A-Z][A-Z])_[a-zA-Z]+";
+    private static final String REGEX__KILLER_OUTFIT = "LogCustomization: --> ([a-zA-Z0-9]+)_[a-zA-Z0-9]+";
     private static final Pattern PATTERN__KILLER_OUTFIT = Pattern.compile(REGEX__KILLER_OUTFIT);
 
     private static final String[][] KILLER_NAME_TO_OUTFIT_CODES_MAPPING = new String[][]{
@@ -60,7 +60,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             {"Huntress", "BE"},
             {"Legion", "KK", "Legion"},
             {"Nightmare", "SD"},
-            {"Nurse", "TN", "Nurse"},
+            {"Nurse", "TN", "Nurse", "NR"},
             {"Pig", "FK"},
             {"Plague", "ML", "MK", "Plague"},
             {"Shape", "MM"},
@@ -72,7 +72,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final Map<String, String> OUTFIT_CODE_TO_KILLER_NAME_MAPPING = new HashMap<>();
 
     static {
-        for (String[] e: KILLER_NAME_TO_OUTFIT_CODES_MAPPING) {
+        for (String[] e : KILLER_NAME_TO_OUTFIT_CODES_MAPPING) {
             String killerName = e[0];
 
             for (int i = 1, n = e.length; i < n; i++) {
@@ -149,19 +149,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
         }
     }
 
-    private void processLine(String line){
+    private void processLine(String line) {
         Matcher matcher;
-//        = PATTERN__LOBBY_PARAMS.matcher(line);
-//        if (matcher.find()) {
-//            String steamUserId = matcher.group(1).trim();
-//            logger.debug("Detected host user id: {}", steamUserId);
-//            logger.debug("Fetching user name...");
-//            String playerName = steamProfileDao.getPlayerName(steamUserId);
-//            logger.debug("Retrieved Steam user name: {}", playerName);
-//            setChanged();
-//            notifyObservers(new SteamUser(steamUserId, playerName));
-//            return;
-//        }
 
         matcher = PATTERN__KILLER_OUTFIT.matcher(line);
         if (matcher.find()) {
@@ -169,6 +158,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             String killerName = OUTFIT_CODE_TO_KILLER_NAME_MAPPING.get(outfitCode);
 
             if (killerName != null) {
+                logger.debug("Detected killer character: {}", killerName);
                 setChanged();
                 DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_CHARACTER, killerName);
                 notifyObservers(event);
@@ -179,6 +169,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
         matcher = PATTERN__LOBBY_KILLER.matcher(line);
         if (matcher.find()) {
             killerDbdId = matcher.group(1);
+            logger.debug("Detected killer player dbd-id: {}", killerDbdId);
             String steamUserId = dbdPlayerIdToSteamId.get(killerDbdId);
 
             if (steamUserId != null) {
@@ -188,6 +179,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
                 killerDbdId = null;
                 dbdPlayerIdToSteamId.clear();
                 notifyObservers(event);
+            } else {
+                logger.debug("Could not find a steam id for this killer player dbd-id.");
             }
             return;
         }
@@ -196,6 +189,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
         if (matcher.find()) {
             String dbdPlayerId = matcher.group(1);
             String steamUserId = matcher.group(2);
+            logger.debug("Detected user connecting to lobby. dbd-id: {}; steam-id: {}", dbdPlayerId, steamUserId);
             dbdPlayerIdToSteamId.put(dbdPlayerId, steamUserId);
 
             if (dbdPlayerId.equals(killerDbdId)) {

@@ -4,15 +4,21 @@ import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Server;
-import net.lobby_simulator_companion.loop.service.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
+import net.lobby_simulator_companion.loop.util.TimeUtil;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseMotionListener;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -39,12 +45,12 @@ public class MainWindow extends JFrame implements Observer {
      * Minimum time connected from which we can assume that a match has taken place and it was not just
      * lobby waiting time.
      */
-    private static final int MINIMUM_MATCH_SECONDS = 7 * 60;
+    private static final int MIN_MATCH_SECONDS = 3 * 60; //7 * 60;
 
     private AppProperties appProperties = Factory.getAppProperties();
     private long sessionStartTime;
     private Timer sessionTimer;
-    private Timer matchCountTimer;
+    private Timer matchCountTimer; // TODO: obsolete. Can be merged with the session timer
 
     private JPanel titleBar;
     private JPanel connMsgPanel;
@@ -247,10 +253,10 @@ public class MainWindow extends JFrame implements Observer {
 
             switch (event.type) {
                 case KILLER_ID:
-                    killerPanel.receiveNewKillerPlayer((PlayerIdWrapper) event.argument);
+                    SwingUtilities.invokeLater(() -> killerPanel.receiveNewKillerPlayer((PlayerIdWrapper) event.argument));
                     break;
                 case KILLER_CHARACTER:
-                    updateKillerCharacter((String) event.argument);
+                    SwingUtilities.invokeLater(() -> updateKillerCharacter((String) event.argument));
                     break;
             }
         }
@@ -263,9 +269,9 @@ public class MainWindow extends JFrame implements Observer {
 
     private void initSessionTimers() {
         sessionTimer = new Timer(1000, e ->
-                connTimerLabel.setText("[" + formatTimeElapsed(getConnectionUptimeSeconds()) + "]"));
+                connTimerLabel.setText("[" + TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds()) + "]"));
 
-        matchCountTimer = new Timer(MINIMUM_MATCH_SECONDS * 1000, e -> {
+        matchCountTimer = new Timer(MIN_MATCH_SECONDS * 1000, e -> {
             killerPanel.updateMatchCount();
             matchCountTimer.stop();
         });
@@ -275,18 +281,16 @@ public class MainWindow extends JFrame implements Observer {
         return (int) (System.currentTimeMillis() - sessionStartTime) / 1000;
     }
 
-    public void connect() {
+    public void connect(String ipAddress) {
         connStatusLabel.setText(MSG_CONNECTED);
         serverPanel.clearServer();
         killerPanel.clearKillerInfo();
         messagePanel.setVisible(false);
         titleBar.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
-        connTimerLabel.setVisible(true);
-        sessionStartTime = System.currentTimeMillis();
-        sessionTimer.start();
-        matchCountTimer.start();
+        resetTimer();
         pack();
+        serverPanel.updateServerIpAddress(ipAddress);
     }
 
     public void disconnect() {
@@ -295,24 +299,32 @@ public class MainWindow extends JFrame implements Observer {
         connStatusLabel.setText(MSG_DISCONNECTED);
         titleBar.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
-        lastConnMsgLabel.setText("Last connection (below): " + formatTimeElapsed(getConnectionUptimeSeconds()));
+
+        int connectionUptime = getConnectionUptimeSeconds();
+        if (connectionUptime >= MIN_MATCH_SECONDS) {
+            killerPanel.updateKillerMatchTime(connectionUptime);
+        }
+        lastConnMsgLabel.setText("Last connection (below): " + TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds()));
+        resetTimer();
         connTimerLabel.setVisible(false);
         messagePanel.setVisible(true);
         pack();
     }
 
-    public void updateServer(Server server) {
-        serverPanel.updateServer(server);
+    public void startMatch() {
+        resetTimer();
+        connTimerLabel.setVisible(true);
+        sessionTimer.start();
+        matchCountTimer.start();
     }
 
-    private String formatTimeElapsed(int totalSeconds) {
-        int hours = totalSeconds / 3600;
-        int mod = totalSeconds % 3600;
-        int minutes = mod / 60;
-        int seconds = mod % 60;
+    public void updateServer(Server server) {
+        serverPanel.updateServerPanel(server);
+    }
 
-        return hours == 0 ? String.format("%02d:%02d", minutes, seconds) :
-                String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    private void resetTimer() {
+        sessionStartTime = System.currentTimeMillis();
+        connTimerLabel.setText("[" + TimeUtil.formatTimeElapsed(0) + "]");
     }
 
     public void close() {

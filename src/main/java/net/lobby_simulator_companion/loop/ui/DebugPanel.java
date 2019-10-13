@@ -1,8 +1,8 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
-import net.lobby_simulator_companion.loop.domain.Server;
 
 import javax.swing.*;
 import java.awt.*;
@@ -55,7 +55,7 @@ public class DebugPanel extends JPanel {
         JPanel connectionContainer = new JPanel();
         connectionContainer.setLayout(new BoxLayout(connectionContainer, BoxLayout.X_AXIS));
         button = new JButton("Connect");
-        button.addActionListener(e -> mainPanel.connect());
+        button.addActionListener(e -> mainPanel.connect("1.2.3.4"));
         connectionContainer.add(button);
 
         button = new JButton("Disconnect");
@@ -82,7 +82,7 @@ public class DebugPanel extends JPanel {
     }
 
     private Server generateRandomServer() {
-        Server server = new Server(0);
+        Server server = new Server("0.0.0.0");
         server.setCountry("some country");
         server.setRegion("some region");
         server.setCity("some city");

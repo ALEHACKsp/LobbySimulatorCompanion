@@ -24,6 +24,7 @@ public final class ResourceFactory {
     private static final String COLLAPSE_ICON_PATH = "/collapse_icon.png";
     private static final String EDIT_ICON_PATH = "/edit_icon.png";
     private static final String EXPAND_ICON_PATH = "/expand_icon.png";
+    private static final String GEO_LOCATION_ICON_PATH = "/geo-location_icon.png";
     private static final String RATE_ICON_PATH = "/rate_icon.png";
     private static final String STEAM_ICON_PATH = "/steam_icon.png";
     private static final String SWITCH_OFF_ICON_PATH = "/switch-off_icon.png";
@@ -31,11 +32,12 @@ public final class ResourceFactory {
     private static final String THUMBS_UP_ICON_PATH = "/thumbs-up_icon.png";
 
     private static Font roboto;
+    private static ImageIcon clearIcon;
     private static ImageIcon collapseIcon;
     private static ImageIcon editIcon;
     private static ImageIcon expandIcon;
+    private static ImageIcon geoLocationIcon;
     private static ImageIcon rateIcon;
-    private static ImageIcon clearIcon;
     private static ImageIcon steamIcon;
     private static ImageIcon switchOffIcon;
     private static ImageIcon thumbsUpIcon;
@@ -67,8 +69,7 @@ public final class ResourceFactory {
 
             if (imageUrl != null) {
                 icon = new ImageIcon(imageUrl, description);
-            }
-            else {
+            } else {
                 logger.error("Failed to load '{}' icon.", description);
             }
         }
@@ -77,39 +78,43 @@ public final class ResourceFactory {
     }
 
 
-    public static synchronized ImageIcon getClearIcon() {
+    public static ImageIcon getClearIcon() {
         return getIcon(clearIcon, CLEAR_ICON_PATH, "clear");
     }
 
-    public static synchronized ImageIcon getCollapseIcon() {
+    public static ImageIcon getCollapseIcon() {
         return getIcon(collapseIcon, COLLAPSE_ICON_PATH, "collapse");
     }
 
-    public static synchronized ImageIcon getEditIcon() {
+    public static ImageIcon getEditIcon() {
         return getIcon(editIcon, EDIT_ICON_PATH, "edit");
     }
 
-    public static synchronized ImageIcon getExpandIcon() {
+    public static ImageIcon getExpandIcon() {
         return getIcon(expandIcon, EXPAND_ICON_PATH, "expand");
     }
 
-    public static synchronized ImageIcon getSteamIcon() {
+    public static ImageIcon getGeoLocationIcon() {
+        return getIcon(geoLocationIcon, GEO_LOCATION_ICON_PATH, "geo-location");
+    }
+
+    public static ImageIcon getSteamIcon() {
         return getIcon(steamIcon, STEAM_ICON_PATH, "Steam");
     }
 
-    public static synchronized ImageIcon getThumbsUpIcon() {
+    public static ImageIcon getThumbsUpIcon() {
         return getIcon(thumbsUpIcon, THUMBS_UP_ICON_PATH, "thumbs up");
     }
 
-    public static synchronized ImageIcon getThumbsDownIcon() {
+    public static ImageIcon getThumbsDownIcon() {
         return getIcon(thumbsUpIcon, THUMBS_DOWN_ICON_PATH, "thumbs down");
     }
 
-    public static synchronized ImageIcon getRateIcon() {
+    public static ImageIcon getRateIcon() {
         return getIcon(rateIcon, RATE_ICON_PATH, "rate");
     }
 
-    public static synchronized ImageIcon getSwitchOffIcon() {
+    public static ImageIcon getSwitchOffIcon() {
         return getIcon(switchOffIcon, SWITCH_OFF_ICON_PATH, "switch-off");
     }
 

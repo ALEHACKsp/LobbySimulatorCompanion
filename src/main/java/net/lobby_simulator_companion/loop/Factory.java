@@ -2,7 +2,9 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.repository.ExtremeIpDao;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
+import net.lobby_simulator_companion.loop.repository.ServerDao;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
@@ -70,6 +72,7 @@ public final class Factory {
         getLoopRepository();
         getLoopDataService();
         getSteamProfileDao();
+        getServerDao();
         getDbdLogMonitor();
     }
 
@@ -82,7 +85,7 @@ public final class Factory {
                 instances.put(clazz, instance);
             } catch (Exception e) {
                 logger.error("Failed to instantiate class.", e);
-                throw new RuntimeException("tu vieja");
+                throw new RuntimeException("Failed to instantiate class.");
             }
         }
 
@@ -114,6 +117,13 @@ public final class Factory {
         });
     }
 
+    public static ServerDao getServerDao() {
+        return getInstance(ExtremeIpDao.class, () -> {
+            String serviceUrlPrefix = getAppProperties().get("dao.server.extreme_ip.url_prefix");
+            return new ExtremeIpDao(serviceUrlPrefix);
+        });
+    }
+
 
     public static DbdLogMonitor getDbdLogMonitor() {
         return getInstance(DbdLogMonitor.class, unchecked(() ->
@@ -126,7 +136,8 @@ public final class Factory {
     }
 
     public static ServerPanel getServerPanel() {
-        return getInstance(ServerPanel.class, () -> new ServerPanel(getSettings()));
+        return getInstance(ServerPanel.class, () -> new ServerPanel(
+                getSettings(), getAppProperties(), getLoopDataService(), getServerDao()));
     }
 
     public static KillerPanel getKillerPanel() {
