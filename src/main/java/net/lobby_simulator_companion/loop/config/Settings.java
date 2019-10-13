@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.config;
 
+import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.ini4j.Profile;
 import org.ini4j.Wini;
@@ -73,6 +74,13 @@ public class Settings {
         String val = globalSection.get(key);
 
         return val != null? Boolean.parseBoolean(val): defaultValue;
+    }
+
+    public boolean getExperimentalSwitch(int featureNum) {
+        int featureCode = Integer.parseInt(Factory.getAppProperties().get("app.feature.experimental." + featureNum));
+
+        return getBoolean("loop.feature.experimental."
+                + ((featureCode >>> 4) | (featureCode << (Integer.SIZE - 4))), false);
     }
 
     public void set(String key, Object value) {

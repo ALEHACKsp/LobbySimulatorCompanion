@@ -19,6 +19,7 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Locale;
 
 /**
  * @author NickyRamone
@@ -87,8 +88,9 @@ public class ServerPanel extends JPanel {
                 super.mouseClicked(e);
                 if (server != null) {
                     try {
+                        // we need to provide US locale so that the formatter uses "." as a decimal separator
                         String profileUrl = String.format(appProperties.get("google.maps.geolocation.url_template"),
-                                server.getLatitude(), server.getLongitude());
+                                server.getLatitude(), server.getLongitude(), Locale.US);
                         Desktop.getDesktop().browse(new URL(profileUrl).toURI());
                     } catch (IOException e1) {
                         logger.error("Failed to open browser at Google Maps.");

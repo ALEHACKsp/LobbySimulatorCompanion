@@ -158,7 +158,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
             String killerName = OUTFIT_CODE_TO_KILLER_NAME_MAPPING.get(outfitCode);
 
             if (killerName != null) {
-                logger.debug("Detected killer character: {}", killerName);
                 setChanged();
                 DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_CHARACTER, killerName);
                 notifyObservers(event);

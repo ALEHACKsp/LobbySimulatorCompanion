@@ -7,6 +7,8 @@ import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -39,6 +41,7 @@ public class MainWindow extends JFrame implements Observer {
     private static final Dimension MINIMUM_SIZE = new Dimension(500, 25);
     private static final Dimension MAXIMUM_SIZE = new Dimension(500, 500);
     private static final int INFINITE_SIZE = 9999;
+    private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
     private static final Font font = ResourceFactory.getRobotoFont();
 
     /**
@@ -256,7 +259,8 @@ public class MainWindow extends JFrame implements Observer {
                     SwingUtilities.invokeLater(() -> killerPanel.receiveNewKillerPlayer((PlayerIdWrapper) event.argument));
                     break;
                 case KILLER_CHARACTER:
-                    SwingUtilities.invokeLater(() -> updateKillerCharacter((String) event.argument));
+                    String killerCharacter = (String) event.argument;
+                    SwingUtilities.invokeLater(() -> updateKillerCharacter(killerCharacter));
                     break;
             }
         }

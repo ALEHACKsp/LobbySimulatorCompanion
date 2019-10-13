@@ -70,6 +70,7 @@ public class KillerPanel extends JPanel {
     private JTextArea userNotesArea;
 
     private Player killerPlayer;
+    private String killerCharacter;
     private Timer userNotesUpdateTimer;
 
 
@@ -156,8 +157,11 @@ public class KillerPanel extends JPanel {
         container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
         container.add(summaryLabel);
         container.add(playerRateLabel);
-        container.add(playerNameLabel);
-        container.add(playerSteamButton);
+
+        if (settings.getExperimentalSwitch(1)) {
+            container.add(playerNameLabel);
+            container.add(playerSteamButton);
+        }
         container.add(titleBarCharacterLabel);
         container.add(Box.createHorizontalGlue());
         container.add(detailCollapseButton);
@@ -219,10 +223,16 @@ public class KillerPanel extends JPanel {
         JPanel statsContainer = new JPanel();
         statsContainer.setBackground(Colors.INFO_PANEL_BACKGROUND);
         statsContainer.setLayout(new GridLayout(0, 2, 10, 5));
-        statsContainer.add(characterLabel);
-        statsContainer.add(characterValueLabel);
-        statsContainer.add(otherNamesLabel);
-        statsContainer.add(otherNamesValueLabel);
+
+        if (settings.getExperimentalSwitch(2)) {
+            statsContainer.add(characterLabel);
+            statsContainer.add(characterValueLabel);
+        }
+
+        if (settings.getExperimentalSwitch(1)) {
+            statsContainer.add(otherNamesLabel);
+            statsContainer.add(otherNamesValueLabel);
+        }
         statsContainer.add(timesEncounteredLabel);
         statsContainer.add(timesEncounteredValueLabel);
         statsContainer.add(matchCountLabel);
@@ -422,9 +432,11 @@ public class KillerPanel extends JPanel {
     }
 
     public void updateKillerMatchTime(int matchSeconds) {
-        killerPlayer.incrementSecondsPlayed(matchSeconds);
-        timePlayedValueLabel.setText(TimeUtil.formatTimeElapsed(killerPlayer.getSecondsPlayed()));
-        dataService.notifyChange();
+        if (killerPlayer != null) {
+            killerPlayer.incrementSecondsPlayed(matchSeconds);
+            timePlayedValueLabel.setText(TimeUtil.formatTimeElapsed(killerPlayer.getSecondsPlayed()));
+            dataService.notifyChange();
+        }
     }
 
     private void toggleUserNotesAreaVisibility(boolean visible) {
@@ -475,8 +487,11 @@ public class KillerPanel extends JPanel {
 
 
     public void updateKillerCharacter(String killerCharacter) {
-        titleBarCharacterLabel.setText("(as " + killerCharacter + ")");
-        characterValueLabel.setText(killerCharacter);
+        if (this.killerCharacter == null || !this.killerCharacter.equals(killerCharacter)) {
+            this.killerCharacter = killerCharacter;
+            titleBarCharacterLabel.setText("(as " + killerCharacter + ")");
+            characterValueLabel.setText(killerCharacter);
+        }
     }
 
 }
