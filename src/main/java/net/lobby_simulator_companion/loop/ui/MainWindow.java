@@ -38,6 +38,7 @@ public class MainWindow extends JFrame implements Observer {
     private static final String SETTING__MAIN_PANEL_COLLAPSED = "ui.panel.main.collapsed";
     private static final String MSG_CONNECTED = "Connected";
     private static final String MSG_DISCONNECTED = "Disconnected";
+    private static final String MSG_IN_MATCH = "In match";
     private static final Dimension MINIMUM_SIZE = new Dimension(500, 25);
     private static final Dimension MAXIMUM_SIZE = new Dimension(500, 500);
     private static final int INFINITE_SIZE = 9999;
@@ -317,6 +318,7 @@ public class MainWindow extends JFrame implements Observer {
 
     public void startMatch() {
         resetTimer();
+        connStatusLabel.setText(MSG_IN_MATCH);
         connTimerLabel.setVisible(true);
         sessionTimer.start();
         matchCountTimer.start();

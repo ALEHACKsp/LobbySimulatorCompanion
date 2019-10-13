@@ -162,7 +162,10 @@ public class KillerPanel extends JPanel {
             container.add(playerNameLabel);
             container.add(playerSteamButton);
         }
-        container.add(titleBarCharacterLabel);
+
+        if (settings.getExperimentalSwitch(2)) {
+            container.add(titleBarCharacterLabel);
+        }
         container.add(Box.createHorizontalGlue());
         container.add(detailCollapseButton);
 
