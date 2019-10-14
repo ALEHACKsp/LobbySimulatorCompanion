@@ -318,7 +318,7 @@ public class KillerPanel extends JPanel {
             }
         };
 
-        userNotesArea = new JTextArea("", 10, 30);
+        userNotesArea = new JTextArea(null, 10, 30);
         ((AbstractDocument) userNotesArea.getDocument()).setDocumentFilter(docFilter);
         userNotesArea.setMargin(new Insets(5, 5, 5, 5));
         userNotesArea.setForeground(Color.WHITE);
@@ -377,18 +377,19 @@ public class KillerPanel extends JPanel {
 
     public void clearKillerInfo() {
         killerPlayer = null;
-        playerNameLabel.setText("");
+        killerCharacter = null;
+        playerNameLabel.setText(null);
         playerSteamButton.setVisible(false);
-        otherNamesValueLabel.setText("");
-        otherNamesValueLabel.setToolTipText("");
-        titleBarCharacterLabel.setText("");
+        otherNamesValueLabel.setText(null);
+        otherNamesValueLabel.setToolTipText(null);
+        titleBarCharacterLabel.setText(null);
         playerRateLabel.setIcon(null);
-        timesEncounteredValueLabel.setText("");
-        characterValueLabel.setText("");
-        matchCountValueLabel.setText("");
-        timePlayedValueLabel.setText("");
+        timesEncounteredValueLabel.setText(null);
+        characterValueLabel.setText(null);
+        matchCountValueLabel.setText(null);
+        timePlayedValueLabel.setText(null);
         userNotesEditButton.setVisible(false);
-        userNotesArea.setText("");
+        userNotesArea.setText(null);
         toggleUserNotesAreaVisibility(false);
     }
 
@@ -399,8 +400,8 @@ public class KillerPanel extends JPanel {
 
         playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName() : "");
         playerSteamButton.setVisible(true);
-        otherNamesValueLabel.setText("");
-        otherNamesValueLabel.setToolTipText("");
+        otherNamesValueLabel.setText(null);
+        otherNamesValueLabel.setToolTipText(null);
 
         // show previous killer names
         if (player.getNames().size() > 1) {
@@ -426,7 +427,7 @@ public class KillerPanel extends JPanel {
 
         userNotesEditButton.setVisible(true);
         if (player.getDescription() == null) {
-            userNotesArea.setText("");
+            userNotesArea.setText(null);
             toggleUserNotesAreaVisibility(false);
         } else {
             userNotesArea.setText(player.getDescription());

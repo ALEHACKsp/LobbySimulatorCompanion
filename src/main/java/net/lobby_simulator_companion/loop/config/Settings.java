@@ -79,8 +79,8 @@ public class Settings {
     public boolean getExperimentalSwitch(int featureNum) {
         int featureCode = Integer.parseInt(Factory.getAppProperties().get("app.feature.experimental." + featureNum));
 
-        return getBoolean("loop.feature.experimental."
-                + ((featureCode >>> 4) | (featureCode << (Integer.SIZE - 4))), false);
+        return getBoolean(String.format("loop.feature.experimental.%s",
+                Integer.toHexString((featureCode >>> 4) | (featureCode << (Integer.SIZE - 4)))), false);
     }
 
     public void set(String key, Object value) {

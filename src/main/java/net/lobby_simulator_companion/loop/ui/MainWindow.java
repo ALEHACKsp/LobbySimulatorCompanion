@@ -169,7 +169,6 @@ public class MainWindow extends JFrame implements Observer {
         appLabel.setFont(font);
 
         JLabel separatorLabel = new JLabel("-");
-        separatorLabel.setBorder(border);
         separatorLabel.setForeground(Color.WHITE);
         separatorLabel.setFont(font);
 
