@@ -55,11 +55,11 @@ public class DebugPanel extends JPanel {
         JPanel connectionContainer = new JPanel();
         connectionContainer.setLayout(new BoxLayout(connectionContainer, BoxLayout.X_AXIS));
         button = new JButton("Connect");
-        button.addActionListener(e -> mainPanel.connect("1.2.3.4"));
+        button.addActionListener(e -> mainPanel.connectToMatch("1.2.3.4"));
         connectionContainer.add(button);
 
         button = new JButton("Disconnect");
-        button.addActionListener(e -> mainPanel.disconnect());
+        button.addActionListener(e -> mainPanel.disconnectFromMatch());
         connectionContainer.add(button);
 
         frame.add(connectionContainer);

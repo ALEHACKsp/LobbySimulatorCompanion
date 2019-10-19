@@ -7,7 +7,6 @@ import net.lobby_simulator_companion.loop.service.ConnectionManager;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.DedicatedServerConnectionManager;
 import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
-import net.lobby_simulator_companion.loop.service.P2pConnectionManager;
 import net.lobby_simulator_companion.loop.service.SnifferListener;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.ui.NetworkInterfaceFrame;
@@ -100,19 +99,14 @@ public class Boot {
             try {
                 connectionManager = new DedicatedServerConnectionManager(localAddr, new SnifferListener() {
                     @Override
-                    public void notifyNewConnection(Connection connection) {
+                    public void notifyMatchConnect(Connection connection) {
                         logger.debug("Detected new connection: {}", connection);
-                        SwingUtilities.invokeLater(() -> ui.connect(connection.getRemoteAddr().getHostAddress()));
+                        SwingUtilities.invokeLater(() -> ui.connectToMatch(connection.getRemoteAddr().getHostAddress()));
                     }
 
                     @Override
-                    public void notifyMatchStart() {
-                        SwingUtilities.invokeLater(() -> ui.startMatch());
-                    }
-
-                    @Override
-                    public void notifyDisconnect() {
-                        SwingUtilities.invokeLater(() -> ui.disconnect());
+                    public void notifyMatchDisconnect() {
+                        SwingUtilities.invokeLater(() -> ui.disconnectFromMatch());
                     }
 
                     @Override

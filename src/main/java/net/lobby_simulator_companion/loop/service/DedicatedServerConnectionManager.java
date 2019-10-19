@@ -1,4 +1,3 @@
-
 package net.lobby_simulator_companion.loop.service;
 
 import net.lobby_simulator_companion.loop.domain.Connection;
@@ -18,12 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.stream.Collectors;
 
 /**
  * The initial handshake with the dedicated server hosting the match (including lobby) is through WireGuard protocol:
@@ -36,8 +31,6 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
     private static final int CAPTURED_PACKET_SIZE = 17000;
     private static final int CLEANER_POLL_MS = 1000;
     private static final int CONNECTION_TIMEOUT_MS = 6000;
-    private static final long MIN_MS_FROM_CONNECT_TILL_MATCH_START = 30000;
-    private static final String BHVR_BACKEND_HOSTNAME = "latest.live.dbd.bhvronline.com";
 
     private static final class PacketInfo {
         private enum Protocol {TCP, UDP}
@@ -65,7 +58,7 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
         }
     }
 
-    private enum State {Idle, Connected, InMatch}
+    private enum State {Idle, Connected}
 
     /**
      * Berkley Packet Filter (BPF):
@@ -76,13 +69,11 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
 
     private static final Logger logger = LoggerFactory.getLogger(DedicatedServerConnectionManager.class);
 
-    private Set<InetAddress> bhvrBackendAddresses;
     private InetAddress localAddr;
     private SnifferListener snifferListener;
     private PcapNetworkInterface networkInterface;
     private PcapHandle pcapHandle;
     private Connection matchConn;
-    private Connection bhvrBackendConn;
     private State state = State.Idle;
 
 
@@ -91,13 +82,6 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
         this.snifferListener = snifferListener;
         initNetworkInterface();
         startConnectionCleaner();
-
-        try {
-            bhvrBackendAddresses = Arrays.stream(InetAddress.getAllByName(BHVR_BACKEND_HOSTNAME))
-                    .collect(Collectors.toSet());
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
     }
 
 
@@ -143,25 +127,21 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
             return;
         }
 
-        if (isTypicalBackendExchange(packetInfo)) {
-            bhvrBackendAddresses.add(packetInfo.dstAddress);
-            bhvrBackendConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
+        if (packetInfo.packetLen >= 10000) {
+            logger.debug("big packet: {}", packetInfo);
+        }
 
-        } else if (isMatchConnect(packetInfo)) {
+        if (isMatchConnect(packetInfo)) {
             logger.debug("Connected to match.");
             state = State.Connected;
             matchConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
-            snifferListener.notifyNewConnection(matchConn);
+            snifferListener.notifyMatchConnect(matchConn);
 
-        } else if (isExchangeWithMatch(packetInfo)) {
+        } else if (isExchangeWithMatchServer(packetInfo)) {
             matchConn.setLastSeen(System.currentTimeMillis());
-
-        } else if (isMatchStart(packetInfo)) {
-            logger.debug("Match starts!");
-            state = State.InMatch;
-            snifferListener.notifyMatchStart();
         }
     }
+
 
     private PacketInfo getPacketInfo(Packet packet) {
         IpPacket ipPacket = packet.get(IpV4Packet.class);
@@ -194,18 +174,10 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
         return info;
     }
 
-    private boolean isTypicalBackendExchange(PacketInfo packetInfo) {
-        return packetInfo.protocol == PacketInfo.Protocol.TCP
-                && packetInfo.srcAddress.equals(localAddr)
-                && packetInfo.srcPort > 1024
-                && packetInfo.dstPort == 443
-                && packetInfo.packetLen == 856
-                && packetInfo.payloadLen == 802;
-    }
-
     private boolean isMatchConnect(PacketInfo packetInfo) {
         return state == State.Idle && isWireGuardHandshakeInit(packetInfo);
     }
+
 
     private boolean isWireGuardHandshakeInit(PacketInfo packetInfo) {
         if (packetInfo == null) {
@@ -218,25 +190,12 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
                 && rawData[0] == 0x01 && rawData[1] == 0x00 && rawData[2] == 0x00 && rawData[3] == 0x00;
     }
 
-    private boolean isExchangeWithMatch(PacketInfo packetInfo) {
-        return (state == State.Connected || state == State.InMatch)
+    private boolean isExchangeWithMatchServer(PacketInfo packetInfo) {
+        return (state == State.Connected)
                 && matchConn != null
                 && packetInfo.protocol == PacketInfo.Protocol.UDP
                 && packetInfo.srcAddress.equals(matchConn.getRemoteAddr()) && packetInfo.srcPort == matchConn.getRemotePort();
     }
-
-    private boolean isMatchStart(PacketInfo packetInfo) {
-        return state == State.Connected
-                && bhvrBackendConn != null
-                && packetInfo.protocol == PacketInfo.Protocol.TCP
-                && packetInfo.srcAddress.equals(localAddr)
-                && bhvrBackendAddresses.contains(packetInfo.dstAddress)
-                && packetInfo.dstPort == 443
-                && packetInfo.packetLen == 16467
-                && packetInfo.payloadLen >= 16408
-                && System.currentTimeMillis() - matchConn.getCreated() >= MIN_MS_FROM_CONNECT_TILL_MATCH_START;
-    }
-
 
     @Override
     public void stop() {
@@ -264,12 +223,11 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
             public void run() {
                 long currentTime = System.currentTimeMillis();
 
-                if ((state == State.Connected || state == State.InMatch)
+                if ((state == State.Connected)
                         && currentTime > matchConn.getLastSeen() + CONNECTION_TIMEOUT_MS) {
                     matchConn = null;
-                    bhvrBackendConn = null;
                     state = State.Idle;
-                    snifferListener.notifyDisconnect();
+                    snifferListener.notifyMatchDisconnect();
                 }
             }
         }, 0, CLEANER_POLL_MS);

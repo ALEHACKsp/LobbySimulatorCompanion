@@ -49,10 +49,10 @@ public class MainWindow extends JFrame implements Observer {
      * Minimum time connected from which we can assume that a match has taken place and it was not just
      * lobby waiting time.
      */
-    private static final int MIN_MATCH_SECONDS = 3 * 60; //7 * 60;
+    private static final int MIN_MATCH_SECONDS = 7 * 60;
 
     private AppProperties appProperties = Factory.getAppProperties();
-    private long sessionStartTime;
+    private Long sessionStartTime;
     private Timer sessionTimer;
     private Timer matchCountTimer; // TODO: obsolete. Can be merged with the session timer
 
@@ -208,7 +208,7 @@ public class MainWindow extends JFrame implements Observer {
         container.setPreferredSize(new Dimension(200, 25));
         container.setMaximumSize(new Dimension(INFINITE_SIZE, 25));
         container.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
-        container.add(switchOffButton, BorderLayout.WEST);
+//        container.add(switchOffButton, BorderLayout.WEST);
         container.add(connMsgPanel, BorderLayout.CENTER);
         container.add(titleBarMinimizeLabel, BorderLayout.EAST);
 
@@ -282,10 +282,10 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private int getConnectionUptimeSeconds() {
-        return (int) (System.currentTimeMillis() - sessionStartTime) / 1000;
+        return sessionStartTime == null ? 0 : (int) (System.currentTimeMillis() - sessionStartTime) / 1000;
     }
 
-    public void connect(String ipAddress) {
+    public void connectToMatch(String ipAddress) {
         connStatusLabel.setText(MSG_CONNECTED);
         serverPanel.clearServer();
         killerPanel.clearKillerInfo();
@@ -293,11 +293,13 @@ public class MainWindow extends JFrame implements Observer {
         titleBar.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         resetTimer();
+        sessionTimer.start();
+        connTimerLabel.setVisible(true);
         pack();
         serverPanel.updateServerIpAddress(ipAddress);
     }
 
-    public void disconnect() {
+    public void disconnectFromMatch() {
         sessionTimer.stop();
         matchCountTimer.stop();
         connStatusLabel.setText(MSG_DISCONNECTED);
@@ -315,14 +317,6 @@ public class MainWindow extends JFrame implements Observer {
         pack();
     }
 
-    public void startMatch() {
-        resetTimer();
-        connStatusLabel.setText(MSG_IN_MATCH);
-        connTimerLabel.setVisible(true);
-        sessionTimer.start();
-        matchCountTimer.start();
-    }
-
     public void updateServer(Server server) {
         serverPanel.updateServerPanel(server);
     }
@@ -335,4 +329,5 @@ public class MainWindow extends JFrame implements Observer {
     public void close() {
         dispose();
     }
+
 }

@@ -389,7 +389,7 @@ public class KillerPanel extends JPanel {
         matchCountValueLabel.setText(null);
         timePlayedValueLabel.setText(null);
         userNotesEditButton.setVisible(false);
-        userNotesArea.setText(null);
+        userNotesArea.setText("");
         toggleUserNotesAreaVisibility(false);
     }
 
@@ -407,6 +407,9 @@ public class KillerPanel extends JPanel {
         if (player.getNames().size() > 1) {
             List<String> otherNames = new ArrayList<>(player.getNames());
             Collections.reverse(otherNames);
+
+            // remove the first element (which corresponds to the current name)
+            otherNames.remove(0);
             String previousName = otherNames.remove(0);
 
             if (!otherNames.isEmpty()) {

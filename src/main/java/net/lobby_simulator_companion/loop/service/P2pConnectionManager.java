@@ -108,7 +108,7 @@ public class P2pConnectionManager implements ConnectionManager {
                 connected = true;
                 Connection dummyConnection = new Connection(localAddr, 0, Inet4Address.getByName("0.0.0.0"), 0,
                         pcapHandle.getTimestamp().getTime());
-                snifferListener.notifyNewConnection(dummyConnection);
+                snifferListener.notifyMatchConnect(dummyConnection);
             }
 
             Inet4Address remoteAddr = ipPacket.getHeader().getDstAddr();
@@ -158,7 +158,7 @@ public class P2pConnectionManager implements ConnectionManager {
 
                 if (connected && connections.isEmpty()) {
                     connected = false;
-                    snifferListener.notifyDisconnect();
+                    snifferListener.notifyMatchDisconnect();
                 }
             }
         }, 0, CLEANER_POLL_MS);
