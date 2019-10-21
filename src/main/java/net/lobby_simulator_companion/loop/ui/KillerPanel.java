@@ -36,6 +36,8 @@ import java.util.TimerTask;
 public class KillerPanel extends JPanel {
 
     public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
+    public static final String EVENT_NEW_KILLER_PLAYER = "new_killer_player";
+    public static final String EVENT_NEW_KILLER_CHARACTER = "new_killer_character";
 
     /**
      * When the user updates the killer player description, the change is not applied immediately
@@ -81,7 +83,6 @@ public class KillerPanel extends JPanel {
         this.steamProfileDao = steamProfileDao;
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBackground(new Color(0, 0, 200));
         titleBar = createTitleBar();
         detailsPanel = createDetailsPanel();
 
@@ -393,7 +394,7 @@ public class KillerPanel extends JPanel {
         toggleUserNotesAreaVisibility(false);
     }
 
-    public void updateKillerInfo(Player player) {
+    private void updateKillerInfo(Player player) {
         // first of all, save, in case there's unsaved data from previous player
         dataService.save();
         killerPlayer = player;
@@ -436,6 +437,8 @@ public class KillerPanel extends JPanel {
             userNotesArea.setText(player.getDescription());
             toggleUserNotesAreaVisibility(true);
         }
+
+        firePropertyChange(EVENT_NEW_KILLER_PLAYER, null, player);
     }
 
     public void updateKillerMatchTime(int matchSeconds) {
@@ -498,6 +501,7 @@ public class KillerPanel extends JPanel {
             this.killerCharacter = killerCharacter;
             titleBarCharacterLabel.setText("(as " + killerCharacter + ")");
             characterValueLabel.setText(killerCharacter);
+            firePropertyChange(EVENT_NEW_KILLER_CHARACTER, null, killerCharacter);
         }
     }
 

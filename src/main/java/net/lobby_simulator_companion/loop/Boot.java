@@ -65,7 +65,9 @@ public class Boot {
         appProperties = Factory.getAppProperties();
 
         System.setProperty("jna.nosys", "true");
-        if (!Sanity.check()) {
+        boolean performSanityCheck = Factory.getSettings().getBoolean("loop.feature.sanity_check", true);
+
+        if (performSanityCheck && !Sanity.check()) {
             System.exit(1);
         }
         setupTray();

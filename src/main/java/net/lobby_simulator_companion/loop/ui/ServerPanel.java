@@ -55,7 +55,6 @@ public class ServerPanel extends JPanel {
         this.serverDao = serverDao;
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBackground(new Color(0, 0, 250));
         titleBar = createTitleBar();
         detailsPanel = createDetailsPanel();
 
@@ -131,7 +130,6 @@ public class ServerPanel extends JPanel {
         JPanel container = new JPanel();
         container.setBackground(Colors.INFO_PANEL_BACKGROUND);
         container.setLayout(new GridLayout(0, 2, 10, 5));
-        container.setMaximumSize(new Dimension(500, 100));
 
         JLabel countryLabel = new JLabel("Country:", JLabel.RIGHT);
         countryLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);

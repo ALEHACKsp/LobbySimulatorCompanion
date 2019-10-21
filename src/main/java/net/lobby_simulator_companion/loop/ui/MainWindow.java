@@ -3,6 +3,7 @@ package net.lobby_simulator_companion.loop.ui;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
@@ -38,9 +39,10 @@ public class MainWindow extends JFrame implements Observer {
     private static final String SETTING__MAIN_PANEL_COLLAPSED = "ui.panel.main.collapsed";
     private static final String MSG_CONNECTED = "Connected";
     private static final String MSG_DISCONNECTED = "Disconnected";
-    private static final String MSG_IN_MATCH = "In match";
-    private static final Dimension MINIMUM_SIZE = new Dimension(500, 25);
-    private static final Dimension MAXIMUM_SIZE = new Dimension(500, 500);
+    private static final String MSG_KILLER_CHARACTER = "(as %s)";
+    private static final Dimension MINIMUM_SIZE = new Dimension(600, 25);
+    private static final Dimension MAXIMUM_SIZE = new Dimension(600, 500);
+    private static final Border NO_BORDER = new EmptyBorder(0, 0, 0, 0);
     private static final int INFINITE_SIZE = 9999;
     private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
     private static final Font font = ResourceFactory.getRobotoFont();
@@ -50,19 +52,27 @@ public class MainWindow extends JFrame implements Observer {
      * lobby waiting time.
      */
     private static final int MIN_MATCH_SECONDS = 7 * 60;
+    private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
 
+    private Settings settings;
     private AppProperties appProperties = Factory.getAppProperties();
     private Long sessionStartTime;
     private Timer sessionTimer;
     private Timer matchCountTimer; // TODO: obsolete. Can be merged with the session timer
+    private boolean connected;
 
     private JPanel titleBar;
     private JPanel connMsgPanel;
     private JPanel messagePanel;
     private JLabel lastConnMsgLabel;
     private JLabel connStatusLabel;
+    private JPanel killerInfoContainer;
+    private JLabel killerPlayerValueLabel;
+    private JLabel killerCharLabel;
+    private JPanel titleBarTimerContainer;
     private JLabel connTimerLabel;
     private JLabel titleBarMinimizeLabel;
+    private JPanel titleBarButtonContainer;
     private JPanel detailPanel;
     private ServerPanel serverPanel;
     private KillerPanel killerPanel;
@@ -72,13 +82,27 @@ public class MainWindow extends JFrame implements Observer {
 
 
     public MainWindow(Settings settings, ServerPanel serverPanel, KillerPanel killerPanel) {
+        this.settings = settings;
         this.serverPanel = serverPanel;
         this.killerPanel = killerPanel;
         initSessionTimers();
 
-        /* for now, panels only fire a property change when they are collapsed or expanded */
         serverPanel.addPropertyChangeListener(evt -> pack());
-        killerPanel.addPropertyChangeListener(evt -> pack());
+        killerPanel.addPropertyChangeListener(evt -> {
+            String propertyName = evt.getPropertyName();
+
+            if (KillerPanel.EVENT_STRUCTURE_CHANGED.equals(propertyName)) {
+                pack();
+            } else if (connected && KillerPanel.EVENT_NEW_KILLER_PLAYER.equals(propertyName)) {
+                connStatusLabel.setVisible(false);
+                killerInfoContainer.setVisible(true);
+                Player player = (Player) evt.getNewValue();
+                killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
+            } else if (connected && KillerPanel.EVENT_NEW_KILLER_CHARACTER.equals(propertyName)) {
+                String killerChar = (String) evt.getNewValue();
+                killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar));
+            }
+        });
 
         mouseListener = new MouseAdapter() {
             @Override
@@ -149,7 +173,75 @@ public class MainWindow extends JFrame implements Observer {
 
 
     private JPanel createTitleBar() {
-        Border border = new EmptyBorder(0, 5, 0, 5);
+        Border border = new EmptyBorder(3, 5, 0, 5);
+
+        JLabel appLabel = new JLabel(appProperties.get("app.name.short"));
+        appLabel.setBorder(border);
+        appLabel.setForeground(Color.WHITE);
+        appLabel.setFont(font);
+
+        JLabel separatorLabel = new JLabel("-");
+        separatorLabel.setBorder(border);
+        separatorLabel.setForeground(Color.WHITE);
+        separatorLabel.setFont(font);
+
+        connStatusLabel = new JLabel(MSG_DISCONNECTED);
+        connStatusLabel.setBorder(border);
+        connStatusLabel.setForeground(Color.WHITE);
+        connStatusLabel.setFont(font);
+
+        JLabel killerPlayerLabel = new JLabel();
+        killerPlayerLabel.setBorder(border);
+        killerPlayerLabel.setForeground(Color.WHITE);
+        killerPlayerLabel.setFont(font);
+        killerPlayerLabel.setText("Killer:");
+
+        killerPlayerValueLabel = new JLabel();
+        killerPlayerValueLabel.setBorder(border);
+        killerPlayerValueLabel.setForeground(Color.BLUE);
+        killerPlayerValueLabel.setFont(font);
+
+        killerCharLabel = new JLabel();
+        killerCharLabel.setBorder(border);
+        killerCharLabel.setForeground(Color.BLUE);
+        killerCharLabel.setFont(font);
+
+        killerInfoContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        killerInfoContainer.setBorder(NO_BORDER);
+        killerInfoContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        killerInfoContainer.add(killerPlayerLabel);
+        killerInfoContainer.add(killerPlayerValueLabel);
+
+        if (settings.getExperimentalSwitch(2)) {
+            killerInfoContainer.add(killerCharLabel);
+        }
+        killerInfoContainer.setVisible(false);
+
+        JLabel timerSeparatorLabel = new JLabel();
+        timerSeparatorLabel.setBorder(border);
+        timerSeparatorLabel.setText("|");
+
+        connTimerLabel = new JLabel();
+        connTimerLabel.setBorder(border);
+        connTimerLabel.setForeground(Color.WHITE);
+        connTimerLabel.setFont(font);
+
+        titleBarTimerContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        titleBarTimerContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
+        titleBarTimerContainer.add(timerSeparatorLabel);
+        titleBarTimerContainer.add(connTimerLabel);
+        titleBarTimerContainer.setVisible(false);
+
+        connMsgPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        connMsgPanel.add(appLabel);
+        connMsgPanel.add(separatorLabel);
+        connMsgPanel.add(connStatusLabel);
+
+        if (settings.getExperimentalSwitch(1)) {
+            connMsgPanel.add(killerInfoContainer);
+        }
+        connMsgPanel.add(titleBarTimerContainer);
 
         JLabel switchOffButton = new JLabel();
         switchOffButton.setBorder(border);
@@ -163,38 +255,9 @@ public class MainWindow extends JFrame implements Observer {
             }
         });
 
-        JLabel appLabel = new JLabel(appProperties.get("app.name.short"));
-        appLabel.setBorder(border);
-        appLabel.setForeground(Color.WHITE);
-        appLabel.setFont(font);
-
-        JLabel separatorLabel = new JLabel("-");
-        separatorLabel.setForeground(Color.WHITE);
-        separatorLabel.setFont(font);
-
-        connStatusLabel = new JLabel(MSG_DISCONNECTED);
-        connStatusLabel.setBorder(border);
-        connStatusLabel.setForeground(Color.WHITE);
-        connStatusLabel.setFont(font);
-
-        connTimerLabel = new JLabel();
-        connTimerLabel.setBorder(border);
-        connTimerLabel.setForeground(Color.WHITE);
-        connTimerLabel.setFont(font);
-        connTimerLabel.setVisible(false);
-
-        connMsgPanel = new JPanel();
-        connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
-        connMsgPanel.add(appLabel);
-        connMsgPanel.add(separatorLabel);
-        connMsgPanel.add(connStatusLabel);
-        connMsgPanel.add(connTimerLabel);
-
         titleBarMinimizeLabel = new JLabel();
         titleBarMinimizeLabel.setBorder(border);
         titleBarMinimizeLabel.setIcon(ResourceFactory.getCollapseIcon());
-        titleBarMinimizeLabel.setForeground(Color.WHITE);
-        titleBarMinimizeLabel.setFont(font);
         titleBarMinimizeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -203,14 +266,18 @@ public class MainWindow extends JFrame implements Observer {
             }
         });
 
+        titleBarButtonContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        titleBarButtonContainer.add(switchOffButton);
+        titleBarButtonContainer.add(titleBarMinimizeLabel);
+
         JPanel container = new JPanel();
         container.setLayout(new BorderLayout());
         container.setPreferredSize(new Dimension(200, 25));
         container.setMaximumSize(new Dimension(INFINITE_SIZE, 25));
         container.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
-//        container.add(switchOffButton, BorderLayout.WEST);
         container.add(connMsgPanel, BorderLayout.CENTER);
-        container.add(titleBarMinimizeLabel, BorderLayout.EAST);
+        container.add(titleBarButtonContainer, BorderLayout.EAST);
 
         return container;
     }
@@ -270,10 +337,19 @@ public class MainWindow extends JFrame implements Observer {
         killerPanel.updateKillerCharacter(killerCharacter);
     }
 
+    private String shortenKillerPlayerName(String playerName) {
+        String result = playerName;
+        if (result.length() > MAX_KILLER_PLAYER_NAME_LEN) {
+            result = result.substring(0, MAX_KILLER_PLAYER_NAME_LEN - 3) + "...";
+        }
+
+        return result;
+    }
+
 
     private void initSessionTimers() {
         sessionTimer = new Timer(1000, e ->
-                connTimerLabel.setText("[" + TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds()) + "]"));
+                connTimerLabel.setText(TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds())));
 
         matchCountTimer = new Timer(MIN_MATCH_SECONDS * 1000, e -> {
             killerPanel.updateMatchCount();
@@ -286,25 +362,32 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     public void connectToMatch(String ipAddress) {
+        connected = true;
         connStatusLabel.setText(MSG_CONNECTED);
         serverPanel.clearServer();
         killerPanel.clearKillerInfo();
         messagePanel.setVisible(false);
         titleBar.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
+        killerInfoContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
+        titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         resetTimer();
         sessionTimer.start();
-        connTimerLabel.setVisible(true);
+        titleBarTimerContainer.setVisible(true);
         pack();
         serverPanel.updateServerIpAddress(ipAddress);
     }
 
     public void disconnectFromMatch() {
+        connected = false;
         sessionTimer.stop();
         matchCountTimer.stop();
         connStatusLabel.setText(MSG_DISCONNECTED);
+        connStatusLabel.setVisible(true);
+        killerInfoContainer.setVisible(false);
         titleBar.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
 
         int connectionUptime = getConnectionUptimeSeconds();
         if (connectionUptime >= MIN_MATCH_SECONDS) {
@@ -312,7 +395,7 @@ public class MainWindow extends JFrame implements Observer {
         }
         lastConnMsgLabel.setText("Last connection (below): " + TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds()));
         resetTimer();
-        connTimerLabel.setVisible(false);
+        titleBarTimerContainer.setVisible(false);
         messagePanel.setVisible(true);
         pack();
     }
@@ -323,7 +406,7 @@ public class MainWindow extends JFrame implements Observer {
 
     private void resetTimer() {
         sessionStartTime = System.currentTimeMillis();
-        connTimerLabel.setText("[" + TimeUtil.formatTimeElapsed(0) + "]");
+        connTimerLabel.setText(TimeUtil.formatTimeElapsed(0));
     }
 
     public void close() {

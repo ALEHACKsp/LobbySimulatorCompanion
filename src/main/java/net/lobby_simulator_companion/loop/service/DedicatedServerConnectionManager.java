@@ -127,10 +127,6 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
             return;
         }
 
-        if (packetInfo.packetLen >= 10000) {
-            logger.debug("big packet: {}", packetInfo);
-        }
-
         if (isMatchConnect(packetInfo)) {
             logger.debug("Connected to match.");
             state = State.Connected;
