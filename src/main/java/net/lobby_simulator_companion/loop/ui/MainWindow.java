@@ -8,8 +8,6 @@ import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -44,22 +42,19 @@ public class MainWindow extends JFrame implements Observer {
     private static final Dimension MAXIMUM_SIZE = new Dimension(600, 500);
     private static final Border NO_BORDER = new EmptyBorder(0, 0, 0, 0);
     private static final int INFINITE_SIZE = 9999;
-    private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
     private static final Font font = ResourceFactory.getRobotoFont();
 
     /**
-     * Minimum time connected from which we can assume that a match has taken place and it was not just
-     * lobby waiting time.
+     * Minimum time connected from which we can assume that a match has taken place.
      */
-    private static final int MIN_MATCH_SECONDS = 7 * 60;
+    private static final int MIN_MATCH_SECONDS = 2 * 60;
     private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
 
     private Settings settings;
     private AppProperties appProperties = Factory.getAppProperties();
-    private Long sessionStartTime;
-    private Timer sessionTimer;
-    private Timer matchCountTimer; // TODO: obsolete. Can be merged with the session timer
     private boolean connected;
+    private Long matchStartTime;
+    private Timer matchTimer;
 
     private JPanel titleBar;
     private JPanel connMsgPanel;
@@ -348,17 +343,12 @@ public class MainWindow extends JFrame implements Observer {
 
 
     private void initSessionTimers() {
-        sessionTimer = new Timer(1000, e ->
-                connTimerLabel.setText(TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds())));
-
-        matchCountTimer = new Timer(MIN_MATCH_SECONDS * 1000, e -> {
-            killerPanel.updateMatchCount();
-            matchCountTimer.stop();
-        });
+        matchTimer = new Timer(1000, e ->
+                connTimerLabel.setText(TimeUtil.formatTimeElapsed(getMatchDuration())));
     }
 
-    private int getConnectionUptimeSeconds() {
-        return sessionStartTime == null ? 0 : (int) (System.currentTimeMillis() - sessionStartTime) / 1000;
+    private int getMatchDuration() {
+        return matchStartTime == null? 0 : (int) (System.currentTimeMillis() - matchStartTime) / 1000;
     }
 
     public void connectToMatch(String ipAddress) {
@@ -372,16 +362,12 @@ public class MainWindow extends JFrame implements Observer {
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         resetTimer();
-        sessionTimer.start();
-        titleBarTimerContainer.setVisible(true);
         pack();
         serverPanel.updateServerIpAddress(ipAddress);
     }
 
     public void disconnectFromMatch() {
         connected = false;
-        sessionTimer.stop();
-        matchCountTimer.stop();
         connStatusLabel.setText(MSG_DISCONNECTED);
         connStatusLabel.setVisible(true);
         killerInfoContainer.setVisible(false);
@@ -389,15 +375,29 @@ public class MainWindow extends JFrame implements Observer {
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
 
-        int connectionUptime = getConnectionUptimeSeconds();
-        if (connectionUptime >= MIN_MATCH_SECONDS) {
-            killerPanel.updateKillerMatchTime(connectionUptime);
-        }
-        lastConnMsgLabel.setText("Last connection (below): " + TimeUtil.formatTimeElapsed(getConnectionUptimeSeconds()));
+        lastConnMsgLabel.setText("Last connection (below): " + TimeUtil.formatTimeElapsed(getMatchDuration()));
+        endMatch();
         resetTimer();
         titleBarTimerContainer.setVisible(false);
         messagePanel.setVisible(true);
         pack();
+    }
+
+    public void startMatch() {
+        resetTimer();
+        matchStartTime = System.currentTimeMillis();
+        matchTimer.start();
+        titleBarTimerContainer.setVisible(true);
+    }
+
+    public void endMatch() {
+        matchTimer.stop();
+        int matchTime = getMatchDuration();
+        if (matchTime >= MIN_MATCH_SECONDS) {
+            killerPanel.updateKillerMatchTime(matchTime);
+            killerPanel.updateMatchCount();
+        }
+        matchStartTime = null;
     }
 
     public void updateServer(Server server) {
@@ -405,7 +405,7 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void resetTimer() {
-        sessionStartTime = System.currentTimeMillis();
+        matchStartTime = null;
         connTimerLabel.setText(TimeUtil.formatTimeElapsed(0));
     }
 
@@ -413,4 +413,7 @@ public class MainWindow extends JFrame implements Observer {
         dispose();
     }
 
+    public void searchMatch() {
+        connStatusLabel.setText("Searching for match....");
+    }
 }

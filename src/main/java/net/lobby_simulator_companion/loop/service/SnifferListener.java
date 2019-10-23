@@ -7,7 +7,13 @@ import net.lobby_simulator_companion.loop.domain.Connection;
  */
 public interface SnifferListener {
 
+    void notifyMatchSearch();
+
     void notifyMatchConnect(Connection connection);
+
+    void notifyMatchStart();
+
+    void notifyMatchEnd();
 
     void notifyMatchDisconnect();
 
