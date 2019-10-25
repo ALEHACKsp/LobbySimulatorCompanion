@@ -2,15 +2,12 @@ package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
+import net.lobby_simulator_companion.loop.service.PlayerDto;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashSet;
 import java.util.Set;
-
-import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent;
-import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent.EventType;
 
 /**
  * A panel for debugging purposes.
@@ -96,8 +93,8 @@ public class DebugPanel extends JPanel {
     }
 
     private void simulateKillerUserUpdate() {
-        PlayerIdWrapper idWrapper = new PlayerIdWrapper("76561198961125794", "ab-cd-ef");
-        mainPanel.update(logMonitor, new DbdLogMonitorEvent(EventType.KILLER_ID, idWrapper));
+        PlayerDto playerDto = new PlayerDto("76561198961125794", "ab-cd-ef");
+        mainPanel.update(logMonitor, playerDto);
     }
 
 }

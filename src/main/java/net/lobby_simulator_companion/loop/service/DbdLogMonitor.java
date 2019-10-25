@@ -16,8 +16,6 @@ import java.util.Observer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent.EventType;
-
 /**
  * DBD log parser daemon.
  * Parses logs to extract information about the Steam users that we are connecting to.
@@ -39,9 +37,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final Path USER_APPDATA_PATH = Paths.get(System.getenv("APPDATA")).getParent();
     private static final String LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
     private static final File LOG_FILE = USER_APPDATA_PATH.resolve(LOG_PATH).toFile();
-
-    private static final String REGEX__LOBBY_KILLER = "MatchMembersA=\\[\"([0-9a-f\\-]+)\"\\]";
-    private static final Pattern PATTERN__LOBBY_KILLER = Pattern.compile(REGEX__LOBBY_KILLER);
 
     private static final String REGEX__LOBBY_ADD_PLAYER = "AddSessionPlayer Session:GameSession PlayerId:([0-9a-f\\-]+)\\|([0-9]+)";
     private static final Pattern PATTERN__LOBBY_ADD_PLAYER = Pattern.compile(REGEX__LOBBY_ADD_PLAYER);
@@ -79,18 +74,16 @@ public class DbdLogMonitor extends Observable implements Runnable {
                 String outfitCode = e[i];
                 OUTFIT_CODE_TO_KILLER_NAME_MAPPING.put(outfitCode, killerName);
             }
-
         }
     }
 
+    public static final class Event {
+        public enum Type {KILLER_PLAYER, KILLER_CHARACTER}
 
-    public static final class DbdLogMonitorEvent {
-        public enum EventType {KILLER_ID, KILLER_CHARACTER}
-
-        public final EventType type;
+        public final Type type;
         public final Object argument;
 
-        public DbdLogMonitorEvent(EventType type, Object argument) {
+        public Event(Type type, Object argument) {
             this.type = type;
             this.argument = argument;
         }
@@ -99,8 +92,9 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
     private BufferedReader reader;
     private long logSize;
-    private Map<String, String> dbdPlayerIdToSteamId = new HashMap<>();
-    private String killerDbdId;
+    private PlayerDto lastPlayer;
+    private PlayerDto lastKiller;
+    private String lastKillerChar;
 
 
     public DbdLogMonitor() throws IOException {
@@ -155,32 +149,40 @@ public class DbdLogMonitor extends Observable implements Runnable {
         matcher = PATTERN__KILLER_OUTFIT.matcher(line);
         if (matcher.find()) {
             String outfitCode = matcher.group(1);
-            String killerName = OUTFIT_CODE_TO_KILLER_NAME_MAPPING.get(outfitCode);
+            String killerChar = OUTFIT_CODE_TO_KILLER_NAME_MAPPING.get(outfitCode);
 
-            if (killerName != null) {
+            if (killerChar == null) {
+                // it's a survivor
+                lastPlayer = null;
+                return;
+            }
+
+            if (lastPlayer == null && lastKiller == null) {
+                // no killer player where to assign this outfit
+                return;
+            }
+
+            if (lastPlayer == null && !killerChar.equals(lastKillerChar)) {
+                // change of outfit for current killer
+                lastKillerChar = killerChar;
+                Event event = new Event(Event.Type.KILLER_CHARACTER, killerChar);
                 setChanged();
-                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_CHARACTER, killerName);
+                notifyObservers(event);
+            } else if (lastPlayer != null && !lastPlayer.equals(lastKiller)) {
+                // new killer player
+                logger.debug("Detected new killer player: {}", lastPlayer);
+                lastKiller = lastPlayer;
+                Event event = new Event(Event.Type.KILLER_PLAYER, lastKiller);
+                setChanged();
+                notifyObservers(event);
+
+                lastKillerChar = killerChar;
+                event = new Event(Event.Type.KILLER_CHARACTER, killerChar);
+                setChanged();
                 notifyObservers(event);
             }
-            return;
-        }
 
-        matcher = PATTERN__LOBBY_KILLER.matcher(line);
-        if (matcher.find()) {
-            killerDbdId = matcher.group(1);
-            logger.debug("Detected killer player dbd-id: {}", killerDbdId);
-            String steamUserId = dbdPlayerIdToSteamId.get(killerDbdId);
-
-            if (steamUserId != null) {
-                setChanged();
-                PlayerIdWrapper id = new PlayerIdWrapper(steamUserId, killerDbdId);
-                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_ID, id);
-                killerDbdId = null;
-                dbdPlayerIdToSteamId.clear();
-                notifyObservers(event);
-            } else {
-                logger.debug("Could not find a steam id for this killer player dbd-id.");
-            }
+            lastPlayer = null;
             return;
         }
 
@@ -189,16 +191,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             String dbdPlayerId = matcher.group(1);
             String steamUserId = matcher.group(2);
             logger.debug("Detected user connecting to lobby. dbd-id: {}; steam-id: {}", dbdPlayerId, steamUserId);
-            dbdPlayerIdToSteamId.put(dbdPlayerId, steamUserId);
-
-            if (dbdPlayerId.equals(killerDbdId)) {
-                setChanged();
-                PlayerIdWrapper id = new PlayerIdWrapper(steamUserId, killerDbdId);
-                DbdLogMonitorEvent event = new DbdLogMonitorEvent(EventType.KILLER_ID, id);
-                killerDbdId = null;
-                dbdPlayerIdToSteamId.clear();
-                notifyObservers(event);
-            }
+            lastPlayer = new PlayerDto(steamUserId, dbdPlayerId);
         }
     }
 

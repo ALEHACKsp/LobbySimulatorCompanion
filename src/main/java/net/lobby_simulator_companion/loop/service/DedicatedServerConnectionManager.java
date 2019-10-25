@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -85,8 +86,8 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
     private PcapNetworkInterface networkInterface;
     private PcapHandle pcapHandle;
     private Set<Byte> bhvrBackendPartialAddresses;
-    private Set<InetAddress> bhvrBackendAddresses;
-    private Connection bhvrBackendConn;
+    private Set<InetAddress> bhvrBackendAddresses = new HashSet<>();
+//    private Connection bhvrBackendConn;
     private Connection matchConn;
     private State state = State.Idle;
     private byte[] encryptedDataHeader = new byte[ENCRYPTED_DATA_HEADER_LEN];
@@ -163,10 +164,10 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
             return;
         }
 
-        if (bhvrBackendConn == null && isBackendRequest(packetInfo)) {
-            bhvrBackendConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
-            logger.debug("Detected backend server connection: {}", bhvrBackendConn);
-        }
+//        if (bhvrBackendConn == null && isBackendRequest(packetInfo)) {
+//            bhvrBackendConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
+//            logger.debug("Detected backend server connection: {}", bhvrBackendConn);
+//        }
 //        else if (isMatchSearch(packetInfo)) {
 //            logger.debug("Search match.");
 ////            bhvrBackendConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
@@ -181,8 +182,14 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
 //            logger.debug("Cancel match search.");
 //            snifferListener.notifyMatchDisconnect();
 //        }
+        if (isBackendRequest(packetInfo)) {
+//            Connection bhvrBackendConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
+            logger.debug("Detected backend server connection: {}", packetInfo.dstAddress);
+            bhvrBackendAddresses.add(packetInfo.dstAddress);
+        }
         else if (isMatchConnect(packetInfo)) {
             logger.debug("Connected to match.");
+            logger.debug("Backend connections: {}", bhvrBackendAddresses);
             state = State.Connected;
             matchConn = new Connection(localAddr, packetInfo.srcPort, packetInfo.dstAddress, packetInfo.dstPort);
             snifferListener.notifyMatchConnect(matchConn);
@@ -244,32 +251,44 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
                 && bhvrBackendPartialAddresses.contains(packetInfo.dstAddress.getAddress()[0]);
     }
 
-    private boolean isMatchSearch(PacketInfo packetInfo) {
-        return state == State.Idle
-                && bhvrBackendConn != null
-                && isHttpOverTlsV12Request(packetInfo)
-//                && packetInfo.packetLen >= 470 && packetInfo.packetLen <= 490
-                && packetInfo.packetLen >= 400 && packetInfo.packetLen <= 700
-                && packetInfo.dstAddress.equals(bhvrBackendConn.getRemoteAddr());
-    }
-
-    private boolean isMatchSearchCancel(PacketInfo packetInfo) {
-        return state == State.Idle
-                && bhvrBackendConn != null
-                && matchSearchPacketLen != null
-                && isHttpOverTlsV12Request(packetInfo)
-                && packetInfo.packetLen == matchSearchPacketLen + 1;
-    }
+//    private boolean isMatchSearch(PacketInfo packetInfo) {
+//        return state == State.Idle
+//                && bhvrBackendConn != null
+//                && isHttpOverTlsV12Request(packetInfo)
+////                && packetInfo.packetLen >= 470 && packetInfo.packetLen <= 490
+//                && packetInfo.packetLen >= 400 && packetInfo.packetLen <= 700
+//                && packetInfo.dstAddress.equals(bhvrBackendConn.getRemoteAddr());
+//    }
+//
+//    private boolean isMatchSearchCancel(PacketInfo packetInfo) {
+//        return state == State.Idle
+//                && bhvrBackendConn != null
+//                && matchSearchPacketLen != null
+//                && isHttpOverTlsV12Request(packetInfo)
+//                && packetInfo.packetLen == matchSearchPacketLen + 1;
+//    }
 
 
     private boolean isMatchConnect(PacketInfo packetInfo) {
-        return state == State.Idle && bhvrBackendConn != null && isWireGuardHandshakeInit(packetInfo);
+//        return state == State.Idle && bhvrBackendConn != null && isWireGuardHandshakeInit(packetInfo);
+        return state == State.Idle && !bhvrBackendAddresses.isEmpty() && isWireGuardHandshakeInit(packetInfo);
     }
 
     private boolean isMatchStart(PacketInfo packetInfo) {
+        if (state == State.Connected
+                && isHttpOverTlsV12Response(packetInfo)
+                && packetInfo.packetLen >= 1000 && packetInfo.packetLen <= 1020
+                && System.currentTimeMillis() - matchConn.getCreated() >= MIN_MS_FROM_CONNECT_TILL_MATCH_START) {
+
+            logger.debug("Possible match start packet: {}", packetInfo);
+            logger.debug("Backend addresses: {}", bhvrBackendAddresses);
+        }
+
+
         return state == State.Connected
                 && isHttpOverTlsV12Response(packetInfo)
-                && bhvrBackendConn.getRemoteAddr().equals(packetInfo.srcAddress)
+                && bhvrBackendAddresses.contains(packetInfo.srcAddress)
+//                && bhvrBackendConn.getRemoteAddr().equals(packetInfo.srcAddress)
                 && packetInfo.packetLen >= 1000 && packetInfo.packetLen <= 1020
                 && System.currentTimeMillis() - matchConn.getCreated() >= MIN_MS_FROM_CONNECT_TILL_MATCH_START;
     }
@@ -277,7 +296,8 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
     private boolean isMatchEnd(PacketInfo packetInfo) {
         return state == State.InMatch
                 && isHttpOverTlsV12Response(packetInfo)
-                && bhvrBackendConn.getRemoteAddr().equals(packetInfo.srcAddress)
+                && bhvrBackendAddresses.contains(packetInfo.srcAddress)
+//                && bhvrBackendConn.getRemoteAddr().equals(packetInfo.srcAddress)
                 && packetInfo.packetLen == matchStartPacketLen
                 && System.currentTimeMillis() - matchStartTime >= 1000;
     }
@@ -358,7 +378,8 @@ public class DedicatedServerConnectionManager implements ConnectionManager {
                         && currentTime > matchConn.getLastSeen() + CONNECTION_TIMEOUT_MS) {
                     logger.debug("Detected match disconnection.");
                     matchConn = null;
-                    bhvrBackendConn = null;
+//                    bhvrBackendConn = null;
+//                    bhvrBackendAddresses.clear();
                     matchStartPacketLen = null;
                     state = State.Idle;
                     snifferListener.notifyMatchDisconnect();

@@ -6,7 +6,7 @@ import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
+import net.lobby_simulator_companion.loop.service.PlayerDto;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
 
 import javax.swing.*;
@@ -22,8 +22,6 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.util.Observable;
 import java.util.Observer;
-
-import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.DbdLogMonitorEvent;
 
 /**
  * @author NickyRamone
@@ -314,11 +312,11 @@ public class MainWindow extends JFrame implements Observer {
     @Override
     public void update(Observable observable, Object arg) {
         if (observable instanceof DbdLogMonitor) {
-            DbdLogMonitorEvent event = (DbdLogMonitorEvent) arg;
+            DbdLogMonitor.Event event = (DbdLogMonitor.Event) arg;
 
             switch (event.type) {
-                case KILLER_ID:
-                    SwingUtilities.invokeLater(() -> killerPanel.receiveNewKillerPlayer((PlayerIdWrapper) event.argument));
+                case KILLER_PLAYER:
+                    SwingUtilities.invokeLater(() -> killerPanel.receiveNewKillerPlayer((PlayerDto) event.argument));
                     break;
                 case KILLER_CHARACTER:
                     String killerCharacter = (String) event.argument;
@@ -348,7 +346,7 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private int getMatchDuration() {
-        return matchStartTime == null? 0 : (int) (System.currentTimeMillis() - matchStartTime) / 1000;
+        return matchStartTime == null ? 0 : (int) (System.currentTimeMillis() - matchStartTime) / 1000;
     }
 
     public void connectToMatch(String ipAddress) {

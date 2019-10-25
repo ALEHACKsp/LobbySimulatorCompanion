@@ -6,7 +6,7 @@ import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
-import net.lobby_simulator_companion.loop.service.PlayerIdWrapper;
+import net.lobby_simulator_companion.loop.service.PlayerDto;
 import net.lobby_simulator_companion.loop.util.FontUtil;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
 import org.slf4j.Logger;
@@ -343,16 +343,16 @@ public class KillerPanel extends JPanel {
     }
 
 
-    public void receiveNewKillerPlayer(PlayerIdWrapper idWrapper) {
+    public void receiveNewKillerPlayer(PlayerDto playerDto) {
         String playerName;
         try {
-            playerName = steamProfileDao.getPlayerName(idWrapper.getSteamId());
+            playerName = steamProfileDao.getPlayerName(playerDto.getSteamId());
             playerName = FontUtil.replaceNonDisplayableChars(font, playerName, DEFAULT_NON_DISPLAYABLE_CHAR);
         } catch (IOException e) {
-            logger.error("Failed to retrieve player's name for steam id#{}.", idWrapper.getSteamId());
+            logger.error("Failed to retrieve player's name for steam id#{}.", playerDto.getSteamId());
             playerName = "";
         }
-        String steamId = idWrapper.getSteamId();
+        String steamId = playerDto.getSteamId();
         Player storedPlayer = dataService.getPlayerBySteamId(steamId);
         final Player player;
 
