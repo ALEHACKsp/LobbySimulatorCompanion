@@ -45,7 +45,7 @@ public class MainWindow extends JFrame implements Observer {
     /**
      * Minimum time connected from which we can assume that a match has taken place.
      */
-    private static final int MIN_MATCH_SECONDS = 2 * 60;
+    private static final int MIN_MATCH_SECONDS = 5 * 60;
     private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
 
     private Settings settings;
@@ -359,9 +359,9 @@ public class MainWindow extends JFrame implements Observer {
         killerInfoContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
         titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
-        resetTimer();
-        pack();
+        startMatch();
         serverPanel.updateServerIpAddress(ipAddress);
+        pack();
     }
 
     public void disconnectFromMatch() {
@@ -375,7 +375,6 @@ public class MainWindow extends JFrame implements Observer {
 
         lastConnMsgLabel.setText("Last connection (below): " + TimeUtil.formatTimeElapsed(getMatchDuration()));
         endMatch();
-        resetTimer();
         titleBarTimerContainer.setVisible(false);
         messagePanel.setVisible(true);
         pack();
@@ -390,6 +389,7 @@ public class MainWindow extends JFrame implements Observer {
 
     public void endMatch() {
         matchTimer.stop();
+        resetTimer();
         int matchTime = getMatchDuration();
         if (matchTime >= MIN_MATCH_SECONDS) {
             killerPanel.updateKillerMatchTime(matchTime);
@@ -403,7 +403,7 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void resetTimer() {
-        matchStartTime = null;
+        matchStartTime = System.currentTimeMillis();
         connTimerLabel.setText(TimeUtil.formatTimeElapsed(0));
     }
 
@@ -411,7 +411,4 @@ public class MainWindow extends JFrame implements Observer {
         dispose();
     }
 
-    public void searchMatch() {
-        connStatusLabel.setText("Searching for match....");
-    }
 }

@@ -102,28 +102,11 @@ public class Boot {
                 connectionManager = new DedicatedServerConnectionManager(localAddr, new SnifferListener() {
 
                     @Override
-                    public void notifyMatchSearch() {
-                        SwingUtilities.invokeLater(() -> ui.searchMatch());
-                    }
-
-
-                    @Override
                     public void notifyMatchConnect(Connection connection) {
                         logger.debug("Detected new connection: {}", connection);
                         SwingUtilities.invokeLater(() -> ui.connectToMatch(connection.getRemoteAddr().getHostAddress()));
                     }
 
-                    @Override
-                    public void notifyMatchStart() {
-                        SwingUtilities.invokeLater(() -> ui.startMatch());
-                    }
-
-                    @Override
-                    public void notifyMatchEnd() {
-                        SwingUtilities.invokeLater(() -> ui.endMatch());
-                    }
-
-                    @Override
                     public void notifyMatchDisconnect() {
                         SwingUtilities.invokeLater(() -> ui.disconnectFromMatch());
                     }

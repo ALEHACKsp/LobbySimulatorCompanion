@@ -51,7 +51,6 @@ public class KillerPanel extends JPanel {
     private static final Font font = ResourceFactory.getRobotoFont();
 
     private Settings settings;
-    private AppProperties appProperties;
     private LoopDataService dataService;
     private SteamProfileDao steamProfileDao;
 
@@ -78,7 +77,6 @@ public class KillerPanel extends JPanel {
 
     public KillerPanel(Settings settings, AppProperties appProperties, LoopDataService dataService, SteamProfileDao steamProfileDao) {
         this.settings = settings;
-        this.appProperties = appProperties;
         this.dataService = dataService;
         this.steamProfileDao = steamProfileDao;
 
