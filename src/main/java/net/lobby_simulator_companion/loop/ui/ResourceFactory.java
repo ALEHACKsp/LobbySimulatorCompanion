@@ -25,7 +25,9 @@ public final class ResourceFactory {
     private static final String EDIT_ICON_PATH = "/edit_icon.png";
     private static final String EXPAND_ICON_PATH = "/expand_icon.png";
     private static final String GEO_LOCATION_ICON_PATH = "/geo-location_icon.png";
+    private static final String HIDE_ICON_PATH = "/hide_icon.png";
     private static final String RATE_ICON_PATH = "/rate_icon.png";
+    private static final String SHOW_ICON_PATH = "/show_icon.png";
     private static final String STEAM_ICON_PATH = "/steam_icon.png";
     private static final String SWITCH_OFF_ICON_PATH = "/switch-off_icon.png";
     private static final String THUMBS_DOWN_ICON_PATH = "/thumbs-down_icon.png";
@@ -37,7 +39,9 @@ public final class ResourceFactory {
     private static ImageIcon editIcon;
     private static ImageIcon expandIcon;
     private static ImageIcon geoLocationIcon;
+    private static ImageIcon hideIcon;
     private static ImageIcon rateIcon;
+    private static ImageIcon showIcon;
     private static ImageIcon steamIcon;
     private static ImageIcon switchOffIcon;
     private static ImageIcon thumbsUpIcon;
@@ -96,6 +100,14 @@ public final class ResourceFactory {
 
     public static ImageIcon getGeoLocationIcon() {
         return getIcon(geoLocationIcon, GEO_LOCATION_ICON_PATH, "geo-location");
+    }
+
+    public static ImageIcon getHideIcon() {
+        return getIcon(hideIcon, HIDE_ICON_PATH, "hide");
+    }
+
+    public static ImageIcon getShowIcon() {
+        return getIcon(showIcon, SHOW_ICON_PATH, "show");
     }
 
     public static ImageIcon getSteamIcon() {

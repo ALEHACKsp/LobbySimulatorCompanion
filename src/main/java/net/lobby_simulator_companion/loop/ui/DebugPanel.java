@@ -67,7 +67,7 @@ public class DebugPanel extends JPanel {
         frame.add(button);
 
         JPanel userContainer = new JPanel();
-        userContainer.setLayout(new GridLayout(2, 1, 10, 10));
+        userContainer.setLayout(new GridLayout(0, 1, 10, 10));
         button = new JButton("Detect killer A");
         button.addActionListener(e -> simulateKillerUserUpdate());
         userContainer.add(button);
@@ -76,6 +76,17 @@ public class DebugPanel extends JPanel {
         button.addActionListener(e -> simulateKillerUserUpdate());
         userContainer.add(button);
         frame.add(userContainer);
+
+        button = new JButton("Detect killer character A");
+        button.addActionListener(e -> simulateKillerCharUpdate());
+        userContainer.add(button);
+        frame.add(button);
+    }
+
+    private void simulateKillerCharUpdate() {
+        String character = "Hillbilly";
+        DbdLogMonitor.Event event = new DbdLogMonitor.Event(DbdLogMonitor.Event.Type.KILLER_CHARACTER, character);
+        mainPanel.update(logMonitor, event);
     }
 
     private Server generateRandomServer() {
@@ -94,7 +105,8 @@ public class DebugPanel extends JPanel {
 
     private void simulateKillerUserUpdate() {
         PlayerDto playerDto = new PlayerDto("76561198961125794", "ab-cd-ef");
-        mainPanel.update(logMonitor, playerDto);
+        DbdLogMonitor.Event event = new DbdLogMonitor.Event(DbdLogMonitor.Event.Type.KILLER_PLAYER, playerDto);
+        mainPanel.update(logMonitor, event);
     }
 
 }

@@ -33,11 +33,15 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * @author NickyRamone
+ */
 public class KillerPanel extends JPanel {
 
     public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
     public static final String EVENT_NEW_KILLER_PLAYER = "new_killer_player";
     public static final String EVENT_NEW_KILLER_CHARACTER = "new_killer_character";
+    public static final String EVENT_KILLER_CHARACTER_SHOW = "killer.character.show";
 
     /**
      * When the user updates the killer player description, the change is not applied immediately
@@ -47,8 +51,11 @@ public class KillerPanel extends JPanel {
     private static final int DESCRIPTION_UPDATE_DELAY_MS = 5000;
     private static final int MAX_KILLER_DESCRIPTION_SIZE = 1256;
     private static final char DEFAULT_NON_DISPLAYABLE_CHAR = '\u0387';
+    private static final String MSG_KILLER_CHARACTER = "(as %s)";
+    private static final String BLACKED_OUT_KILLER_CHAR = "************";
     private static final Logger logger = LoggerFactory.getLogger(KillerPanel.class);
     private static final Font font = ResourceFactory.getRobotoFont();
+    private static final Border NO_BORDER = new EmptyBorder(0, 0, 0, 0);
 
     private Settings settings;
     private LoopDataService dataService;
@@ -61,6 +68,7 @@ public class KillerPanel extends JPanel {
     private JLabel playerRateLabel;
     private JLabel detailCollapseButton;
     private JPanel detailsPanel;
+    private JPanel charValuePanel;
     private JLabel characterValueLabel;
     private JLabel otherNamesValueLabel;
     private JLabel timesEncounteredValueLabel;
@@ -73,6 +81,7 @@ public class KillerPanel extends JPanel {
     private Player killerPlayer;
     private String killerCharacter;
     private Timer userNotesUpdateTimer;
+    private boolean showCharacter;
 
 
     public KillerPanel(Settings settings, AppProperties appProperties, LoopDataService dataService, SteamProfileDao steamProfileDao) {
@@ -176,9 +185,44 @@ public class KillerPanel extends JPanel {
         JLabel characterLabel = new JLabel("Character:", JLabel.RIGHT);
         characterLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         characterLabel.setFont(font);
+
         characterValueLabel = new JLabel();
+        characterValueLabel.setBorder(NO_BORDER);
         characterValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         characterValueLabel.setFont(font);
+
+        showCharacter = settings.getBoolean("ui.panel.killer.character.show", false);
+
+        JLabel hideCharButton = new JLabel();
+        hideCharButton.setBorder(new EmptyBorder(0, 10, 0, 0));
+        ImageIcon icon = showCharacter ? ResourceFactory.getHideIcon() : ResourceFactory.getShowIcon();
+        hideCharButton.setIcon(icon);
+        hideCharButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showCharacter = !showCharacter;
+                settings.set("ui.panel.killer.character.show", showCharacter);
+                ImageIcon icon = showCharacter ? ResourceFactory.getHideIcon() : ResourceFactory.getShowIcon();
+                hideCharButton.setIcon(icon);
+                titleBarCharacterLabel.setVisible(showCharacter);
+
+                if (showCharacter) {
+                    if (killerCharacter != null) {
+                        characterValueLabel.setText(killerCharacter);
+                    }
+                } else {
+                    characterValueLabel.setText(BLACKED_OUT_KILLER_CHAR);
+                }
+
+                firePropertyChange(EVENT_KILLER_CHARACTER_SHOW, !showCharacter, showCharacter);
+            }
+        });
+
+        charValuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        charValuePanel.setBackground(Colors.INFO_PANEL_BACKGROUND);
+        charValuePanel.add(characterValueLabel);
+        charValuePanel.add(hideCharButton);
+        charValuePanel.setVisible(false);
 
         JLabel otherNamesLabel = new JLabel("Previous names seen:", JLabel.RIGHT);
         otherNamesLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
@@ -228,7 +272,7 @@ public class KillerPanel extends JPanel {
 
         if (settings.getExperimentalSwitch(2)) {
             statsContainer.add(characterLabel);
-            statsContainer.add(characterValueLabel);
+            statsContainer.add(charValuePanel);
         }
 
         if (settings.getExperimentalSwitch(1)) {
@@ -358,6 +402,7 @@ public class KillerPanel extends JPanel {
             logger.debug("User of id {} not found in the storage. Creating new entry...", steamId);
             player = new Player();
             player.setUID(steamId);
+            player.setDbdPlayerId(playerDto.getDbdId());
             player.addName(playerName);
             player.setTimesEncountered(1);
             dataService.addPlayer(steamId, player);
@@ -371,7 +416,7 @@ public class KillerPanel extends JPanel {
         }
 
         // the player info is received from an app thread, so we need to push it to the UI thread (EDT)
-        SwingUtilities.invokeLater(() -> updateKillerInfo(player));
+        SwingUtilities.invokeLater(() -> updateKillerPlayer(player));
     }
 
     public void clearKillerInfo() {
@@ -385,6 +430,7 @@ public class KillerPanel extends JPanel {
         playerRateLabel.setIcon(null);
         timesEncounteredValueLabel.setText(null);
         characterValueLabel.setText(null);
+        charValuePanel.setVisible(false);
         matchCountValueLabel.setText(null);
         timePlayedValueLabel.setText(null);
         userNotesEditButton.setVisible(false);
@@ -392,9 +438,7 @@ public class KillerPanel extends JPanel {
         toggleUserNotesAreaVisibility(false);
     }
 
-    private void updateKillerInfo(Player player) {
-        // first of all, save, in case there's unsaved data from previous player
-        dataService.save();
+    private void updateKillerPlayer(Player player) {
         killerPlayer = player;
 
         playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName() : "");
@@ -497,8 +541,15 @@ public class KillerPanel extends JPanel {
     public void updateKillerCharacter(String killerCharacter) {
         if (this.killerCharacter == null || !this.killerCharacter.equals(killerCharacter)) {
             this.killerCharacter = killerCharacter;
-            titleBarCharacterLabel.setText("(as " + killerCharacter + ")");
-            characterValueLabel.setText(killerCharacter);
+
+            if (showCharacter) {
+                titleBarCharacterLabel.setText(String.format(MSG_KILLER_CHARACTER, killerCharacter));
+                characterValueLabel.setText(killerCharacter);
+            }
+            else {
+                characterValueLabel.setText(BLACKED_OUT_KILLER_CHAR);
+            }
+            charValuePanel.setVisible(true);
             firePropertyChange(EVENT_NEW_KILLER_CHARACTER, null, killerCharacter);
         }
     }

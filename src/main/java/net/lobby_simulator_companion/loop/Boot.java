@@ -135,9 +135,7 @@ public class Boot {
                 Factory.getDebugPanel();
             }
             ui = Factory.getMainWindow();
-            ui.addPropertyChangeListener(ui.PROPERTY_EXIT_REQUEST, evt -> {
-                exitApplication(0);
-            });
+            ui.addPropertyChangeListener(ui.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
             logMonitor.addObserver(ui);
             logger.info(Factory.getAppProperties().get("app.name.short") + " is ready.");
         });
@@ -160,25 +158,10 @@ public class Boot {
         info.addActionListener(e -> {
             String message = ""
                     + appProperties.get("app.name.short") + " is a tool to provide Dead By Daylight players more information about the lobby hosts.\n\n"
-                    + "Features:\n"
-                    + "======\n"
-                    + "- Ping display:\n"
-                    + "      The ping against the lobby/match host will be displayed on the overlay.\n\n"
-                    + "- Rate user hosting the lobby/match:\n"
-                    + "      As soon as the host name is detected, hold Shift and click on the name.\n"
-                    + "      With every click, you will cycle between thumbs down, thumbs up and unrated.\n\n"
-                    + "- Attach a description to the lobby/match host:\n"
-                    + "      As soon as the host name is detected, right-click on the overlay to add/edit a description.\n\n"
-                    + "- Visit the host's Steam profile:\n"
-                    + "      As soon as the host name is detected, hold Shift and click on the Steam icon.\n"
-                    + "      It will attempt to open the default browser on the host's Steam profile page.\n\n"
-                    + "- Re-position the overlay:\n"
-                    + "    Double-click to lock/unlock the overlay for dragging.\n"
-                    + "\n"
                     + "Credits:\n"
-                    + "=====\n"
-                    + "Author of this fork: NickyRamone\n"
-                    + "Original version and core: MLGA project, by PsiLupan & ShadowMoose";
+                    + "=======\n"
+                    + "Author: NickyRamone\n"
+                    + "Based on the MLGA project, by PsiLupan & ShadowMoose";
 
             String title = appProperties.get("app.name") + " " + appProperties.get("app.version");
             JOptionPane.showMessageDialog(null, message, title, JOptionPane.INFORMATION_MESSAGE);
@@ -206,7 +189,9 @@ public class Boot {
         }
 
         logger.info("Terminated UI.");
-        connectionManager.close();
+        if (connectionManager != null) {
+            connectionManager.close();
+        }
 
         System.exit(status);
     }

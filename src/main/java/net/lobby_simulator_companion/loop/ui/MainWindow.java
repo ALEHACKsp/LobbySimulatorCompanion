@@ -87,10 +87,15 @@ public class MainWindow extends JFrame implements Observer {
             if (KillerPanel.EVENT_STRUCTURE_CHANGED.equals(propertyName)) {
                 pack();
             } else if (connected && KillerPanel.EVENT_NEW_KILLER_PLAYER.equals(propertyName)) {
-                connStatusLabel.setVisible(false);
-                killerInfoContainer.setVisible(true);
-                Player player = (Player) evt.getNewValue();
-                killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
+                if (settings.getExperimentalSwitch(1) || settings.getExperimentalSwitch(2)) {
+                    connStatusLabel.setVisible(false);
+                    killerInfoContainer.setVisible(true);
+                }
+
+                if (settings.getExperimentalSwitch(1)) {
+                    Player player = (Player) evt.getNewValue();
+                    killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
+                }
             } else if (connected && KillerPanel.EVENT_NEW_KILLER_CHARACTER.equals(propertyName)) {
                 String killerChar = (String) evt.getNewValue();
                 killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar));
@@ -162,6 +167,13 @@ public class MainWindow extends JFrame implements Observer {
         addMouseMotionListener(mouseMotionListener);
         setVisible(true);
         pack();
+
+        killerPanel.addPropertyChangeListener(evt -> {
+            if (evt.getPropertyName().equals(KillerPanel.EVENT_KILLER_CHARACTER_SHOW)) {
+                boolean show = (Boolean) evt.getNewValue();
+                killerCharLabel.setVisible(show);
+            }
+        });
     }
 
 
@@ -195,7 +207,7 @@ public class MainWindow extends JFrame implements Observer {
         killerPlayerValueLabel.setFont(font);
 
         killerCharLabel = new JLabel();
-        killerCharLabel.setBorder(border);
+        killerCharLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
         killerCharLabel.setForeground(Color.BLUE);
         killerCharLabel.setFont(font);
 
@@ -205,9 +217,7 @@ public class MainWindow extends JFrame implements Observer {
         killerInfoContainer.add(killerPlayerLabel);
         killerInfoContainer.add(killerPlayerValueLabel);
 
-        if (settings.getExperimentalSwitch(2)) {
-            killerInfoContainer.add(killerCharLabel);
-        }
+        killerInfoContainer.add(killerCharLabel);
         killerInfoContainer.setVisible(false);
 
         JLabel timerSeparatorLabel = new JLabel();
@@ -230,10 +240,7 @@ public class MainWindow extends JFrame implements Observer {
         connMsgPanel.add(appLabel);
         connMsgPanel.add(separatorLabel);
         connMsgPanel.add(connStatusLabel);
-
-        if (settings.getExperimentalSwitch(1)) {
-            connMsgPanel.add(killerInfoContainer);
-        }
+        connMsgPanel.add(killerInfoContainer);
         connMsgPanel.add(titleBarTimerContainer);
 
         JLabel switchOffButton = new JLabel();
@@ -380,21 +387,21 @@ public class MainWindow extends JFrame implements Observer {
         pack();
     }
 
-    public void startMatch() {
+    private void startMatch() {
         resetTimer();
         matchStartTime = System.currentTimeMillis();
         matchTimer.start();
         titleBarTimerContainer.setVisible(true);
     }
 
-    public void endMatch() {
+    private void endMatch() {
         matchTimer.stop();
-        resetTimer();
         int matchTime = getMatchDuration();
         if (matchTime >= MIN_MATCH_SECONDS) {
             killerPanel.updateKillerMatchTime(matchTime);
             killerPanel.updateMatchCount();
         }
+        resetTimer();
         matchStartTime = null;
     }
 

@@ -15,13 +15,14 @@ public class Server {
     private String isp;
     private Integer discoveryNumber;
     private long created;
-    private long lastUpdate;
+    private long lastSeen;
+    private int timesEncountered = 1;
 
 
     public Server(String address) {
         this.address = address;
         this.created = System.currentTimeMillis();
-        this.lastUpdate = created;
+        this.lastSeen = created;
     }
 
 
@@ -92,5 +93,18 @@ public class Server {
     public void setDiscoveryNumber(Integer discoveryNumber) {
         this.discoveryNumber = discoveryNumber;
     }
+
+    public int getTimesEncountered() {
+        return timesEncountered;
+    }
+
+    public void incrementTimesEncountered() {
+        this.timesEncountered++;
+    }
+
+    public void updateLastSeen() {
+        lastSeen = System.currentTimeMillis();
+    }
+
 
 }

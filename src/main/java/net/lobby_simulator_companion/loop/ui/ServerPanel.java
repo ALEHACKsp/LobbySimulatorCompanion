@@ -44,6 +44,7 @@ public class ServerPanel extends JPanel {
     private JLabel regionValueLabel;
     private JLabel cityValueLabel;
     private JLabel serverIdValueLabel;
+    private JLabel serverTimesValueLabel;
 
     private Server server;
 
@@ -152,12 +153,19 @@ public class ServerPanel extends JPanel {
         cityValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         cityValueLabel.setFont(font);
 
-        JLabel serverIdLabel = new JLabel("Encountered server #:", JLabel.RIGHT);
+        JLabel serverIdLabel = new JLabel("Server id:", JLabel.RIGHT);
         serverIdLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         serverIdLabel.setFont(font);
         serverIdValueLabel = new JLabel();
         serverIdValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
         serverIdValueLabel.setFont(font);
+
+        JLabel serverTimesLabel = new JLabel("Number of times used:", JLabel.RIGHT);
+        serverTimesLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
+        serverTimesLabel.setFont(font);
+        serverTimesValueLabel = new JLabel();
+        serverTimesValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
+        serverTimesValueLabel.setFont(font);
 
         container.add(countryLabel);
         container.add(countryValueLabel);
@@ -167,6 +175,8 @@ public class ServerPanel extends JPanel {
         container.add(cityValueLabel);
         container.add(serverIdLabel);
         container.add(serverIdValueLabel);
+        container.add(serverTimesLabel);
+        container.add(serverTimesValueLabel);
         container.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentShown(ComponentEvent e) {
@@ -198,6 +208,11 @@ public class ServerPanel extends JPanel {
                     server = serverDao.getByIpAddress(ipAddress);
                     dataService.addServer(server);
                 }
+                else {
+                    server.incrementTimesEncountered();
+                    server.updateLastSeen();
+                    dataService.notifyChange();
+                }
 
                 SwingUtilities.invokeLater(() -> updateServerPanel(this.server));
 
@@ -219,6 +234,7 @@ public class ServerPanel extends JPanel {
         cityValueLabel.setText(server.getCity());
         serverIdValueLabel.setText(server.getDiscoveryNumber() != null ?
                 String.valueOf(server.getDiscoveryNumber()) : null);
+        serverTimesValueLabel.setText(String.valueOf(server.getTimesEncountered()));
     }
 
     public void clearServer() {
@@ -229,6 +245,7 @@ public class ServerPanel extends JPanel {
         regionValueLabel.setText(null);
         cityValueLabel.setText(null);
         serverIdValueLabel.setText(null);
+        serverTimesValueLabel.setText(null);
     }
 
 
