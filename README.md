@@ -54,7 +54,7 @@ Short answer: No.
 While with these things you can never have a 100% guarantee, here's why you shouldn't get banned:
 1) This app does not modify or interact with DBD in any way.
 2) It's a completely external/independent desktop application, which does not hook to any Steam/DBD process.
-3) It only reads some network traffic for tracking connections but never sends or fiddle with any packets.
+3) It only reads some network traffic for tracking connections but never sends packets or fiddles with them.
 4) It doesn't alter the game mechanics in any way.
 5) It is based on the MLGA codebase, which it not banned by EAC, and running since 2016.
 6) The tool does nothing that you couldn't do manually. It just organizes and simplifies the information.
