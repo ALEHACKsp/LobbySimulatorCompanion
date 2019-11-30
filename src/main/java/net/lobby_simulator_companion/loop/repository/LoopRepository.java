@@ -69,8 +69,8 @@ public class LoopRepository {
         } catch (Exception e2) {
             throw new IOException("Failed to load data. File corrupt?", e2);
         }
-        logger.info("Loaded {} players and {} servers.",
-                loopData.getPlayers().size(), loopData.getServers().size());
+        logger.info("Loaded {} players.",
+                loopData.getPlayers().size());
 
         return loopData;
     }
@@ -78,8 +78,8 @@ public class LoopRepository {
 
     public void save(LoopData loopData) throws IOException {
         // Keep a rolling backup of the Peers file, for safety.
-        logger.debug("Saving data ({} players and {} servers)...",
-                loopData.getPlayers().size(), loopData.getServers().size());
+        logger.debug("Saving data ({} players)...",
+                loopData.getPlayers().size());
 
         if (this.saveFile.exists()) {
             FileUtil.saveFile(this.saveFile, "");

@@ -61,6 +61,8 @@ public class MainWindow extends JFrame implements Observer {
     private JLabel connStatusLabel;
     private JPanel killerInfoContainer;
     private JLabel killerPlayerValueLabel;
+    private JLabel killerPlayerRateLabel;
+    private JLabel killerPlayerNotesLabel;
     private JLabel killerCharLabel;
     private JPanel titleBarTimerContainer;
     private JLabel connTimerLabel;
@@ -86,19 +88,29 @@ public class MainWindow extends JFrame implements Observer {
 
             if (KillerPanel.EVENT_STRUCTURE_CHANGED.equals(propertyName)) {
                 pack();
-            } else if (connected && KillerPanel.EVENT_NEW_KILLER_PLAYER.equals(propertyName)) {
+            }
+            else if (connected && KillerPanel.EVENT_KILLER_UPDATE.equals(propertyName)) {
+                Player player = killerPanel.getKillerPlayer();
+
                 if (settings.getExperimentalSwitch(1) || settings.getExperimentalSwitch(2)) {
                     connStatusLabel.setVisible(false);
                     killerInfoContainer.setVisible(true);
                 }
 
-                if (settings.getExperimentalSwitch(1)) {
-                    Player player = (Player) evt.getNewValue();
-                    killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
+                String killerChar = killerPanel.getKillerCharacter();
+                killerCharLabel.setVisible(killerChar != null && killerPanel.isShowKillerCharacter());
+                if (killerChar != null) {
+                    killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar));
                 }
-            } else if (connected && KillerPanel.EVENT_NEW_KILLER_CHARACTER.equals(propertyName)) {
-                String killerChar = (String) evt.getNewValue();
-                killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar));
+
+                if (player != null) {
+                    if (settings.getExperimentalSwitch(1)) {
+                        killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
+                    }
+
+                    updateKillerRateOnTitleBar(player.getRating());
+                    killerPlayerNotesLabel.setVisible(player.getDescription() != null && !player.getDescription().isEmpty());
+                }
             }
         });
 
@@ -167,13 +179,21 @@ public class MainWindow extends JFrame implements Observer {
         addMouseMotionListener(mouseMotionListener);
         setVisible(true);
         pack();
+    }
 
-        killerPanel.addPropertyChangeListener(evt -> {
-            if (evt.getPropertyName().equals(KillerPanel.EVENT_KILLER_CHARACTER_SHOW)) {
-                boolean show = (Boolean) evt.getNewValue();
-                killerCharLabel.setVisible(show);
-            }
-        });
+    private void updateKillerRateOnTitleBar(Player.Rating rate) {
+        if (rate == Player.Rating.THUMBS_UP) {
+            killerPlayerRateLabel.setIcon(ResourceFactory.getThumbsUpIcon());
+            killerPlayerRateLabel.setVisible(true);
+        }
+        else if (rate == Player.Rating.THUMBS_DOWN) {
+            killerPlayerRateLabel.setIcon(ResourceFactory.getThumbsDownIcon());
+            killerPlayerRateLabel.setVisible(true);
+        }
+        else {
+            killerPlayerRateLabel.setIcon(null);
+            killerPlayerRateLabel.setVisible(false);
+        }
     }
 
 
@@ -197,14 +217,22 @@ public class MainWindow extends JFrame implements Observer {
 
         JLabel killerPlayerLabel = new JLabel();
         killerPlayerLabel.setBorder(border);
-        killerPlayerLabel.setForeground(Color.WHITE);
         killerPlayerLabel.setFont(font);
-        killerPlayerLabel.setText("Killer:");
+        killerPlayerLabel.setIcon(ResourceFactory.getSkullIcon());
 
         killerPlayerValueLabel = new JLabel();
         killerPlayerValueLabel.setBorder(border);
         killerPlayerValueLabel.setForeground(Color.BLUE);
         killerPlayerValueLabel.setFont(font);
+
+        killerPlayerRateLabel = new JLabel();
+        killerPlayerRateLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
+        killerPlayerRateLabel.setVisible(false);
+
+        killerPlayerNotesLabel = new JLabel();
+        killerPlayerNotesLabel.setVisible(false);
+        killerPlayerNotesLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
+        killerPlayerNotesLabel.setIcon(ResourceFactory.getEditIcon());
 
         killerCharLabel = new JLabel();
         killerCharLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
@@ -216,6 +244,8 @@ public class MainWindow extends JFrame implements Observer {
         killerInfoContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         killerInfoContainer.add(killerPlayerLabel);
         killerInfoContainer.add(killerPlayerValueLabel);
+        killerInfoContainer.add(killerPlayerRateLabel);
+        killerInfoContainer.add(killerPlayerNotesLabel);
 
         killerInfoContainer.add(killerCharLabel);
         killerInfoContainer.setVisible(false);

@@ -28,6 +28,7 @@ public final class ResourceFactory {
     private static final String HIDE_ICON_PATH = "/hide_icon.png";
     private static final String RATE_ICON_PATH = "/rate_icon.png";
     private static final String SHOW_ICON_PATH = "/show_icon.png";
+    private static final String SKULL_ICON_PATH = "/skull_icon.png";
     private static final String STEAM_ICON_PATH = "/steam_icon.png";
     private static final String SWITCH_OFF_ICON_PATH = "/switch-off_icon.png";
     private static final String THUMBS_DOWN_ICON_PATH = "/thumbs-down_icon.png";
@@ -42,6 +43,7 @@ public final class ResourceFactory {
     private static ImageIcon hideIcon;
     private static ImageIcon rateIcon;
     private static ImageIcon showIcon;
+    private static ImageIcon skullIcon;
     private static ImageIcon steamIcon;
     private static ImageIcon switchOffIcon;
     private static ImageIcon thumbsUpIcon;
@@ -80,7 +82,6 @@ public final class ResourceFactory {
 
         return icon;
     }
-
 
     public static ImageIcon getClearIcon() {
         return getIcon(clearIcon, CLEAR_ICON_PATH, "clear");
@@ -124,6 +125,10 @@ public final class ResourceFactory {
 
     public static ImageIcon getRateIcon() {
         return getIcon(rateIcon, RATE_ICON_PATH, "rate");
+    }
+
+    public static ImageIcon getSkullIcon() {
+        return getIcon(skullIcon, SKULL_ICON_PATH, "skull");
     }
 
     public static ImageIcon getSwitchOffIcon() {

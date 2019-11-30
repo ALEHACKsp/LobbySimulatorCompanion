@@ -39,9 +39,7 @@ import java.util.TimerTask;
 public class KillerPanel extends JPanel {
 
     public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
-    public static final String EVENT_NEW_KILLER_PLAYER = "new_killer_player";
-    public static final String EVENT_NEW_KILLER_CHARACTER = "new_killer_character";
-    public static final String EVENT_KILLER_CHARACTER_SHOW = "killer.character.show";
+    public static final String EVENT_KILLER_UPDATE = "killer.update";
 
     /**
      * When the user updates the killer player description, the change is not applied immediately
@@ -214,7 +212,7 @@ public class KillerPanel extends JPanel {
                     characterValueLabel.setText(BLACKED_OUT_KILLER_CHAR);
                 }
 
-                firePropertyChange(EVENT_KILLER_CHARACTER_SHOW, !showCharacter, showCharacter);
+                firePropertyChange(EVENT_KILLER_UPDATE, null, null);
             }
         });
 
@@ -329,6 +327,7 @@ public class KillerPanel extends JPanel {
                         killerPlayer.setDescription(notes);
                         userNotesUpdateTimer = null;
                         dataService.notifyChange();
+                        firePropertyChange(EVENT_KILLER_UPDATE, null, null);
                     }
                 }
             }, DESCRIPTION_UPDATE_DELAY_MS);
@@ -480,7 +479,7 @@ public class KillerPanel extends JPanel {
             toggleUserNotesAreaVisibility(true);
         }
 
-        firePropertyChange(EVENT_NEW_KILLER_PLAYER, null, player);
+        firePropertyChange(EVENT_KILLER_UPDATE, null, null);
     }
 
     public void updateKillerMatchTime(int matchSeconds) {
@@ -535,6 +534,7 @@ public class KillerPanel extends JPanel {
         }
         dataService.notifyChange();
         updateRating();
+        firePropertyChange(EVENT_KILLER_UPDATE, null, null);
     }
 
 
@@ -550,8 +550,20 @@ public class KillerPanel extends JPanel {
                 characterValueLabel.setText(BLACKED_OUT_KILLER_CHAR);
             }
             charValuePanel.setVisible(true);
-            firePropertyChange(EVENT_NEW_KILLER_CHARACTER, null, killerCharacter);
+            firePropertyChange(EVENT_KILLER_UPDATE, null, null);
         }
+    }
+
+    public Player getKillerPlayer() {
+        return killerPlayer;
+    }
+
+    public String getKillerCharacter() {
+        return killerCharacter;
+    }
+
+    public boolean isShowKillerCharacter() {
+        return showCharacter;
     }
 
 }

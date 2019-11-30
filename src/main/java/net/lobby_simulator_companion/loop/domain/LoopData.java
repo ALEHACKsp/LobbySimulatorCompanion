@@ -13,7 +13,6 @@ public class LoopData {
 
     private final int version = 2;
     private final List<Player> players = new ArrayList<>();
-    private final List<Server> servers = new ArrayList<>();
 
 
     public int getVersion() {
@@ -28,11 +27,4 @@ public class LoopData {
         this.players.addAll(players);
     }
 
-    public List<Server> getServers() {
-        return servers;
-    }
-
-    public void addServers(Collection<Server> servers) {
-        this.servers.addAll(servers);
-    }
 }

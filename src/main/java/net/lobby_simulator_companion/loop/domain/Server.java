@@ -13,16 +13,10 @@ public class Server {
     private Double latitude;
     private Double longitude;
     private String isp;
-    private Integer discoveryNumber;
-    private long created;
-    private long lastSeen;
-    private int timesEncountered = 1;
 
 
     public Server(String address) {
         this.address = address;
-        this.created = System.currentTimeMillis();
-        this.lastSeen = created;
     }
 
 
@@ -84,26 +78,6 @@ public class Server {
 
     public void setIsp(String isp) {
         this.isp = isp;
-    }
-
-    public Integer getDiscoveryNumber() {
-        return discoveryNumber;
-    }
-
-    public void setDiscoveryNumber(Integer discoveryNumber) {
-        this.discoveryNumber = discoveryNumber;
-    }
-
-    public int getTimesEncountered() {
-        return timesEncountered;
-    }
-
-    public void incrementTimesEncountered() {
-        this.timesEncountered++;
-    }
-
-    public void updateLastSeen() {
-        lastSeen = System.currentTimeMillis();
     }
 
 

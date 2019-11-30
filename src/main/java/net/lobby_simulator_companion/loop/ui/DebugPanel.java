@@ -94,7 +94,6 @@ public class DebugPanel extends JPanel {
         server.setCountry("some country");
         server.setRegion("some region");
         server.setCity("some city");
-        server.setDiscoveryNumber(10);
 
         return server;
     }

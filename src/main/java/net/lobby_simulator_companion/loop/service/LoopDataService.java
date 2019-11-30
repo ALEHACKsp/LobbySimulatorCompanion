@@ -2,15 +2,15 @@ package net.lobby_simulator_companion.loop.service;
 
 import net.lobby_simulator_companion.loop.domain.LoopData;
 import net.lobby_simulator_companion.loop.domain.Player;
-import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.util.*;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -26,7 +26,6 @@ public class LoopDataService {
 
     private final LoopRepository repository;
     private final Map<String, Player> players = new ConcurrentHashMap<>();
-    private final Map<String, Server> servers = new ConcurrentHashMap<>();
     private boolean dirty;
 
 
@@ -44,10 +43,6 @@ public class LoopDataService {
             players.put(player.getUID(), player);
         }
 
-        for (Server server : loopData.getServers()) {
-            servers.put(server.getAddress(), server);
-        }
-
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -61,21 +56,8 @@ public class LoopDataService {
         return players.get(steamId);
     }
 
-    public Server getServerByIpAddress(String ipAddress) {
-        return servers.get(ipAddress);
-    }
-
     public void addPlayer(String steamId, Player player) {
         players.put(steamId, player);
-        dirty = true;
-    }
-
-    public void addServer(Server server) {
-        if (server.getDiscoveryNumber() == null) {
-            server.setDiscoveryNumber(servers.size() + 1);
-        }
-
-        servers.put(server.getAddress(), server);
         dirty = true;
     }
 
@@ -90,7 +72,6 @@ public class LoopDataService {
 
         LoopData loopData = new LoopData();
         loopData.addPlayers(players.values().stream().collect(Collectors.toList()));
-        loopData.addServers(servers.values().stream().collect(Collectors.toList()));
         try {
             repository.save(loopData);
             dirty = false;
