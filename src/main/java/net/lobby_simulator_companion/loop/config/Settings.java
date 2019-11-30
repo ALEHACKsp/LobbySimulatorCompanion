@@ -18,7 +18,7 @@ import java.util.TimerTask;
  * A thread will periodically check to see if there are changes in memory that need to be stored in disk.
  * This thread will only perform a save to disk if no properties have been changed during a predefined interval.
  *
- * @author Nicky Ramone
+ * @author NickyRamone
  */
 public class Settings {
 
@@ -66,6 +66,16 @@ public class Settings {
         return value != null ? value : defaultValue;
     }
 
+    public int getInt(String key) {
+        return getInt(key, 0);
+    }
+
+    public int getInt(String key, int defaultValue) {
+        String val = globalSection.get(key);
+
+        return val != null ? Integer.parseInt(val) : defaultValue;
+    }
+
     public boolean getBoolean(String key) {
         return getBoolean(key, false);
     }
@@ -73,7 +83,7 @@ public class Settings {
     public boolean getBoolean(String key, boolean defaultValue) {
         String val = globalSection.get(key);
 
-        return val != null? Boolean.parseBoolean(val): defaultValue;
+        return val != null ? Boolean.parseBoolean(val) : defaultValue;
     }
 
     public boolean getExperimentalSwitch(int featureNum) {
@@ -85,7 +95,7 @@ public class Settings {
 
     public void set(String key, Object value) {
         String oldValue = get(key);
-        String newValue = (value == null || value instanceof String)? (String) value : String.valueOf(value);
+        String newValue = (value == null || value instanceof String) ? (String) value : String.valueOf(value);
 
         // only set it if the new value differs from the old one
         if (!Objects.equals(oldValue, newValue)) {
@@ -98,7 +108,13 @@ public class Settings {
     public void save() {
         int secondsElapsedSinceLastChange = (int) (System.currentTimeMillis() - lastChange) / 1000;
 
-        if (dirty && secondsElapsedSinceLastChange > SAVE_INTERVAL_SECONDS) {
+        if (secondsElapsedSinceLastChange > SAVE_INTERVAL_SECONDS) {
+            forceSave();
+        }
+    }
+
+    public void forceSave() {
+        if (dirty) {
             try {
                 logger.debug("Saving settings.");
                 ini.store();

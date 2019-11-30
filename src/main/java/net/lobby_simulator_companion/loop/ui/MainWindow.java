@@ -17,9 +17,6 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionAdapter;
-import java.awt.event.MouseMotionListener;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -71,9 +68,6 @@ public class MainWindow extends JFrame implements Observer {
     private JPanel detailPanel;
     private ServerPanel serverPanel;
     private KillerPanel killerPanel;
-    private MouseListener mouseListener;
-    private MouseMotionListener mouseMotionListener;
-    private boolean frameLocked = true;
 
 
     public MainWindow(Settings settings, ServerPanel serverPanel, KillerPanel killerPanel) {
@@ -88,56 +82,17 @@ public class MainWindow extends JFrame implements Observer {
 
             if (KillerPanel.EVENT_STRUCTURE_CHANGED.equals(propertyName)) {
                 pack();
-            }
-            else if (connected && KillerPanel.EVENT_KILLER_UPDATE.equals(propertyName)) {
-                Player player = killerPanel.getKillerPlayer();
-
-                if (settings.getExperimentalSwitch(1) || settings.getExperimentalSwitch(2)) {
-                    connStatusLabel.setVisible(false);
-                    killerInfoContainer.setVisible(true);
-                }
-
-                String killerChar = killerPanel.getKillerCharacter();
-                killerCharLabel.setVisible(killerChar != null && killerPanel.isShowKillerCharacter());
-                if (killerChar != null) {
-                    killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar));
-                }
-
-                if (player != null) {
-                    if (settings.getExperimentalSwitch(1)) {
-                        killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
-                    }
-
-                    updateKillerRateOnTitleBar(player.getRating());
-                    killerPlayerNotesLabel.setVisible(player.getDescription() != null && !player.getDescription().isEmpty());
-                }
+            } else if (connected && KillerPanel.EVENT_KILLER_UPDATE.equals(propertyName)) {
+                updateKillerOnTitleBar();
             }
         });
-
-        mouseListener = new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() >= 2) {
-                    frameLocked = !frameLocked;
-                    settings.set(SETTING__WINDOW_FRAME_X, getLocationOnScreen().x);
-                    settings.set(SETTING__WINDOW_FRAME_Y, getLocationOnScreen().y);
-                }
-            }
-        };
-        mouseMotionListener = new MouseMotionAdapter() {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                if (!frameLocked) {
-                    setLocation(e.getXOnScreen() - (getPreferredSize().width / 2), e.getYOnScreen() - 6);
-                }
-            }
-        };
 
         setAlwaysOnTop(true);
         setUndecorated(true);
         setOpacity(0.9f);
         setMinimumSize(MINIMUM_SIZE);
         setMaximumSize(MAXIMUM_SIZE);
+        setLocation(settings.getInt(SETTING__WINDOW_FRAME_X), settings.getInt(SETTING__WINDOW_FRAME_Y));
 
         titleBar = createTitleBar();
         messagePanel = createMessagePanel();
@@ -174,23 +129,52 @@ public class MainWindow extends JFrame implements Observer {
         container.add(titleBar);
         container.add(detailPanel);
 
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                Point frameLocation = getLocation();
+                settings.set(SETTING__WINDOW_FRAME_X, frameLocation.x);
+                settings.set(SETTING__WINDOW_FRAME_Y, frameLocation.y);
+            }
+        });
+
         setContentPane(container);
-        addMouseListener(mouseListener);
-        addMouseMotionListener(mouseMotionListener);
         setVisible(true);
         pack();
+    }
+
+
+    private void updateKillerOnTitleBar() {
+        Player player = killerPanel.getKillerPlayer();
+        connStatusLabel.setVisible(false);
+        killerInfoContainer.setVisible(true);
+
+        if (settings.getExperimentalSwitch(2)) {
+            String killerChar = killerPanel.getKillerCharacter();
+            killerCharLabel.setVisible(killerChar != null && killerPanel.isShowKillerCharacter());
+            if (killerChar != null) {
+                killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar));
+            }
+        }
+
+        if (player != null) {
+            if (settings.getExperimentalSwitch(1)) {
+                killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
+            }
+
+            updateKillerRateOnTitleBar(player.getRating());
+            killerPlayerNotesLabel.setVisible(player.getDescription() != null && !player.getDescription().isEmpty());
+        }
     }
 
     private void updateKillerRateOnTitleBar(Player.Rating rate) {
         if (rate == Player.Rating.THUMBS_UP) {
             killerPlayerRateLabel.setIcon(ResourceFactory.getThumbsUpIcon());
             killerPlayerRateLabel.setVisible(true);
-        }
-        else if (rate == Player.Rating.THUMBS_DOWN) {
+        } else if (rate == Player.Rating.THUMBS_DOWN) {
             killerPlayerRateLabel.setIcon(ResourceFactory.getThumbsDownIcon());
             killerPlayerRateLabel.setVisible(true);
-        }
-        else {
+        } else {
             killerPlayerRateLabel.setIcon(null);
             killerPlayerRateLabel.setVisible(false);
         }
@@ -226,16 +210,16 @@ public class MainWindow extends JFrame implements Observer {
         killerPlayerValueLabel.setFont(font);
 
         killerPlayerRateLabel = new JLabel();
-        killerPlayerRateLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
+        killerPlayerRateLabel.setBorder(new EmptyBorder(2, 0, 0, 5));
         killerPlayerRateLabel.setVisible(false);
 
         killerPlayerNotesLabel = new JLabel();
         killerPlayerNotesLabel.setVisible(false);
-        killerPlayerNotesLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
+        killerPlayerNotesLabel.setBorder(new EmptyBorder(2, 0, 0, 5));
         killerPlayerNotesLabel.setIcon(ResourceFactory.getEditIcon());
 
         killerCharLabel = new JLabel();
-        killerCharLabel.setBorder(new EmptyBorder(3, 0, 0, 5));
+        killerCharLabel.setBorder(new EmptyBorder(2, 0, 0, 5));
         killerCharLabel.setForeground(Color.BLUE);
         killerCharLabel.setFont(font);
 
@@ -272,6 +256,9 @@ public class MainWindow extends JFrame implements Observer {
         connMsgPanel.add(connStatusLabel);
         connMsgPanel.add(killerInfoContainer);
         connMsgPanel.add(titleBarTimerContainer);
+        MouseDragListener mouseDragListener = new MouseDragListener(this);
+        connMsgPanel.addMouseListener(mouseDragListener);
+        connMsgPanel.addMouseMotionListener(mouseDragListener);
 
         JLabel switchOffButton = new JLabel();
         switchOffButton.setBorder(border);
@@ -445,6 +432,7 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     public void close() {
+        settings.forceSave();
         dispose();
     }
 
