@@ -56,6 +56,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             {"Legion", "KK", "Legion"},
             {"Nightmare", "SD"},
             {"Nurse", "TN", "Nurse", "NR"},
+            {"Oni", "SwedenKiller"},
             {"Pig", "FK"},
             {"Plague", "MK", "Plague"},
             {"Shape", "MM"},
