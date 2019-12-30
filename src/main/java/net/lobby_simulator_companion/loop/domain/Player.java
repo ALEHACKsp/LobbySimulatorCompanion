@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class Player implements Serializable {
+public class Player implements Serializable, Cloneable {
 
     public enum Rating {
         @SerializedName("-1") THUMBS_DOWN,
@@ -20,8 +20,12 @@ public class Player implements Serializable {
 
     /**
      * The UID of this player, which is the user Steam Id.
+     * This comes from old MLGA. Kept for backwards compatibility for now.
      */
+    @Deprecated
     private String uid;
+
+    private String steamId64;
 
     private String dbdPlayerId;
 
@@ -45,6 +49,10 @@ public class Player implements Serializable {
     private int matchesPlayed;
 
     private int secondsPlayed;
+
+    private int escapes;
+
+    private int deaths;
 
     /**
      * The last Steam names used by this player.
@@ -70,13 +78,20 @@ public class Player implements Serializable {
         lastSeen = currentTime;
     }
 
-
     public String getUID() {
         return this.uid;
     }
 
     public void setUID(String uid) {
-        this.uid = uid.trim();
+        this.uid = uid != null ? uid.trim() : uid;
+    }
+
+    public String getSteamId64() {
+        return steamId64;
+    }
+
+    public void setSteamId64(String steamId64) {
+        this.steamId64 = steamId64.trim();
     }
 
     public String getDbdPlayerId() {
@@ -103,8 +118,8 @@ public class Player implements Serializable {
         return timesEncountered;
     }
 
-    public void setTimesEncountered(int timesEncountered) {
-        this.timesEncountered = timesEncountered;
+    public void incrementTimesEncountered() {
+        timesEncountered++;
     }
 
     public int getMatchesPlayed() {
@@ -117,6 +132,22 @@ public class Player implements Serializable {
 
     public int getSecondsPlayed() {
         return secondsPlayed;
+    }
+
+    public int getEscapesAgainst() {
+        return escapes;
+    }
+
+    public void incrementEscapes() {
+        escapes++;
+    }
+
+    public int getDeathsBy() {
+        return deaths;
+    }
+
+    public void incrementDeaths() {
+        deaths++;
     }
 
     public void incrementSecondsPlayed(int secondsPlayed) {
@@ -181,4 +212,28 @@ public class Player implements Serializable {
         this.description = description;
     }
 
+    @Override
+    public Player clone() {
+        Player clone = new Player();
+        clone.copyFrom(this);
+
+        return clone;
+    }
+
+    public void copyFrom(Player source) {
+        this.uid = source.uid;
+        this.steamId64 = source.steamId64;
+        this.timesEncountered = source.timesEncountered;
+        this.dbdPlayerId = source.dbdPlayerId;
+        this.names = new ArrayList<>(this.names);
+        this.description = source.description;
+        this.rating = source.rating;
+        this.matchesPlayed = source.matchesPlayed;
+        this.secondsPlayed = source.secondsPlayed;
+        this.escapes = source.escapes;
+        this.deaths = source.deaths;
+        this.firstSeen = source.firstSeen;
+        this.lastSeen = source.lastSeen;
+
+    }
 }

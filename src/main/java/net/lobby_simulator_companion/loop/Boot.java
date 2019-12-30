@@ -9,7 +9,6 @@ import net.lobby_simulator_companion.loop.service.DedicatedServerConnectionManag
 import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
 import net.lobby_simulator_companion.loop.service.SnifferListener;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
-import net.lobby_simulator_companion.loop.ui.NetworkInterfaceFrame;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PcapNativeException;
@@ -72,17 +71,18 @@ public class Boot {
         }
         setupTray();
 
-        logger.info("Setting up network interface...");
-        InetAddress localAddr;
-        if (settings.getBoolean(SETTING__NIF_AUTOLOAD, false)) {
-            localAddr = InetAddress.getByName(settings.get(SETTING__NIF_ADDRESS));
-        } else {
-            NetworkInterfaceFrame nifFrame = new NetworkInterfaceFrame(settings);
-            localAddr = nifFrame.getLocalAddr();
-        }
+        // TODO: I am removing the sniffer for now
+//        logger.info("Setting up network interface...");
+//        InetAddress localAddr;
+//        if (settings.getBoolean(SETTING__NIF_AUTOLOAD, false)) {
+//            localAddr = InetAddress.getByName(settings.get(SETTING__NIF_ADDRESS));
+//        } else {
+//            NetworkInterfaceFrame nifFrame = new NetworkInterfaceFrame(settings);
+//            localAddr = nifFrame.getLocalAddr();
+//        }
 
         initLogMonitor();
-        initConnectionManager(localAddr);
+//        initConnectionManager(localAddr);
         initUi();
     }
 
@@ -95,6 +95,7 @@ public class Boot {
         thread.start();
     }
 
+    // TODO: I have removed the sniffer for now
     private static void initConnectionManager(InetAddress localAddr) throws PcapNativeException, NotOpenException {
         if (!appProperties.getBoolean("debug")) {
             logger.info("Starting net traffic sniffer...");
@@ -108,7 +109,7 @@ public class Boot {
                     }
 
                     public void notifyMatchDisconnect() {
-                        SwingUtilities.invokeLater(() -> ui.disconnectFromMatch());
+//                        SwingUtilities.invokeLater(() -> ui.disconnectFromMatch());
                     }
 
                     @Override
@@ -135,7 +136,7 @@ public class Boot {
                 Factory.getDebugPanel();
             }
             ui = Factory.getMainWindow();
-            ui.addPropertyChangeListener(ui.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
+            ui.addPropertyChangeListener(MainWindow.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
             logMonitor.addObserver(ui);
             logger.info(Factory.getAppProperties().get("app.name.short") + " is ready.");
         });

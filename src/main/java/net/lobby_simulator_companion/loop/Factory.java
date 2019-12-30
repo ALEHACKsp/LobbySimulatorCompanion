@@ -12,9 +12,11 @@ import net.lobby_simulator_companion.loop.ui.DebugPanel;
 import net.lobby_simulator_companion.loop.ui.KillerPanel;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.ui.ServerPanel;
+import net.lobby_simulator_companion.loop.ui.StatsPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -127,27 +129,39 @@ public final class Factory {
 
     public static DbdLogMonitor getDbdLogMonitor() {
         return getInstance(DbdLogMonitor.class, unchecked(() ->
-                new DbdLogMonitor()));
+                getAppProperties().getBoolean("debug") ?
+                        new DbdLogMonitor(File.createTempFile("dbd-mock-log_", ".log"))
+                        : new DbdLogMonitor()));
     }
 
     public static MainWindow getMainWindow() {
         return getInstance(MainWindow.class, () ->
-                new MainWindow(getSettings(), getServerPanel(), getKillerPanel()));
+                new MainWindow(getSettings(), getLoopDataService(), getServerPanel(), getKillerPanel(), getStatsPanel()));
     }
 
     public static ServerPanel getServerPanel() {
         return getInstance(ServerPanel.class, () -> new ServerPanel(
-                getSettings(), getAppProperties(), getLoopDataService(), getServerDao()));
+                getSettings(), getAppProperties(), getServerDao()));
     }
 
     public static KillerPanel getKillerPanel() {
         return getInstance(KillerPanel.class, () ->
-                new KillerPanel(getSettings(), getAppProperties(), getLoopDataService(), getSteamProfileDao()));
+                new KillerPanel(getSettings(), getLoopDataService(), getSteamProfileDao()));
+    }
+
+    public static StatsPanel getStatsPanel() {
+        return getInstance(StatsPanel.class, () ->
+                new StatsPanel(getSettings(), getLoopDataService()));
     }
 
     public static DebugPanel getDebugPanel() {
-        return getInstance(DebugPanel.class, unchecked(() ->
-                new DebugPanel(getMainWindow(), getDbdLogMonitor())));
+        try {
+            return getInstance(DebugPanel.class, unchecked(() ->
+                    new DebugPanel(getDbdLogMonitor())));
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+
     }
 
 

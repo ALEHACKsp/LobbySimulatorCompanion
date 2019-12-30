@@ -2,6 +2,7 @@ package net.lobby_simulator_companion.loop.service;
 
 import net.lobby_simulator_companion.loop.domain.LoopData;
 import net.lobby_simulator_companion.loop.domain.Player;
+import net.lobby_simulator_companion.loop.domain.Stats;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,24 +26,31 @@ public class LoopDataService {
     private static final long SAVE_PERIOD_MS = 5000;
 
     private final LoopRepository repository;
+
+    private LoopData loopData;
     private final Map<String, Player> players = new ConcurrentHashMap<>();
     private boolean dirty;
 
 
     public LoopDataService(LoopRepository loopRepository) throws IOException {
         repository = loopRepository;
-        LoopData loopData;
         try {
             loopData = repository.load();
-        } catch (FileNotFoundException e1) {
+        } catch (FileNotFoundException e) {
             loopData = new LoopData();
             repository.save(loopData);
         }
 
         for (Player player : loopData.getPlayers()) {
-            players.put(player.getUID(), player);
+            if (player.getUID() != null && !player.getUID().isEmpty()) {
+                player.setSteamId64(player.getUID());
+                player.setUID(null);
+                dirty = true;
+            }
+            players.put(player.getSteamId64(), player);
         }
 
+        // schedule thread for saving dirty data
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -50,6 +58,10 @@ public class LoopDataService {
                 save();
             }
         }, SAVE_PERIOD_MS, SAVE_PERIOD_MS);
+    }
+
+    public Stats getStats() {
+        return loopData.getStats();
     }
 
     public Player getPlayerBySteamId(String steamId) {
@@ -70,7 +82,7 @@ public class LoopDataService {
             return;
         }
 
-        LoopData loopData = new LoopData();
+        loopData.getPlayers().clear();
         loopData.addPlayers(players.values().stream().collect(Collectors.toList()));
         try {
             repository.save(loopData);

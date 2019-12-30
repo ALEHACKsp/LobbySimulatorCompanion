@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.util;
+package net.lobby_simulator_companion.loop.ui.common;
 
 import java.awt.*;
 

@@ -1,13 +1,17 @@
 package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.Factory;
-import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
 import net.lobby_simulator_companion.loop.service.PlayerDto;
-import net.lobby_simulator_companion.loop.util.FontUtil;
+import net.lobby_simulator_companion.loop.ui.common.CollapsablePanel;
+import net.lobby_simulator_companion.loop.ui.common.Colors;
+import net.lobby_simulator_companion.loop.ui.common.FontUtil;
+import net.lobby_simulator_companion.loop.ui.common.NameValueInfoPanel;
+import net.lobby_simulator_companion.loop.ui.common.ResourceFactory;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +24,6 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
@@ -32,6 +34,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static net.lobby_simulator_companion.loop.ui.common.ComponentUtils.NO_BORDER;
+import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
+
 
 /**
  * @author NickyRamone
@@ -53,7 +59,23 @@ public class KillerPanel extends JPanel {
     private static final String BLACKED_OUT_KILLER_CHAR = "************";
     private static final Logger logger = LoggerFactory.getLogger(KillerPanel.class);
     private static final Font font = ResourceFactory.getRobotoFont();
-    private static final Border NO_BORDER = new EmptyBorder(0, 0, 0, 0);
+
+    private enum InfoType {
+        KILLER_CHARACTER("Character"),
+        KILLER_PLAYER_NAMES("Previous names seen"),
+        TIMES_ENCOUNTERED("Times encountered"),
+        MATCHES_AGAINST_PLAYER("Matches played against"),
+        TIME_PLAYED_AGAINST("Total time played against"),
+        ESCAPES_AGAINST("Total escapes against"),
+        DEATHS_BY("Times died against"),
+        NOTES("Your notes");
+
+        String description;
+
+        InfoType(String description) {
+            this.description = description;
+        }
+    }
 
     private Settings settings;
     private LoopDataService dataService;
@@ -64,25 +86,22 @@ public class KillerPanel extends JPanel {
     private JLabel playerSteamButton;
     private JLabel titleBarCharacterLabel;
     private JLabel playerRateLabel;
-    private JLabel detailCollapseButton;
     private JPanel detailsPanel;
+    private NameValueInfoPanel<InfoType> statsContainer;
     private JPanel charValuePanel;
     private JLabel characterValueLabel;
-    private JLabel otherNamesValueLabel;
-    private JLabel timesEncounteredValueLabel;
-    private JLabel matchCountValueLabel;
-    private JLabel timePlayedValueLabel;
     private JScrollPane userNotesPane;
     private JLabel userNotesEditButton;
     private JTextArea userNotesArea;
 
     private Player killerPlayer;
-    private String killerCharacter;
+    private Player killerPlayerBackup;
+    private Killer killerCharacter = Killer.UNIDENTIFIED;
     private Timer userNotesUpdateTimer;
     private boolean showCharacter;
 
 
-    public KillerPanel(Settings settings, AppProperties appProperties, LoopDataService dataService, SteamProfileDao steamProfileDao) {
+    public KillerPanel(Settings settings, LoopDataService dataService, SteamProfileDao steamProfileDao) {
         this.settings = settings;
         this.dataService = dataService;
         this.steamProfileDao = steamProfileDao;
@@ -91,8 +110,10 @@ public class KillerPanel extends JPanel {
         titleBar = createTitleBar();
         detailsPanel = createDetailsPanel();
 
-        add(titleBar);
-        add(detailsPanel);
+        JPanel collapsablePanel = new CollapsablePanel(titleBar, detailsPanel,
+                settings, "ui.panel.killer.collapsed");
+        collapsablePanel.addPropertyChangeListener(evt -> firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null));
+        add(collapsablePanel);
     }
 
     private JPanel createTitleBar() {
@@ -106,7 +127,9 @@ public class KillerPanel extends JPanel {
 
         playerRateLabel = new JLabel();
         playerRateLabel.setBorder(border);
-        playerRateLabel.setIcon(ResourceFactory.getRateIcon());
+        playerRateLabel.setIcon(ResourceFactory.getIcon(Icon.RATE));
+        playerRateLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        playerRateLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         playerRateLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -122,16 +145,17 @@ public class KillerPanel extends JPanel {
 
         playerSteamButton = new JLabel();
         playerSteamButton.setBorder(border);
-        playerSteamButton.setIcon(ResourceFactory.getSteamIcon());
+        playerSteamButton.setIcon(ResourceFactory.getIcon(Icon.STEAM));
         playerSteamButton.setToolTipText("Click to visit this Steam profile on your browser.");
         playerSteamButton.setVisible(false);
+        playerSteamButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         playerSteamButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
                 if (killerPlayer != null) {
                     try {
-                        String profileUrl = Factory.getAppProperties().get("steam.profile_url_prefix") + killerPlayer.getUID();
+                        String profileUrl = Factory.getAppProperties().get("steam.profile_url_prefix") + killerPlayer.getSteamId64();
                         Desktop.getDesktop().browse(new URL(profileUrl).toURI());
                     } catch (IOException e1) {
                         logger.error("Failed to open browser at Steam profile.");
@@ -145,16 +169,6 @@ public class KillerPanel extends JPanel {
         titleBarCharacterLabel = new JLabel();
         titleBarCharacterLabel.setBorder(border);
         titleBarCharacterLabel.setFont(font);
-
-        detailCollapseButton = new JLabel();
-        detailCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
-        detailCollapseButton.setBorder(border);
-        detailCollapseButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                detailsPanel.setVisible(!detailsPanel.isVisible());
-            }
-        });
 
         JPanel container = new JPanel();
         container.setPreferredSize(new Dimension(200, 25));
@@ -173,7 +187,6 @@ public class KillerPanel extends JPanel {
             container.add(titleBarCharacterLabel);
         }
         container.add(Box.createHorizontalGlue());
-        container.add(detailCollapseButton);
 
         return container;
     }
@@ -192,21 +205,22 @@ public class KillerPanel extends JPanel {
         showCharacter = settings.getBoolean("ui.panel.killer.character.show", false);
 
         JLabel hideCharButton = new JLabel();
+        hideCharButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         hideCharButton.setBorder(new EmptyBorder(0, 10, 0, 0));
-        ImageIcon icon = showCharacter ? ResourceFactory.getHideIcon() : ResourceFactory.getShowIcon();
+        ImageIcon icon = showCharacter ? ResourceFactory.getIcon(Icon.HIDE) : ResourceFactory.getIcon(Icon.SHOW);
         hideCharButton.setIcon(icon);
         hideCharButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 showCharacter = !showCharacter;
                 settings.set("ui.panel.killer.character.show", showCharacter);
-                ImageIcon icon = showCharacter ? ResourceFactory.getHideIcon() : ResourceFactory.getShowIcon();
+                ImageIcon icon = showCharacter ? ResourceFactory.getIcon(Icon.HIDE) : ResourceFactory.getIcon(Icon.SHOW);
                 hideCharButton.setIcon(icon);
                 titleBarCharacterLabel.setVisible(showCharacter);
 
                 if (showCharacter) {
-                    if (killerCharacter != null) {
-                        characterValueLabel.setText(killerCharacter);
+                    if (killerCharacter.isIdentified()) {
+                        characterValueLabel.setText(killerCharacter.alias());
                     }
                 } else {
                     characterValueLabel.setText(BLACKED_OUT_KILLER_CHAR);
@@ -222,40 +236,13 @@ public class KillerPanel extends JPanel {
         charValuePanel.add(hideCharButton);
         charValuePanel.setVisible(false);
 
-        JLabel otherNamesLabel = new JLabel("Previous names seen:", JLabel.RIGHT);
-        otherNamesLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
-        otherNamesLabel.setFont(font);
-        otherNamesValueLabel = new JLabel();
-        otherNamesValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
-        otherNamesValueLabel.setFont(font);
-
-        JLabel timesEncounteredLabel = new JLabel("Times encountered:", JLabel.RIGHT);
-        timesEncounteredLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
-        timesEncounteredLabel.setFont(font);
-        timesEncounteredValueLabel = new JLabel();
-        timesEncounteredValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
-        timesEncounteredValueLabel.setFont(font);
-
-        JLabel matchCountLabel = new JLabel("Matches played against:", JLabel.RIGHT);
-        matchCountLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
-        matchCountLabel.setFont(font);
-        matchCountValueLabel = new JLabel();
-        matchCountValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
-        matchCountValueLabel.setFont(font);
-
-        JLabel timePlayedLabel = new JLabel("Total time played against:", JLabel.RIGHT);
-        timePlayedLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
-        timePlayedLabel.setFont(font);
-        timePlayedValueLabel = new JLabel();
-        timePlayedValueLabel.setForeground(Colors.INFO_PANEL_VALUE_FOREGOUND);
-        timePlayedValueLabel.setFont(font);
-
         JLabel notesLabel = new JLabel("Your notes:", JLabel.RIGHT);
         notesLabel.setForeground(Colors.INFO_PANEL_NAME_FOREGROUND);
         notesLabel.setFont(font);
         userNotesEditButton = new JLabel();
-        userNotesEditButton.setIcon(ResourceFactory.getEditIcon());
+        userNotesEditButton.setIcon(ResourceFactory.getIcon(Icon.EDIT));
         userNotesEditButton.setToolTipText("Click to show/hide edit panel.");
+        userNotesEditButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         userNotesEditButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -264,27 +251,22 @@ public class KillerPanel extends JPanel {
         });
         userNotesEditButton.setVisible(false);
 
-        JPanel statsContainer = new JPanel();
-        statsContainer.setBackground(Colors.INFO_PANEL_BACKGROUND);
-        statsContainer.setLayout(new GridLayout(0, 2, 10, 5));
-
+        NameValueInfoPanel.Builder<InfoType> builder = new NameValueInfoPanel.Builder<>();
         if (settings.getExperimentalSwitch(2)) {
-            statsContainer.add(characterLabel);
-            statsContainer.add(charValuePanel);
+            builder.addField(InfoType.KILLER_CHARACTER,
+                    InfoType.KILLER_CHARACTER.description + ":", charValuePanel);
         }
-
         if (settings.getExperimentalSwitch(1)) {
-            statsContainer.add(otherNamesLabel);
-            statsContainer.add(otherNamesValueLabel);
+            builder.addField(InfoType.KILLER_PLAYER_NAMES,
+                    InfoType.KILLER_PLAYER_NAMES.description + ":");
         }
-        statsContainer.add(timesEncounteredLabel);
-        statsContainer.add(timesEncounteredValueLabel);
-        statsContainer.add(matchCountLabel);
-        statsContainer.add(matchCountValueLabel);
-        statsContainer.add(timePlayedLabel);
-        statsContainer.add(timePlayedValueLabel);
-        statsContainer.add(notesLabel);
-        statsContainer.add(userNotesEditButton);
+        builder.addField(InfoType.TIMES_ENCOUNTERED, InfoType.TIMES_ENCOUNTERED.description + ":");
+        builder.addField(InfoType.MATCHES_AGAINST_PLAYER, InfoType.MATCHES_AGAINST_PLAYER.description + ":");
+        builder.addField(InfoType.ESCAPES_AGAINST, InfoType.ESCAPES_AGAINST.description + ":");
+        builder.addField(InfoType.DEATHS_BY, InfoType.DEATHS_BY.description + ":");
+        builder.addField(InfoType.TIME_PLAYED_AGAINST, InfoType.TIME_PLAYED_AGAINST.description + ":");
+        builder.addField(InfoType.NOTES, InfoType.NOTES.description + ":", userNotesEditButton);
+        statsContainer = builder.build();
 
         JPanel container = new JPanel();
         container.setBackground(Colors.INFO_PANEL_BACKGROUND);
@@ -292,24 +274,6 @@ public class KillerPanel extends JPanel {
         container.add(statsContainer);
         container.add(Box.createVerticalStrut(10));
         container.add(createUserNotesPanel());
-        container.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentShown(ComponentEvent e) {
-                detailCollapseButton.setIcon(ResourceFactory.getCollapseIcon());
-                super.componentShown(e);
-                settings.set("ui.panel.killer.collapsed", false);
-                firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
-            }
-
-            @Override
-            public void componentHidden(ComponentEvent e) {
-                detailCollapseButton.setIcon(ResourceFactory.getExpandIcon());
-                super.componentHidden(e);
-                settings.set("ui.panel.killer.collapsed", true);
-                firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
-            }
-        });
-        container.setVisible(!settings.getBoolean("ui.panel.killer.collapsed"));
 
         return container;
     }
@@ -400,17 +364,17 @@ public class KillerPanel extends JPanel {
         if (storedPlayer == null) {
             logger.debug("User of id {} not found in the storage. Creating new entry...", steamId);
             player = new Player();
-            player.setUID(steamId);
+            player.setSteamId64(steamId);
             player.setDbdPlayerId(playerDto.getDbdId());
             player.addName(playerName);
-            player.setTimesEncountered(1);
+            player.incrementTimesEncountered();
             dataService.addPlayer(steamId, player);
         } else {
             logger.debug("User '{}' (id '{}') found in the storage. Updating entry...", playerName, steamId);
             player = storedPlayer;
             player.updateLastSeen();
             player.addName(playerName);
-            player.setTimesEncountered(storedPlayer.getTimesEncountered() + 1);
+            player.incrementTimesEncountered();
             dataService.notifyChange();
         }
 
@@ -420,18 +384,22 @@ public class KillerPanel extends JPanel {
 
     public void clearKillerInfo() {
         killerPlayer = null;
-        killerCharacter = null;
+        killerCharacter = Killer.UNIDENTIFIED;
         playerNameLabel.setText(null);
         playerSteamButton.setVisible(false);
-        otherNamesValueLabel.setText(null);
-        otherNamesValueLabel.setToolTipText(null);
+        if (settings.getExperimentalSwitch(1)) {
+            statsContainer.get(InfoType.KILLER_PLAYER_NAMES).setText(null);
+            statsContainer.get(InfoType.KILLER_PLAYER_NAMES).setToolTipText(null);
+        }
         titleBarCharacterLabel.setText(null);
         playerRateLabel.setIcon(null);
-        timesEncounteredValueLabel.setText(null);
+        statsContainer.get(InfoType.TIMES_ENCOUNTERED).setText(null);
         characterValueLabel.setText(null);
         charValuePanel.setVisible(false);
-        matchCountValueLabel.setText(null);
-        timePlayedValueLabel.setText(null);
+        statsContainer.get(InfoType.MATCHES_AGAINST_PLAYER).setText(null);
+        statsContainer.get(InfoType.ESCAPES_AGAINST).setText(null);
+        statsContainer.get(InfoType.DEATHS_BY).setText(null);
+        statsContainer.get(InfoType.TIME_PLAYED_AGAINST).setText(null);
         userNotesEditButton.setVisible(false);
         userNotesArea.setText("");
         toggleUserNotesAreaVisibility(false);
@@ -442,30 +410,36 @@ public class KillerPanel extends JPanel {
 
         playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName() : "");
         playerSteamButton.setVisible(true);
-        otherNamesValueLabel.setText(null);
-        otherNamesValueLabel.setToolTipText(null);
 
-        // show previous killer names
-        if (player.getNames().size() > 1) {
-            List<String> otherNames = new ArrayList<>(player.getNames());
-            Collections.reverse(otherNames);
+        if (settings.getExperimentalSwitch(1)) {
+            JLabel otherNamesValueLabel = statsContainer.get(InfoType.KILLER_PLAYER_NAMES);
+            otherNamesValueLabel.setText(null);
+            otherNamesValueLabel.setToolTipText(null);
 
-            // remove the first element (which corresponds to the current name)
-            otherNames.remove(0);
-            String previousName = otherNames.remove(0);
+            // show previous killer names
+            if (player.getNames().size() > 1) {
+                List<String> otherNames = new ArrayList<>(player.getNames());
+                Collections.reverse(otherNames);
 
-            if (!otherNames.isEmpty()) {
-                previousName = previousName + " ...";
-                String tooltip = String.join(", ", otherNames);
-                otherNamesValueLabel.setToolTipText(tooltip);
+                // remove the first element (which corresponds to the current name)
+                otherNames.remove(0);
+                String previousName = otherNames.remove(0);
+
+                if (!otherNames.isEmpty()) {
+                    previousName = previousName + " ...";
+                    String tooltip = String.join(", ", otherNames);
+                    otherNamesValueLabel.setToolTipText(tooltip);
+                }
+
+                otherNamesValueLabel.setText(previousName);
             }
-
-            otherNamesValueLabel.setText(previousName);
         }
 
-        timesEncounteredValueLabel.setText(String.valueOf(player.getTimesEncountered()));
-        matchCountValueLabel.setText(String.valueOf(player.getMatchesPlayed()));
-        timePlayedValueLabel.setText(TimeUtil.formatTimeElapsed(player.getSecondsPlayed()));
+        statsContainer.get(InfoType.TIMES_ENCOUNTERED).setText(String.valueOf(player.getTimesEncountered()));
+        statsContainer.get(InfoType.MATCHES_AGAINST_PLAYER).setText(String.valueOf(player.getMatchesPlayed()));
+        statsContainer.get(InfoType.ESCAPES_AGAINST).setText(String.valueOf(player.getEscapesAgainst()));
+        statsContainer.get(InfoType.DEATHS_BY).setText(String.valueOf(player.getDeathsBy()));
+        statsContainer.get(InfoType.TIME_PLAYED_AGAINST).setText(TimeUtil.formatTimeUpToHours(player.getSecondsPlayed()));
 
         playerRateLabel.setVisible(true);
         updateRating();
@@ -482,26 +456,9 @@ public class KillerPanel extends JPanel {
         firePropertyChange(EVENT_KILLER_UPDATE, null, null);
     }
 
-    public void updateKillerMatchTime(int matchSeconds) {
-        if (killerPlayer != null) {
-            killerPlayer.incrementSecondsPlayed(matchSeconds);
-            timePlayedValueLabel.setText(TimeUtil.formatTimeElapsed(killerPlayer.getSecondsPlayed()));
-            dataService.notifyChange();
-        }
-    }
-
     private void toggleUserNotesAreaVisibility(boolean visible) {
         userNotesPane.setVisible(visible);
         firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
-    }
-
-    public void updateMatchCount() {
-        if (killerPlayer == null) {
-            return;
-        }
-        killerPlayer.incrementMatchesPlayed();
-        matchCountValueLabel.setText(String.valueOf(killerPlayer.getMatchesPlayed()));
-        dataService.notifyChange();
     }
 
     private void updateRating() {
@@ -511,13 +468,13 @@ public class KillerPanel extends JPanel {
 
         Player.Rating peerRating = killerPlayer.getRating();
         if (peerRating == Player.Rating.UNRATED) {
-            playerRateLabel.setIcon(ResourceFactory.getRateIcon());
+            playerRateLabel.setIcon(ResourceFactory.getIcon(Icon.RATE));
             playerRateLabel.setToolTipText("This player is unrated. Click to rate.");
         } else if (peerRating == Player.Rating.THUMBS_DOWN) {
-            playerRateLabel.setIcon(ResourceFactory.getThumbsDownIcon());
+            playerRateLabel.setIcon(ResourceFactory.getIcon(Icon.THUMBS_DOWN));
             playerRateLabel.setToolTipText("This player is rated negative. Click to rate.");
         } else if (peerRating == Player.Rating.THUMBS_UP) {
-            playerRateLabel.setIcon(ResourceFactory.getThumbsUpIcon());
+            playerRateLabel.setIcon(ResourceFactory.getIcon(Icon.THUMBS_UP));
             playerRateLabel.setToolTipText("This player is rated positive. Click to rate.");
         }
     }
@@ -538,15 +495,14 @@ public class KillerPanel extends JPanel {
     }
 
 
-    public void updateKillerCharacter(String killerCharacter) {
-        if (this.killerCharacter == null || !this.killerCharacter.equals(killerCharacter)) {
-            this.killerCharacter = killerCharacter;
+    public void updateKillerCharacter(Killer killer) {
+        if (!this.killerCharacter.isIdentified() || !this.killerCharacter.equals(killer)) {
+            this.killerCharacter = killer;
 
             if (showCharacter) {
-                titleBarCharacterLabel.setText(String.format(MSG_KILLER_CHARACTER, killerCharacter));
-                characterValueLabel.setText(killerCharacter);
-            }
-            else {
+                titleBarCharacterLabel.setText(String.format(MSG_KILLER_CHARACTER, killer.alias()));
+                characterValueLabel.setText(killer.alias());
+            } else {
                 characterValueLabel.setText(BLACKED_OUT_KILLER_CHAR);
             }
             charValuePanel.setVisible(true);
@@ -558,12 +514,56 @@ public class KillerPanel extends JPanel {
         return killerPlayer;
     }
 
-    public String getKillerCharacter() {
+    public Killer getKillerCharacter() {
         return killerCharacter;
     }
 
     public boolean isShowKillerCharacter() {
         return showCharacter;
+    }
+
+    public void notifyEndOfMatch(int matchTime) {
+        if (killerPlayer != null) {
+            killerPlayer.incrementMatchesPlayed();
+            statsContainer.get(InfoType.MATCHES_AGAINST_PLAYER).setText(String.valueOf(killerPlayer.getMatchesPlayed()));
+        }
+
+        if (killerPlayer != null) {
+            killerPlayer.incrementSecondsPlayed(matchTime);
+            statsContainer.get(InfoType.TIME_PLAYED_AGAINST).setText(TimeUtil.formatTimeUpToHours(killerPlayer.getSecondsPlayed()));
+        }
+
+        dataService.notifyChange();
+        backupKillerPlayer();
+    }
+
+    public void backupKillerPlayer() {
+        if (killerPlayer != null) {
+            killerPlayerBackup = killerPlayer.clone();
+        }
+    }
+
+    public void restoreKillerPlayer() {
+        if (killerPlayer != null && killerPlayerBackup != null) {
+            killerPlayer.copyFrom(killerPlayerBackup);
+            dataService.notifyChange();
+            updateKillerPlayer(killerPlayer);
+        }
+    }
+
+
+    public void notifySurvivalAgainstCurrentKiller(Boolean escaped) {
+        if (killerPlayer == null || escaped == null) {
+            return;
+        }
+
+        if (escaped) {
+            killerPlayer.incrementEscapes();
+        } else {
+            killerPlayer.incrementDeaths();
+        }
+        dataService.notifyChange();
+        updateKillerPlayer(killerPlayer);
     }
 
 }

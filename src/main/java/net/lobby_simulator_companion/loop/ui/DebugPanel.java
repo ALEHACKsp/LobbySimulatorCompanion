@@ -1,11 +1,13 @@
 package net.lobby_simulator_companion.loop.ui;
 
-import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.service.PlayerDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -17,16 +19,14 @@ import java.util.Set;
  */
 public class DebugPanel extends JPanel {
 
-    private Set<Integer> connections = new HashSet<>();
-
-    private MainWindow mainPanel;
-    private DbdLogMonitor logMonitor;
+    private static final Logger logger = LoggerFactory.getLogger(ServerPanel.class);
     private JFrame frame;
+    private FileWriter logWriter;
 
 
-    public DebugPanel(MainWindow mainPanel, DbdLogMonitor logMonitor) throws Exception {
-        this.mainPanel = mainPanel;
-        this.logMonitor = logMonitor;
+    public DebugPanel(DbdLogMonitor logMonitor) throws Exception {
+        this.logWriter = new FileWriter(logMonitor.getLogFile());
+        logger.debug("Monitoring log file: {}", logMonitor.getLogFile());
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
         setOpaque(true);
@@ -36,76 +36,115 @@ public class DebugPanel extends JPanel {
          * will make other windows unclickable so we need to set it to false. */
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setBackground(Color.WHITE);
-        frame.setLayout(new GridLayout(0, 1, 10, 10));
         frame.setAlwaysOnTop(true);
-        addComponents();
         frame.pack();
         frame.setLocation(800, 300);
+        frame.setSize(new Dimension(400, 300));
         frame.setVisible(true);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        addComponents(contentPanel);
+
+        frame.setContentPane(contentPanel);
     }
 
-    private void addComponents() {
-        JButton button = new JButton("Reset");
-        button.addActionListener(e -> reset());
-        frame.add(button);
+    private void addComponents(JPanel container) {
+        JButton button;
 
-        JPanel connectionContainer = new JPanel();
-        connectionContainer.setLayout(new BoxLayout(connectionContainer, BoxLayout.X_AXIS));
-        button = new JButton("Connect");
-        button.addActionListener(e -> mainPanel.connectToMatch("1.2.3.4"));
-        connectionContainer.add(button);
+        JPanel connPanel = new JPanel();
+        connPanel.setLayout(new BoxLayout(connPanel, BoxLayout.X_AXIS));
+        container.add(connPanel);
+        button = new JButton("Search Match");
+        button.addActionListener(e -> simulateMatchSearch());
+        connPanel.add(button);
+        button = new JButton("Cancel Match Search");
+        button.addActionListener(e -> simulateMatchSearchCancel());
+        connPanel.add(button);
 
-        button = new JButton("Disconnect");
-        button.addActionListener(e -> mainPanel.disconnectFromMatch());
-        connectionContainer.add(button);
+        JPanel lobbyPanel = new JPanel();
+        lobbyPanel.setLayout(new BoxLayout(lobbyPanel, BoxLayout.X_AXIS));
+        container.add(lobbyPanel);
+        button = new JButton("Enter Lobby");
+        button.addActionListener(e -> simulateLobbyConnect());
+        lobbyPanel.add(button);
+        button = new JButton("Leave Lobby");
+        button.addActionListener(e -> simulateLobbyLeave());
+        lobbyPanel.add(button);
 
-        frame.add(connectionContainer);
+        JPanel matchPanel = new JPanel();
+        matchPanel.setLayout(new BoxLayout(matchPanel, BoxLayout.X_AXIS));
+        container.add(matchPanel);
+        button = new JButton("Start Match");
+        button.addActionListener(e -> simulateMatchStart());
+        matchPanel.add(button);
+        button = new JButton("End Match");
+        button.addActionListener(e -> simulateMatchEnd());
+        matchPanel.add(button);
 
+        JPanel serverPanel = new JPanel();
+        serverPanel.setLayout(new BoxLayout(serverPanel, BoxLayout.X_AXIS));
+        container.add(serverPanel);
+        button = new JButton("Connect to Server");
+        button.addActionListener(e -> simulateServerConnect());
+        serverPanel.add(button);
+        button = new JButton("Disconnect from Server");
+        button.addActionListener(e -> simulateServerDisconnect());
+        serverPanel.add(button);
 
-        button = new JButton("update server");
-        button.addActionListener(e -> mainPanel.updateServer(generateRandomServer()));
-        frame.add(button);
-
-        JPanel userContainer = new JPanel();
-        userContainer.setLayout(new GridLayout(0, 1, 10, 10));
-        button = new JButton("Detect killer A");
-        button.addActionListener(e -> simulateKillerUserUpdate());
-        userContainer.add(button);
-
-        button = new JButton("Detect killer B");
-        button.addActionListener(e -> simulateKillerUserUpdate());
-        userContainer.add(button);
-        frame.add(userContainer);
-
-        button = new JButton("Detect killer character A");
-        button.addActionListener(e -> simulateKillerCharUpdate());
-        userContainer.add(button);
-        frame.add(button);
+        JPanel killerPanel = new JPanel();
+        killerPanel.setLayout(new BoxLayout(killerPanel, BoxLayout.X_AXIS));
+        container.add(killerPanel);
+        button = new JButton("Detect Killer Player A");
+        button.addActionListener(e -> simulateNewKillerPlayer());
+        killerPanel.add(button);
     }
 
-    private void simulateKillerCharUpdate() {
-        String character = "Hillbilly";
-        DbdLogMonitor.Event event = new DbdLogMonitor.Event(DbdLogMonitor.Event.Type.KILLER_CHARACTER, character);
-        mainPanel.update(logMonitor, event);
+    private void simulateMatchSearch() {
+        writeLog("--- REQUEST: [POST https://latest.live.dbd.bhvronline.com/api/v1/queue] ---");
     }
 
-    private Server generateRandomServer() {
-        Server server = new Server("0.0.0.0");
-        server.setCountry("some country");
-        server.setRegion("some region");
-        server.setCity("some city");
-
-        return server;
+    private void simulateMatchSearchCancel() {
+        writeLog("--- RESPONSE: code 200, request [POST https://latest.live.dbd.bhvronline.com/api/v1/queue/cancel] ---");
     }
 
-    private void reset() {
-        connections.clear();
+    private void simulateServerConnect() {
+        writeLog("--- Browse: 35.159.49.240:7779//Game/Maps/OfflineLobby?UseDedicatedServer?GameType=0?... ---");
     }
 
-    private void simulateKillerUserUpdate() {
-        PlayerDto playerDto = new PlayerDto("76561198961125794", "ab-cd-ef");
-        DbdLogMonitor.Event event = new DbdLogMonitor.Event(DbdLogMonitor.Event.Type.KILLER_PLAYER, playerDto);
-        mainPanel.update(logMonitor, event);
+    private void simulateServerDisconnect() {
+        writeLog("--- FOnlineAsyncTaskMirrorsDestroyMatch ---");
+    }
+
+    private void simulateLobbyConnect() {
+        writeLog("--- AddSessionPlayer Session:GameSession PlayerId:1234abcde|12345 ---");
+    }
+
+    private void simulateLobbyLeave() {
+        simulateMatchSearchCancel();
+    }
+
+    private void simulateMatchStart() {
+        writeLog("--- //Game/Maps/ProceduralLevel ---");
+    }
+
+    private void simulateMatchEnd() {
+        writeLog("--- PUT https://latest.live.dbd.bhvronline.com/api/v1/softWallet/put/analytics ---");
+    }
+
+    private void simulateNewKillerPlayer() {
+        writeLog("--- AddSessionPlayer Session:GameSession PlayerId:ab-cd-ef|76561198961125794 ---");
+        writeLog("--- LogCustomization: --> CA_123 ---");
+    }
+
+
+    private void writeLog(String s) {
+        try {
+            logWriter.write(s + "\n");
+            logWriter.flush();
+        } catch (IOException e) {
+            logger.error("Failed to write to log file", e);
+        }
     }
 
 }

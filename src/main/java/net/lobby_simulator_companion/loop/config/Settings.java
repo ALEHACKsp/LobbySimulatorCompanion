@@ -23,7 +23,7 @@ import java.util.TimerTask;
 public class Settings {
 
     private static final Logger logger = LoggerFactory.getLogger(Settings.class);
-    private static final File SETTINGS_FILE = FileUtil.getLoopPath().resolve("loop.settings.ini").toFile();
+    private static final File SETTINGS_FILE = FileUtil.getLoopPath().resolve("loop.ini").toFile();
     private static final long SAVE_INTERVAL_SECONDS = 10;
 
     private final Wini ini;

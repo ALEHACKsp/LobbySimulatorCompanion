@@ -1,12 +1,14 @@
 # What is LOOP?
 
-LOOP (which comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") players have a better experience in the game,
-especially while waiting in the match lobbies. It is strongly oriented towards survivor players.
+LOOP (which comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") survivor players have a better experience in the game,
+especially while waiting in the match lobbies.
 
 LOOP can show you information about the server you are connecting to (such as the location), 
 as well as information about the killer (such as how many times you played against them or how much time you spent 
 playing against that person). It will let you rate the killer and even give you a space
 where to add your own personal notes.
+In addition to that, LOOP provides you with a bunch of statistics. Wonder how much time you spend on lobby queues vs. 
+actually playing? or how many times you survived today (or this week, or during year, etc.)? 
 
 
 # What does it look like?
@@ -14,8 +16,8 @@ Here's a sample screenshot:
 
 ![](docs/images/lobby_sample.png)
 
-You can see the LOOP bar showing the connection status; server information and killer information, in addition to our
-own personal notes. I have rated this killer as positive and added a note that says "Nice killer!". 
+You can see the LOOP bar showing the connection status, server information, killer information (in addition to your
+own personal notes for rating them) and a bunch of statistics that include survival info match times, and queue times. 
 
 
 # How to install?

@@ -2,22 +2,42 @@ package net.lobby_simulator_companion.loop.repository;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import net.lobby_simulator_companion.loop.config.AppProperties;
-import net.lobby_simulator_companion.loop.config.Settings;
+import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.LoopData;
+import net.lobby_simulator_companion.loop.domain.Stats;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.*;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -35,14 +55,15 @@ public class LoopRepository {
 
     private AppProperties properties;
     private File saveFile;
+    private File legacySaveFile;
     private final Gson gson;
     private final String jsonIndent;
 
 
     public LoopRepository(AppProperties properties) {
         this.properties = properties;
-        saveFile = Paths.get(properties.get("app.home"))
-                .resolve(properties.get("storage.file")).toFile();
+        saveFile = Paths.get(properties.get("app.home")).resolve(properties.get("storage.file")).toFile();
+        legacySaveFile = Paths.get(properties.get("app.home")).resolve(properties.get("storage.file.legacy")).toFile();
         GsonBuilder gsonBuilder = new GsonBuilder();
 
         if (properties.getBoolean(PROPERTY__WRITE_ENCRYPTED)) {
@@ -52,7 +73,26 @@ public class LoopRepository {
             jsonIndent = "    ";
         }
 
+        configureSerializers(gsonBuilder);
         gson = gsonBuilder.create();
+    }
+
+    private void configureSerializers(GsonBuilder gsonBuilder) {
+
+        JsonSerializer<LocalDateTime> dateTimeSerializer = (o, type, jsonSerializationContext) ->
+                new JsonPrimitive(o.toEpochSecond(OffsetDateTime.now().getOffset()));
+        JsonDeserializer<LocalDateTime> dateTimeDeserializer = (jsonElement, type, jsonDeserializationContext) ->
+                LocalDateTime.ofEpochSecond(jsonElement.getAsLong(), 0, OffsetDateTime.now().getOffset());
+        gsonBuilder.registerTypeAdapter(LocalDateTime.class, dateTimeSerializer);
+        gsonBuilder.registerTypeAdapter(LocalDateTime.class, dateTimeDeserializer);
+
+        // Gson serializes map keys using toString()
+        JsonDeserializer<Killer> killerDeserializer = (jsonElement, type, context) ->
+                Killer.valueOf(jsonElement.getAsString().toUpperCase());
+        gsonBuilder.registerTypeAdapter(Killer.class, killerDeserializer);
+
+        gsonBuilder.registerTypeAdapter(Stats.class, new Stats.Serializer());
+        gsonBuilder.registerTypeAdapter(Stats.class, new Stats.Deserializer());
     }
 
 
@@ -62,8 +102,10 @@ public class LoopRepository {
 
         try {
             Cipher cipher = getCipher(true);
-            JsonReader reader = createJsonReader(cipher);
+            File dataFile = saveFile.exists() ? saveFile : legacySaveFile;
+            JsonReader reader = createJsonReader(dataFile, cipher);
             loopData = gson.fromJson(reader, LoopData.class);
+            reader.close();
         } catch (FileNotFoundException e1) {
             throw e1;
         } catch (Exception e2) {
@@ -92,12 +134,12 @@ public class LoopRepository {
     }
 
 
-    private JsonReader createJsonReader(Cipher cipher) throws IOException {
+    private JsonReader createJsonReader(File file, Cipher cipher) throws IOException {
         InputStream inputStream;
 
         if (properties.getBoolean(PROPERTY__READ_ENCRYPTED)) {
             CipherInputStream decStream;
-            FileInputStream fis = new FileInputStream(saveFile);
+            FileInputStream fis = new FileInputStream(file);
             try {
                 decStream = new CipherInputStream(fis, cipher);
             } catch (Exception e) {
@@ -106,10 +148,10 @@ public class LoopRepository {
             }
             inputStream = new GZIPInputStream(decStream);
         } else {
-            inputStream = new FileInputStream(saveFile);
+            inputStream = new FileInputStream(file);
         }
 
-        return new JsonReader(new InputStreamReader(inputStream, "UTF-8"));
+        return gson.newJsonReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
     }
 
 
@@ -129,7 +171,7 @@ public class LoopRepository {
             outputStream = new FileOutputStream(this.saveFile.getAbsolutePath());
         }
 
-        return new JsonWriter(new OutputStreamWriter(outputStream, "UTF-8"));
+        return gson.newJsonWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
     }
 
 
