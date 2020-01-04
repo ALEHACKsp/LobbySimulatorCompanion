@@ -77,7 +77,6 @@ public class MainWindow extends JFrame implements Observer {
 
     private AppProperties appProperties = Factory.getAppProperties();
     private GameState gameState = GameState.IDLE;
-    private boolean connected;
     private Timer matchWaitTimer;
     private int waitTime;
     private Timer matchTimer;
@@ -477,7 +476,6 @@ public class MainWindow extends JFrame implements Observer {
         }
         logger.debug("Event: lobby join");
         matchWaitTimer.stop();
-        connected = true;
         connStatusLabel.setText(MSG_CONNECTED);
         killerPanel.clearKillerInfo();
         survivalInputPanel.setVisible(false);
@@ -555,7 +553,6 @@ public class MainWindow extends JFrame implements Observer {
         if (gameState != GameState.IN_MATCH && gameState != GameState.AFTER_MATCH) {
             return;
         }
-        connected = false;
         turnToIdle();
         pack();
     }
@@ -611,6 +608,7 @@ public class MainWindow extends JFrame implements Observer {
         private Timer timer;
 
         private enum SelectionState {NONE, ESCAPED, DIED, IGNORE}
+
         private SelectionState selectionState = SelectionState.NONE;
 
         SurvivalInputPanel(StatsPanel statsPanel, KillerPanel killerPanel) {

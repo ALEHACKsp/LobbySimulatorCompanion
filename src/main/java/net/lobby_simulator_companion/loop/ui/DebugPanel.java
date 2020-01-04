@@ -8,8 +8,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * A panel for debugging purposes.
@@ -96,7 +94,10 @@ public class DebugPanel extends JPanel {
         killerPanel.setLayout(new BoxLayout(killerPanel, BoxLayout.X_AXIS));
         container.add(killerPanel);
         button = new JButton("Detect Killer Player A");
-        button.addActionListener(e -> simulateNewKillerPlayer());
+        button.addActionListener(e -> simulateNewKillerPlayer(1));
+        killerPanel.add(button);
+        button = new JButton("Detect Killer Player B");
+        button.addActionListener(e -> simulateNewKillerPlayer(2));
         killerPanel.add(button);
     }
 
@@ -132,8 +133,12 @@ public class DebugPanel extends JPanel {
         writeLog("--- PUT https://latest.live.dbd.bhvronline.com/api/v1/softWallet/put/analytics ---");
     }
 
-    private void simulateNewKillerPlayer() {
-        writeLog("--- AddSessionPlayer Session:GameSession PlayerId:ab-cd-ef|76561198961125794 ---");
+    private void simulateNewKillerPlayer(int id) {
+        if (id == 1) {
+            writeLog("--- AddSessionPlayer Session:GameSession PlayerId:ab-cd-ef-1|76561198961125794 ---");
+        } else if (id == 2) {
+            writeLog("--- AddSessionPlayer Session:GameSession PlayerId:ab-cd-ef-2|76561198977148626 ---");
+        }
         writeLog("--- LogCustomization: --> CA_123 ---");
     }
 

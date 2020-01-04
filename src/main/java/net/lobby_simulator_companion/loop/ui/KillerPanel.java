@@ -317,7 +317,10 @@ public class KillerPanel extends JPanel {
             @Override
             public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                     throws BadLocationException {
-                if (fb.getDocument().getLength() + text.length() <= MAX_KILLER_DESCRIPTION_SIZE) {
+
+                int textLen = text != null ? text.length() : 0;
+
+                if (fb.getDocument().getLength() + textLen <= MAX_KILLER_DESCRIPTION_SIZE) {
                     super.replace(fb, offset, length, text, attrs);
                     deferDescriptionUpdate();
                 }
