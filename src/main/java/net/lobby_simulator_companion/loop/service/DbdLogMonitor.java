@@ -41,7 +41,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final String DEFAULT_LOG_PATH = "Local/DeadByDaylight/Saved/Logs/DeadByDaylight.log";
     private static final File DEFAULT_LOG_FILE = USER_APPDATA_PATH.resolve(DEFAULT_LOG_PATH).toFile();
 
-    private static final String REGEX__LOBBY_ADD_PLAYER = "AddSessionPlayer Session:GameSession PlayerId:([0-9a-f\\-]+)\\|([0-9]+)";
+    private static final String REGEX__LOBBY_ADD_PLAYER = "AddSessionPlayer.*Session:GameSession PlayerId:([0-9a-f\\-]+)\\|([0-9]+)";
     private static final Pattern PATTERN__LOBBY_ADD_PLAYER = Pattern.compile(REGEX__LOBBY_ADD_PLAYER);
 
     private static final String REGEX__KILLER_OUTFIT = "LogCustomization: --> ([a-zA-Z0-9]+)_[a-zA-Z0-9]+";
@@ -51,6 +51,13 @@ public class DbdLogMonitor extends Observable implements Runnable {
             "Browse: ([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}):([0-9]{1,5})"
                     + "//Game/Maps/OfflineLobby\\?UseDedicatedServer";
     private static final Pattern PATTERN__SERVER_CONNECT = Pattern.compile(REGEX__SERVER_CONNECT);
+
+    private static final String REGEX__MATCH_WAIT = "(POST https://.+?/api/v1/queue\\])|"
+            + "(\\[PartyContextComponent::UpdateReadyButtonStateInfo\\] Ready button updated : 1)";
+    private static final Pattern PATTERN__MATCH_WAIT = Pattern.compile(REGEX__MATCH_WAIT);
+
+    private static final String REGEX__MATCH_WAIT_CANCEL = "(RESPONSE: code 200.+?POST https://.+?/api/v1/queue/cancel\\])|(\\[UPartyFacade::LeaveParty\\])";
+    private static final Pattern PATTERN__MATCH_WAIT_CANCEL = Pattern.compile(REGEX__MATCH_WAIT_CANCEL);
 
 
     private static final Map<Killer, String[]> KILLER_TO_OUTFIT_MAPPING = Stream.of(new Object[][]{
@@ -85,7 +92,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
             MATCH_WAIT,
             MATCH_WAIT_CANCEL,
             SERVER_CONNECT,
-            LOBBY_JOIN,
             MATCH_START,
             MATCH_END,
             KILLER_PLAYER,
@@ -117,6 +123,14 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private PlayerDto lastPlayer;
     private PlayerDto lastKillerPlayer;
     private Killer lastKiller;
+
+
+    public static void main(String[] args) {
+        String i = "--- RESPONSE: code 200, request [POST https://latest.live.dbd.bhvronline.com/api/v1/queue/cancel] ---";
+        Matcher  m = PATTERN__MATCH_WAIT_CANCEL.matcher(i);
+
+        System.out.println(m.find());
+    }
 
 
     public DbdLogMonitor() throws IOException {
@@ -256,34 +270,34 @@ public class DbdLogMonitor extends Observable implements Runnable {
         logger.debug("Detected user connecting to lobby. dbd-id: {}; steam-id: {}", dbdPlayerId, steamUserId);
         lastPlayer = new PlayerDto(steamUserId, dbdPlayerId);
 
-        Event event = new Event(Event.Type.LOBBY_JOIN, null);
+        return true;
+    }
+
+
+    private Boolean checkForMatchWait(String logLine) {
+        Matcher matcher = PATTERN__MATCH_WAIT.matcher(logLine);
+        if (!matcher.find()) {
+            return false;
+        }
+
+        Event event = new Event(Event.Type.MATCH_WAIT, null);
         setChanged();
         notifyObservers(event);
 
         return true;
     }
 
-
-    private Boolean checkForMatchWait(String logLine) {
-        if (logLine.contains("REQUEST: [POST https://latest.live.dbd.bhvronline.com/api/v1/queue]")
-                || logLine.contains("[PartyContextComponent::UpdateReadyButtonStateInfo] Ready button updated : 1")) {
-            Event event = new Event(Event.Type.MATCH_WAIT, null);
-            setChanged();
-            notifyObservers(event);
-            return true;
-        }
-        return false;
-    }
-
     private Boolean checkForMatchWaitCancel(String logLine) {
-        if (logLine.contains("RESPONSE: code 200, request [POST https://latest.live.dbd.bhvronline.com/api/v1/queue/cancel]")
-                || logLine.contains("[UPartyFacade::LeaveParty]")) {
-            Event event = new Event(Event.Type.MATCH_WAIT_CANCEL, null);
-            setChanged();
-            notifyObservers(event);
-            return true;
+        Matcher matcher = PATTERN__MATCH_WAIT_CANCEL.matcher(logLine);
+        if (!matcher.find()) {
+            return false;
         }
-        return false;
+
+        Event event = new Event(Event.Type.MATCH_WAIT_CANCEL, null);
+        setChanged();
+        notifyObservers(event);
+
+        return true;
     }
 
     private Boolean checkForMatchStart(String logLine) {

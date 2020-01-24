@@ -63,9 +63,6 @@ public class DebugPanel extends JPanel {
         JPanel lobbyPanel = new JPanel();
         lobbyPanel.setLayout(new BoxLayout(lobbyPanel, BoxLayout.X_AXIS));
         container.add(lobbyPanel);
-        button = new JButton("Enter Lobby");
-        button.addActionListener(e -> simulateLobbyConnect());
-        lobbyPanel.add(button);
         button = new JButton("Leave Lobby");
         button.addActionListener(e -> simulateLobbyLeave());
         lobbyPanel.add(button);
@@ -117,10 +114,6 @@ public class DebugPanel extends JPanel {
         writeLog("--- FOnlineAsyncTaskMirrorsDestroyMatch ---");
     }
 
-    private void simulateLobbyConnect() {
-        writeLog("--- AddSessionPlayer Session:GameSession PlayerId:1234abcde|12345 ---");
-    }
-
     private void simulateLobbyLeave() {
         simulateMatchSearchCancel();
     }
@@ -135,9 +128,9 @@ public class DebugPanel extends JPanel {
 
     private void simulateNewKillerPlayer(int id) {
         if (id == 1) {
-            writeLog("--- AddSessionPlayer Session:GameSession PlayerId:ab-cd-ef-1|76561198961125794 ---");
+            writeLog("--- Mirrors: [FOnlineSessionMirrors::AddSessionPlayer] Session:GameSession PlayerId:ab-cd-ef-1|76561198961125794 ---");
         } else if (id == 2) {
-            writeLog("--- AddSessionPlayer Session:GameSession PlayerId:ab-cd-ef-2|76561198977148626 ---");
+            writeLog("--- Mirrors: [FOnlineSessionMirrors::AddSessionPlayer] Session:GameSession PlayerId:ab-cd-ef-2|76561198977148626 ---");
         }
         writeLog("--- LogCustomization: --> CA_123 ---");
     }

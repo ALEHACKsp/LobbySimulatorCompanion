@@ -388,9 +388,6 @@ public class MainWindow extends JFrame implements Observer {
                 case SERVER_CONNECT:
                     action = () -> notifyServerConnect(((InetSocketAddress) event.argument).getHostName());
                     break;
-                case LOBBY_JOIN:
-                    action = this::notifyLobbyJoin;
-                    break;
                 case KILLER_PLAYER:
                     action = () -> notifyNewKillerPlayer((PlayerDto) event.argument);
                     break;
@@ -468,6 +465,7 @@ public class MainWindow extends JFrame implements Observer {
 
     private void notifyServerConnect(String serverAddress) {
         connectToMatch(serverAddress);
+        notifyLobbyJoin();
     }
 
     private void notifyLobbyJoin() {
