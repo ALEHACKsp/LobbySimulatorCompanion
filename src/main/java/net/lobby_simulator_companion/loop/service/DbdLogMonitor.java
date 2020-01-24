@@ -48,7 +48,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final Pattern PATTERN__KILLER_OUTFIT = Pattern.compile(REGEX__KILLER_OUTFIT);
 
     private static final String REGEX__SERVER_CONNECT =
-            "Browse: ([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}):([0-9]{1,5})"
+            "Browse: ([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})(?::([0-9]{1,5}))?"
                     + "//Game/Maps/OfflineLobby\\?UseDedicatedServer";
     private static final Pattern PATTERN__SERVER_CONNECT = Pattern.compile(REGEX__SERVER_CONNECT);
 
@@ -212,7 +212,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
         }
 
         String serverAddress = matcher.group(1);
-        int serverPort = Integer.valueOf(matcher.group(2));
+        int serverPort = matcher.group(2) != null? Integer.valueOf(matcher.group(2)): 0;
         Event event = new Event(Event.Type.SERVER_CONNECT,
                 InetSocketAddress.createUnresolved(serverAddress, serverPort));
         setChanged();
