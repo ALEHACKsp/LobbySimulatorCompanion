@@ -56,7 +56,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             + "(\\[PartyContextComponent::UpdateReadyButtonStateInfo\\] Ready button updated : 1)";
     private static final Pattern PATTERN__MATCH_WAIT = Pattern.compile(REGEX__MATCH_WAIT);
 
-    private static final String REGEX__MATCH_WAIT_CANCEL = "(RESPONSE: code 200.+?POST https://.+?/api/v1/queue/cancel\\])|(\\[UPartyFacade::LeaveParty\\])";
+    private static final String REGEX__MATCH_WAIT_CANCEL = "RESPONSE: code 200.+?POST https://.+?/api/v1/queue/cancel\\]";
     private static final Pattern PATTERN__MATCH_WAIT_CANCEL = Pattern.compile(REGEX__MATCH_WAIT_CANCEL);
 
 
@@ -127,7 +127,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
     public static void main(String[] args) {
         String i = "--- RESPONSE: code 200, request [POST https://latest.live.dbd.bhvronline.com/api/v1/queue/cancel] ---";
-        Matcher  m = PATTERN__MATCH_WAIT_CANCEL.matcher(i);
+        Matcher m = PATTERN__MATCH_WAIT_CANCEL.matcher(i);
 
         System.out.println(m.find());
     }
@@ -212,7 +212,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
         }
 
         String serverAddress = matcher.group(1);
-        int serverPort = matcher.group(2) != null? Integer.valueOf(matcher.group(2)): 0;
+        int serverPort = matcher.group(2) != null ? Integer.valueOf(matcher.group(2)) : 0;
         Event event = new Event(Event.Type.SERVER_CONNECT,
                 InetSocketAddress.createUnresolved(serverAddress, serverPort));
         setChanged();
@@ -289,7 +289,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
     private Boolean checkForMatchWaitCancel(String logLine) {
         Matcher matcher = PATTERN__MATCH_WAIT_CANCEL.matcher(logLine);
-        if (!matcher.find()) {
+        if (!matcher.find() && !logLine.contains("[MirrorsSocialPresence::DestroyParty]")
+                && !logLine.contains("[PartyContextComponent::OnQuickmatchComplete] result : UnknownError")) {
             return false;
         }
 
@@ -331,6 +332,12 @@ public class DbdLogMonitor extends Observable implements Runnable {
             return true;
         }
         return false;
+    }
+
+    public void resetKiller() {
+        lastPlayer = null;
+        lastKillerPlayer = null;
+        lastKiller = null;
     }
 
     public File getLogFile() {

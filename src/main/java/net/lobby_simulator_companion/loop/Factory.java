@@ -136,7 +136,8 @@ public final class Factory {
 
     public static MainWindow getMainWindow() {
         return getInstance(MainWindow.class, () ->
-                new MainWindow(getSettings(), getLoopDataService(), getServerPanel(), getKillerPanel(), getStatsPanel()));
+                new MainWindow(getSettings(), getDbdLogMonitor(), getLoopDataService(),
+                        getServerPanel(), getKillerPanel(), getStatsPanel()));
     }
 
     public static ServerPanel getServerPanel() {

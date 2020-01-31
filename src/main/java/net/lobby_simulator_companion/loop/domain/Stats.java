@@ -56,6 +56,14 @@ public class Stats {
         periodsStats[period.ordinal()] = periodStats;
     }
 
+    public void incrementLobbiesFound() {
+        Arrays.stream(periodsStats).forEach(s -> s.incrementLobbiesFound());
+    }
+
+    public void incrementSecondsInQueue(int seconds) {
+        Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsQueued(seconds));
+    }
+
     public void incrementMatchesPlayed(Killer killer) {
         Arrays.stream(periodsStats).forEach(s -> s.incrementMatchesPlayed(killer));
     }

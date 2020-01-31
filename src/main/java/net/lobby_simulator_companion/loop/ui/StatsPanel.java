@@ -11,17 +11,28 @@ import net.lobby_simulator_companion.loop.ui.common.ComponentUtils;
 import net.lobby_simulator_companion.loop.ui.common.NameValueInfoPanel;
 import net.lobby_simulator_companion.loop.ui.common.ResourceFactory;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
+import sun.misc.JavaLangAccess;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static net.lobby_simulator_companion.loop.domain.Stats.Period;
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
 
@@ -36,27 +47,31 @@ public class StatsPanel extends JPanel {
 
     private enum StatType {
         MATCHES_PLAYED("Matches played"),
-        TIME_PLAYED("Time played"),
-        TIME_WAITED("Time waited"),
-        AVG_TIME_PER_MATCH("Average time per match"),
-        AVG_WAIT_TIME_PER_MATCH("Average wait time per match"),
+        TIME_PLAYED("Total play time", "time since the match started until you died or escaped"),
+        TIME_QUEUED("Total queue time", "time waiting for a lobby"),
+        TIME_WAITED("Total wait time", "time since you started searching for match until match started"),
+        AVG_MATCH_DURATION("Average match duration"),
+        AVG_QUEUE_TIME("Average queue time"),
+        AVG_MATCH_WAIT_TIME("Average match wait time"),
         MATCHES_SUBMITTED("Matches submitted"),
         ESCAPES("Escapes"),
-        ESCAPES_IN_A_ROW("Escapes in a row"),
-        MAX_ESCAPES_IN_A_ROW("Max. escapes in a row"),
+        ESCAPES_IN_A_ROW("Escapes in a row - streak"),
+        MAX_ESCAPES_IN_A_ROW("Escapes in a row - record"),
         DEATHS("Deaths"),
-        DEATHS_IN_A_ROW("Deaths in a row"),
-        MAX_DEATHS_IN_A_ROW("Max. deaths in a row"),
-        SURVIVAL_PROBABILITY("Survival probability");
+        DEATHS_IN_A_ROW("Deaths in a row - streak"),
+        MAX_DEATHS_IN_A_ROW("Deaths in a row - record"),
+        SURVIVAL_PROBABILITY("Survival rate");
 
-        String description;
+        final String description;
+        final String tooltip;
 
         StatType(String description) {
-            this.description = description;
+            this(description, null);
         }
 
-        public String description() {
-            return description;
+        StatType(String description, String tooltip) {
+            this.description = description;
+            this.tooltip = tooltip;
         }
     }
 
@@ -173,16 +188,28 @@ public class StatsPanel extends JPanel {
         statsPeriodTitle.setForeground(Color.MAGENTA);
         statsPeriodTitle.setFont(font);
 
+        JLabel copyToClipboardButton = ComponentUtils.createButtonLabel(
+                null,
+                "copy stats to clipboard",
+                Icon.COPY_TO_CLIPBOARD,
+                new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        copyStatsToClipboard();
+                    }
+                });
+
         JPanel freqTitleContainer = new JPanel();
         freqTitleContainer.setBackground(Colors.INFO_PANEL_BACKGROUND);
         freqTitleContainer.add(statsPeriodTitle);
+        freqTitleContainer.add(copyToClipboardButton);
 
         NameValueInfoPanel.Builder<StatType> builder = new NameValueInfoPanel.Builder<>();
         for (StatType statType : StatType.values()) {
-            builder.addField(statType, statType.description() + ":");
+            builder.addField(statType, statType.description + ":", statType.tooltip);
         }
-        statsContainer = builder.build();
 
+        statsContainer = builder.build();
 
         JPanel container = new JPanel();
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
@@ -234,7 +261,7 @@ public class StatsPanel extends JPanel {
         refreshStats();
     }
 
-    private void refreshStats() {
+    public void refreshStats() {
         Stats stats = dataService.getStats();
         PeriodStats currentStats = stats.get(currentStatPeriod);
         periodLabel.setText(currentStatPeriod.description());
@@ -268,9 +295,11 @@ public class StatsPanel extends JPanel {
         statsPeriodTitle.setText(subtitle);
         setStatValue(StatType.MATCHES_PLAYED, String.valueOf(currentStats.getMatchesPlayed()));
         setStatValue(StatType.TIME_PLAYED, TimeUtil.formatTimeUpToYears(currentStats.getSecondsPlayed()));
+        setStatValue(StatType.TIME_QUEUED, TimeUtil.formatTimeUpToYears(currentStats.getSecondsQueued()));
         setStatValue(StatType.TIME_WAITED, TimeUtil.formatTimeUpToYears(currentStats.getSecondsWaited()));
-        setStatValue(StatType.AVG_TIME_PER_MATCH, TimeUtil.formatTimeUpToYears(currentStats.getAverageSecondsPerMatch()));
-        setStatValue(StatType.AVG_WAIT_TIME_PER_MATCH, TimeUtil.formatTimeUpToYears(currentStats.getAverageSecondsWaitedPerMatch()));
+        setStatValue(StatType.AVG_MATCH_DURATION, TimeUtil.formatTimeUpToYears(currentStats.getAverageSecondsPerMatch()));
+        setStatValue(StatType.AVG_QUEUE_TIME, TimeUtil.formatTimeUpToYears(currentStats.getAverageSecondsInQueue()));
+        setStatValue(StatType.AVG_MATCH_WAIT_TIME, TimeUtil.formatTimeUpToYears(currentStats.getAverageSecondsWaitedPerMatch()));
         setStatValue(StatType.MATCHES_SUBMITTED, String.valueOf(currentStats.getMatchesSubmitted()));
         setStatValue(StatType.ESCAPES, String.valueOf(currentStats.getEscapes()));
         setStatValue(StatType.ESCAPES_IN_A_ROW, String.valueOf(currentStats.getEscapesInARow()));
@@ -279,6 +308,20 @@ public class StatsPanel extends JPanel {
         setStatValue(StatType.DEATHS_IN_A_ROW, String.valueOf(currentStats.getDeathsInARow()));
         setStatValue(StatType.MAX_DEATHS_IN_A_ROW, String.valueOf(currentStats.getMaxDeathsInARow()));
         setStatValue(StatType.SURVIVAL_PROBABILITY, String.format("%.1f %%", currentStats.getSurvivalProbability()));
+    }
+
+    private void copyStatsToClipboard() {
+        StringBuilder content = new StringBuilder();
+        content.append(statsPeriodTitle.getText() + "\n");
+        content.append("-----------------------------------\n");
+
+        statsContainer.entrySet().forEach(e -> {
+            content.append(e.getKey().description + ": ");
+            content.append(((JLabel) e.getValue()).getText() + "\n");
+        });
+
+        StringSelection stringSelection = new StringSelection(content.toString());
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
     }
 
     private void setStatValue(StatType statType, String value) {
@@ -296,12 +339,11 @@ public class StatsPanel extends JPanel {
         firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
     }
 
-    public void notifyEndOfMatch(int waitSeconds, int matchSeconds) {
+    public void notifyEndOfMatch(int matchSeconds) {
         matchEnded = true;
         Stats stats = dataService.getStats();
         stats.incrementMatchesPlayed(killer);
         stats.incrementSecondsPlayed(killer, matchSeconds);
-        stats.incrementSecondsWaited(waitSeconds);
         backupStats();
         if (survivalStatus == SurvivalStatus.Escaped) {
             stats.incrementEscapes(killer);

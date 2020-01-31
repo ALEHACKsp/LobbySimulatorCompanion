@@ -137,7 +137,6 @@ public class Boot {
             }
             ui = Factory.getMainWindow();
             ui.addPropertyChangeListener(MainWindow.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
-            logMonitor.addObserver(ui);
             logger.info(Factory.getAppProperties().get("app.name.short") + " is ready.");
         });
     }

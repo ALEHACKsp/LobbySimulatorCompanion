@@ -42,6 +42,7 @@ public class LoopDataService {
         }
 
         for (Player player : loopData.getPlayers()) {
+            // backwards compatibility: supporting the legacy UUID field
             if (player.getUID() != null && !player.getUID().isEmpty()) {
                 player.setSteamId64(player.getUID());
                 player.setUID(null);
@@ -49,6 +50,24 @@ public class LoopDataService {
             }
             players.put(player.getSteamId64(), player);
         }
+
+        // backwards compatibility: support new 'secondsQueued' and 'lobbiesFound' fields
+        loopData.getStats().asStream().forEach(s -> {
+            if (s.getSecondsQueued() == 0 && s.getSecondsWaited() != 0) {
+                // approximation
+                int queueTime = s.getSecondsWaited();
+                int waitTime = queueTime + 120 * s.getMatchesPlayed();
+                s.setSecondsQueued(queueTime);
+                s.setSecondsWaited(waitTime);
+                dirty = true;
+            }
+
+            if (s.getLobbiesFound() == 0 && s.getMatchesPlayed() != 0) {
+                // approximation
+                s.setLobbiesFound(s.getMatchesPlayed());
+                dirty = true;
+            }
+        });
 
         // schedule thread for saving dirty data
         Timer timer = new Timer();

@@ -3,7 +3,7 @@ package net.lobby_simulator_companion.loop.ui.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.*;
+import javax.swing.ImageIcon;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +39,7 @@ public final class ResourceFactory {
         IGNORE_BUTTON("/ignore_button.png"),
         IGNORE_BUTTON_PRESSED("/ignore_button_pressed.png"),
         EDIT("/edit_icon.png"),
+        COPY_TO_CLIPBOARD("/clipboard_icon.png"),
         GEO_LOCATION("/geo-location_icon.png"),
         RATE("/rate_icon.png"),
         STEAM("/steam_icon.png"),

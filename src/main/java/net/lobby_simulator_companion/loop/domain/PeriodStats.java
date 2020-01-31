@@ -13,9 +13,11 @@ public abstract class PeriodStats implements Cloneable {
 
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
-    private int matchesPlayed = 0;
-    private int secondsPlayed = 0;
+    private int lobbiesFound = 0;
+    private int secondsQueued = 0;
     private int secondsWaited = 0;
+    private int secondsPlayed = 0;
+    private int matchesPlayed = 0;
     private int escapes = 0;
     private int escapesInARow = 0;
     private int maxEscapesInARow = 0;
@@ -41,6 +43,8 @@ public abstract class PeriodStats implements Cloneable {
     public void copyFrom(PeriodStats other) {
         this.periodStart = other.periodStart;
         this.periodEnd = other.periodEnd;
+        this.lobbiesFound = other.lobbiesFound;
+        this.secondsQueued = other.secondsQueued;
         this.matchesPlayed = other.matchesPlayed;
         this.secondsPlayed = other.secondsPlayed;
         this.secondsWaited = other.secondsWaited;
@@ -59,6 +63,8 @@ public abstract class PeriodStats implements Cloneable {
         LocalDateTime now = LocalDateTime.now();
         periodStart = getPeriodStart(now);
         periodEnd = getPeriodEnd(now);
+        lobbiesFound = 0;
+        secondsQueued = 0;
         matchesPlayed = 0;
         secondsPlayed = 0;
         secondsWaited = 0;
@@ -83,6 +89,22 @@ public abstract class PeriodStats implements Cloneable {
         return periodEnd;
     }
 
+    public int getLobbiesFound() {
+        return lobbiesFound;
+    }
+
+    public void setLobbiesFound(int lobbiesFound) {
+        this.lobbiesFound = lobbiesFound;
+    }
+
+    public int getSecondsQueued() {
+        return secondsQueued;
+    }
+
+    public void setSecondsQueued(int seconds) {
+        secondsQueued = seconds;
+    }
+
     public int getMatchesPlayed() {
         return matchesPlayed;
     }
@@ -95,12 +117,20 @@ public abstract class PeriodStats implements Cloneable {
         return secondsWaited;
     }
 
+    public void setSecondsWaited(int seconds) {
+        secondsWaited = seconds;
+    }
+
+    public int getAverageSecondsInQueue() {
+        return lobbiesFound == 0 ? 0 : secondsQueued / lobbiesFound;
+    }
+
     public int getAverageSecondsWaitedPerMatch() {
-        return matchesPlayed == 0? secondsWaited: secondsWaited / matchesPlayed;
+        return matchesPlayed == 0 ? secondsWaited : secondsWaited / matchesPlayed;
     }
 
     public int getAverageSecondsPerMatch() {
-        return matchesPlayed == 0? 0: (secondsPlayed / matchesPlayed);
+        return matchesPlayed == 0 ? 0 : (secondsPlayed / matchesPlayed);
     }
 
     public int getMatchesSubmitted() {
@@ -111,6 +141,13 @@ public abstract class PeriodStats implements Cloneable {
         return escapes;
     }
 
+    public void incrementLobbiesFound() {
+        lobbiesFound++;
+    }
+
+    public void incrementSecondsQueued(int seconds) {
+        secondsQueued += seconds;
+    }
 
     public void incrementMatchesPlayed(Killer killer) {
         matchesPlayed++;

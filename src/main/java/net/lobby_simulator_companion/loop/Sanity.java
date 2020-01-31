@@ -20,8 +20,8 @@ public class Sanity {
         boolean[] checks = {
                 checkGraphics(),
                 checkUpdate(),
-                checkJava(),
-                checkPCap()
+                checkJava()
+//                checkPCap()
         };
 
         for (boolean check : checks) {

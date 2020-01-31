@@ -70,6 +70,7 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private Settings settings;
+    private DbdLogMonitor dbdLogMonitor;
     private LoopDataService dataService;
     private ServerPanel serverPanel;
     private KillerPanel killerPanel;
@@ -77,8 +78,11 @@ public class MainWindow extends JFrame implements Observer {
 
     private AppProperties appProperties = Factory.getAppProperties();
     private GameState gameState = GameState.IDLE;
-    private Timer matchWaitTimer;
-    private int waitTime;
+    private Timer queueTimer;
+    private Long queueStartTime;
+    private Integer queueTime;
+    private Long matchWaitStartTime;
+    private int matchWaitTime;
     private Timer matchTimer;
     private Long matchStartTime;
     private boolean connectionCountedAsMatch = false;
@@ -104,14 +108,16 @@ public class MainWindow extends JFrame implements Observer {
     private JPanel detailPanel;
 
 
-    public MainWindow(Settings settings, LoopDataService loopDataService,
+    public MainWindow(Settings settings, DbdLogMonitor dbdLogMonitor, LoopDataService loopDataService,
                       ServerPanel serverPanel, KillerPanel killerPanel, StatsPanel statsPanel) {
         this.settings = settings;
+        this.dbdLogMonitor = dbdLogMonitor;
         this.dataService = loopDataService;
         this.serverPanel = serverPanel;
         this.killerPanel = killerPanel;
         this.statsPanel = statsPanel;
 
+        dbdLogMonitor.addObserver(this);
         initTimers();
 
         serverPanel.addPropertyChangeListener(evt -> pack());
@@ -292,7 +298,7 @@ public class MainWindow extends JFrame implements Observer {
         connTimerLabel.setBorder(border);
         connTimerLabel.setForeground(Color.WHITE);
         connTimerLabel.setFont(font);
-        connTimerLabel.setText(TimeUtil.formatTimeUpToHours(0));
+        displayQueueTimer(0);
 
         titleBarTimerContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         titleBarTimerContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
@@ -425,7 +431,7 @@ public class MainWindow extends JFrame implements Observer {
     private void initTimers() {
         matchTimer = new Timer(1000, e -> {
             int seconds = getMatchDuration();
-            connTimerLabel.setText(TimeUtil.formatTimeUpToHours(seconds));
+            displayMatchTimer(seconds);
 
             if (seconds >= MIN_MATCH_SECONDS && !connectionCountedAsMatch) {
                 connectionCountedAsMatch = true;
@@ -433,9 +439,8 @@ public class MainWindow extends JFrame implements Observer {
             }
         });
 
-        matchWaitTimer = new Timer(1000, e -> {
-            connTimerLabel.setText(TimeUtil.formatTimeUpToHours(++waitTime));
-        });
+        queueTimer = new Timer(1000, e ->
+                displayQueueTimer((int) (System.currentTimeMillis() - queueStartTime) / 1000));
     }
 
     private int getMatchDuration() {
@@ -449,7 +454,9 @@ public class MainWindow extends JFrame implements Observer {
         logger.debug("Event: waiting for match");
         changeTitleBarColor(Colors.CONNECTION_BAR_WAITING, Color.BLACK);
         connStatusLabel.setText("Waiting for match");
-        matchWaitTimer.start();
+        queueStartTime = System.currentTimeMillis();
+        queueTimer.start();
+        matchWaitStartTime = queueStartTime;
         titleBarTimerContainer.setVisible(true);
         gameState = GameState.SEARCHING_LOBBY;
     }
@@ -469,11 +476,18 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void notifyLobbyJoin() {
-        if (gameState != GameState.IDLE && gameState != GameState.SEARCHING_LOBBY) {
+        if (gameState != GameState.SEARCHING_LOBBY) {
             return;
         }
+
         logger.debug("Event: lobby join");
-        matchWaitTimer.stop();
+        queueTime = (int) (System.currentTimeMillis() - queueStartTime) / 1000;
+        queueStartTime = null;
+        queueTimer.stop();
+        dataService.getStats().incrementLobbiesFound();
+        dataService.getStats().incrementSecondsInQueue(queueTime);
+        dataService.notifyChange();
+        statsPanel.refreshStats();
         connStatusLabel.setText(MSG_CONNECTED);
         killerPanel.clearKillerInfo();
         survivalInputPanel.setVisible(false);
@@ -506,10 +520,16 @@ public class MainWindow extends JFrame implements Observer {
             return;
         }
         logger.debug("Event: match start");
-        matchWaitTimer.stop();
+
+        matchWaitTime += (int) (System.currentTimeMillis() - matchWaitStartTime) / 1000;
+        matchWaitStartTime = null;
+        dataService.getStats().incrementSecondsWaited(matchWaitTime);
+        dataService.notifyChange();
+        statsPanel.refreshStats();
+
         matchStartTime = System.currentTimeMillis();
         connStatusLabel.setText("In match");
-        connTimerLabel.setText(TimeUtil.formatTimeUpToHours(0));
+        displayMatchTimer(0);
         connectionCountedAsMatch = false;
         matchTimer.start();
         titleBarTimerContainer.setVisible(true);
@@ -528,10 +548,13 @@ public class MainWindow extends JFrame implements Observer {
         connStatusLabel.setText("Match finished");
         connStatusLabel.setVisible(true);
         connTimerLabel.setText(TimeUtil.formatTimeUpToHours(0));
-        lastConnMsgLabel.setText(String.format("Last match - play time: %s; wait time: %s",
-                TimeUtil.formatTimeUpToHours(getMatchDuration()), TimeUtil.formatTimeUpToHours(waitTime)));
+        lastConnMsgLabel.setText(String.format("Last match => actual play: %s / in queue: %s / overall wait: %s",
+                TimeUtil.formatTimeUpToHours(getMatchDuration()),
+                TimeUtil.formatTimeUpToHours(queueTime),
+                TimeUtil.formatTimeUpToHours(matchWaitTime)));
+        matchWaitTime = 0;
         messagePanel.setVisible(true);
-        waitTime = 0;
+        queueTime = null;
         gameState = GameState.AFTER_MATCH;
         pack();
     }
@@ -541,7 +564,7 @@ public class MainWindow extends JFrame implements Observer {
         int matchTime = getMatchDuration();
         if (matchTime >= MIN_MATCH_SECONDS) {
             killerPanel.notifyEndOfMatch(matchTime);
-            statsPanel.notifyEndOfMatch(waitTime, matchTime);
+            statsPanel.notifyEndOfMatch(matchTime);
             survivalInputPanel.setVisible(true);
         }
     }
@@ -562,7 +585,13 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void turnToIdle() {
-        matchWaitTimer.stop();
+        dbdLogMonitor.resetKiller();
+        queueStartTime = null;
+        queueTime = null;
+        queueTimer.stop();
+        displayQueueTimer(0);
+        matchWaitTime += matchWaitStartTime != null? (int) (System.currentTimeMillis() - matchWaitStartTime) / 1000: 0;
+        matchWaitStartTime = null;
         changeTitleBarColor(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND, Color.WHITE);
         connStatusLabel.setText("Idle");
         connStatusLabel.setVisible(true);
@@ -587,6 +616,14 @@ public class MainWindow extends JFrame implements Observer {
                 label.setForeground(fgColor);
             }
         }
+    }
+
+    private void displayQueueTimer(int seconds) {
+        connTimerLabel.setText("[Q] " + TimeUtil.formatTimeUpToHours(seconds));
+    }
+
+    private void displayMatchTimer(int seconds) {
+        connTimerLabel.setText("[M] " + TimeUtil.formatTimeUpToHours(seconds));
     }
 
     public void close() {
@@ -614,6 +651,7 @@ public class MainWindow extends JFrame implements Observer {
             this.killerPanel = killerPanel;
             initTimer();
 
+            UIManager.put("ToolTip.font", ResourceFactory.getRobotoFont().deriveFont(14f));
             escapedButton = ComponentUtils.createButtonLabel(
                     Colors.INFO_PANEL_NAME_FOREGROUND,
                     "Click to indicate that you survived this match",
