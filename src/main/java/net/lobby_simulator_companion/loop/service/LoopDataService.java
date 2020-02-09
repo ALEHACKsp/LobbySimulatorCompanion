@@ -2,13 +2,14 @@ package net.lobby_simulator_companion.loop.service;
 
 import net.lobby_simulator_companion.loop.domain.LoopData;
 import net.lobby_simulator_companion.loop.domain.Player;
-import net.lobby_simulator_companion.loop.domain.Stats;
+import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -102,7 +103,7 @@ public class LoopDataService {
         }
 
         loopData.getPlayers().clear();
-        loopData.addPlayers(players.values().stream().collect(Collectors.toList()));
+        loopData.addPlayers(new ArrayList<>(players.values()));
         try {
             repository.save(loopData);
             dirty = false;

@@ -10,7 +10,8 @@ import com.google.gson.stream.JsonWriter;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.LoopData;
-import net.lobby_simulator_companion.loop.domain.Stats;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
+import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
@@ -33,9 +33,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.zip.GZIPInputStream;
@@ -90,6 +87,9 @@ public class LoopRepository {
         JsonDeserializer<Killer> killerDeserializer = (jsonElement, type, context) ->
                 Killer.valueOf(jsonElement.getAsString().toUpperCase());
         gsonBuilder.registerTypeAdapter(Killer.class, killerDeserializer);
+        JsonDeserializer<RealmMap> realmMapDeserializer = (jsonElement, type, context) ->
+                RealmMap.valueOf(jsonElement.getAsString().toUpperCase());
+        gsonBuilder.registerTypeAdapter(RealmMap.class, realmMapDeserializer);
 
         gsonBuilder.registerTypeAdapter(Stats.class, new Stats.Serializer());
         gsonBuilder.registerTypeAdapter(Stats.class, new Stats.Deserializer());
@@ -116,7 +116,6 @@ public class LoopRepository {
 
         return loopData;
     }
-
 
     public void save(LoopData loopData) throws IOException {
         // Keep a rolling backup of the Peers file, for safety.
@@ -182,8 +181,7 @@ public class LoopRepository {
      * @return Cipher argument, ready to go.
      * @throws Exception Many possible issues can arise, so this is a catch-all.
      */
-    public static Cipher getCipher(boolean readMode) throws InvalidKeyException, InvalidKeySpecException,
-            NoSuchPaddingException, NoSuchAlgorithmException {
+    public static Cipher getCipher(boolean readMode) throws Exception {
 
         DESKeySpec key = new DESKeySpec(CIPHER_KEY_MATERIAL);
         SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");

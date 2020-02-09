@@ -160,6 +160,14 @@
             <artifactId>ini4j</artifactId>
             <version>0.5.4</version>
         </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <scm>
         <connection>scm:git:https://github.com/nickyramone/LobbySimulatorCompanion.git</connection>

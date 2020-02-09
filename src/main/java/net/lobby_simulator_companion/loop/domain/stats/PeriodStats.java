@@ -1,4 +1,7 @@
-package net.lobby_simulator_companion.loop.domain;
+package net.lobby_simulator_companion.loop.domain.stats;
+
+import net.lobby_simulator_companion.loop.domain.Killer;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
 
 import java.time.LocalDateTime;
 import java.util.AbstractMap;
@@ -13,23 +16,20 @@ public abstract class PeriodStats implements Cloneable {
 
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
-    private int lobbiesFound = 0;
-    private int secondsQueued = 0;
-    private int secondsWaited = 0;
-    private int secondsPlayed = 0;
-    private int matchesPlayed = 0;
-    private int escapes = 0;
-    private int escapesInARow = 0;
-    private int maxEscapesInARow = 0;
-    private int deaths = 0;
-    private int deathsInARow = 0;
-    private int maxDeathsInARow = 0;
+    private int lobbiesFound;
+    private int secondsQueued;
+    private int secondsWaited;
+    private int secondsPlayed;
+    private int matchesPlayed;
+    private int escapes;
+    private int escapesInARow;
+    private int maxEscapesInARow;
+    private int deaths;
+    private int deathsInARow;
+    private int maxDeathsInARow;
     private Map<Killer, KillerStats> killersStats = new HashMap<>();
+    private Map<RealmMap, MapStats> mapStats = new HashMap<>();
 
-
-    public PeriodStats() {
-        this(LocalDateTime.now());
-    }
 
     public PeriodStats(PeriodStats other) {
         copyFrom(other);
@@ -54,9 +54,14 @@ public abstract class PeriodStats implements Cloneable {
         this.deaths = other.deaths;
         this.deathsInARow = other.deathsInARow;
         this.maxDeathsInARow = other.maxDeathsInARow;
-        this.killersStats = other.killersStats.entrySet().stream()
-                .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue().clone()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        this.killersStats = other.killersStats == null ? new HashMap<>() :
+                other.killersStats.entrySet().stream()
+                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue().clone()))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        this.mapStats = other.mapStats == null ? new HashMap<>() :
+                other.mapStats.entrySet().stream()
+                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue().clone()))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public void reset() {
@@ -74,7 +79,14 @@ public abstract class PeriodStats implements Cloneable {
         maxEscapesInARow = 0;
         deathsInARow = 0;
         maxDeathsInARow = 0;
-        killersStats.clear();
+
+        if (killersStats != null) {
+            killersStats.clear();
+        }
+
+        if (mapStats != null) {
+            mapStats.clear();
+        }
     }
 
     protected abstract LocalDateTime getPeriodStart(LocalDateTime now);
@@ -141,6 +153,10 @@ public abstract class PeriodStats implements Cloneable {
         return escapes;
     }
 
+    public Map<RealmMap, MapStats> getMapStats() {
+        return mapStats;
+    }
+
     public void incrementLobbiesFound() {
         lobbiesFound++;
     }
@@ -149,34 +165,38 @@ public abstract class PeriodStats implements Cloneable {
         secondsQueued += seconds;
     }
 
-    public void incrementMatchesPlayed(Killer killer) {
+    public void incrementMatchesPlayed(Killer killer, RealmMap realmMap) {
         matchesPlayed++;
         getOrCreateKillerStats(killer).incrementMatches();
+        getOrCreateMapStats(realmMap).incrementMatches();
     }
 
-    public void incrementSecondsPlayed(Killer killer, int secondsPlayed) {
+    public void incrementSecondsPlayed(int secondsPlayed, Killer killer, RealmMap realmMap) {
         this.secondsPlayed += secondsPlayed;
         getOrCreateKillerStats(killer).incrementMatchTime(secondsPlayed);
+        getOrCreateMapStats(realmMap).incrementMatchTime(secondsPlayed);
     }
 
     public void incrementSecondsWaited(int secondsWaited) {
         this.secondsWaited += secondsWaited;
     }
 
-    public void incrementEscapes(Killer killer) {
+    public void incrementEscapes(Killer killer, RealmMap realmMap) {
         escapes++;
         escapesInARow++;
         maxEscapesInARow = Math.max(escapesInARow, maxEscapesInARow);
         deathsInARow = 0;
         getOrCreateKillerStats(killer).incrementEscapes();
+        getOrCreateMapStats(realmMap).incrementEscapes();
     }
 
-    public void incrementDeaths(Killer killer) {
+    public void incrementDeaths(Killer killer, RealmMap realmMap) {
         deaths++;
         deathsInARow++;
         maxDeathsInARow = Math.max(deathsInARow, maxDeathsInARow);
         escapesInARow = 0;
         getOrCreateKillerStats(killer).incrementDeaths();
+        getOrCreateMapStats(realmMap).incrementDeaths();
     }
 
     public int getDeaths() {
@@ -210,6 +230,7 @@ public abstract class PeriodStats implements Cloneable {
     }
 
     private KillerStats getOrCreateKillerStats(Killer killer) {
+        this.killersStats = this.killersStats != null ? this.killersStats : new HashMap<>();
         KillerStats killerStats = this.killersStats.get(killer);
 
         if (killerStats == null) {
@@ -218,6 +239,18 @@ public abstract class PeriodStats implements Cloneable {
         }
 
         return killerStats;
+    }
+
+    private MapStats getOrCreateMapStats(RealmMap realmMap) {
+        this.mapStats = this.mapStats != null ? this.mapStats : new HashMap<>();
+        MapStats mapStats = this.mapStats.get(realmMap);
+
+        if (mapStats == null) {
+            mapStats = new MapStats();
+            this.mapStats.put(realmMap, mapStats);
+        }
+
+        return mapStats;
     }
 
 

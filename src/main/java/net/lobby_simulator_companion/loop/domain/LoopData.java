@@ -1,5 +1,7 @@
 package net.lobby_simulator_companion.loop.domain;
 
+import net.lobby_simulator_companion.loop.domain.stats.Stats;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

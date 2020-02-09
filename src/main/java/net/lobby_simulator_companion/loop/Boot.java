@@ -2,16 +2,11 @@ package net.lobby_simulator_companion.loop;
 
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.domain.Connection;
-import net.lobby_simulator_companion.loop.service.ConnectionManager;
+import net.lobby_simulator_companion.loop.domain.Killer;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
-import net.lobby_simulator_companion.loop.service.DedicatedServerConnectionManager;
-import net.lobby_simulator_companion.loop.service.InvalidNetworkInterfaceException;
-import net.lobby_simulator_companion.loop.service.SnifferListener;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.util.FileUtil;
-import org.pcap4j.core.NotOpenException;
-import org.pcap4j.core.PcapNativeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,19 +16,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 
 public class Boot {
-    private static final String SETTING__NIF_AUTOLOAD = "network.interface.autoload";
-    private static final String SETTING__NIF_ADDRESS = "network.interface.address";
-
     private static Logger logger;
     private static MainWindow ui;
     private static DbdLogMonitor logMonitor;
-    private static ConnectionManager connectionManager;
     private static Settings settings;
     private static AppProperties appProperties;
 
@@ -71,19 +61,10 @@ public class Boot {
         }
         setupTray();
 
-        // TODO: I am removing the sniffer for now
-//        logger.info("Setting up network interface...");
-//        InetAddress localAddr;
-//        if (settings.getBoolean(SETTING__NIF_AUTOLOAD, false)) {
-//            localAddr = InetAddress.getByName(settings.get(SETTING__NIF_ADDRESS));
-//        } else {
-//            NetworkInterfaceFrame nifFrame = new NetworkInterfaceFrame(settings);
-//            localAddr = nifFrame.getLocalAddr();
-//        }
-
         initLogMonitor();
-//        initConnectionManager(localAddr);
         initUi();
+        logger.info("Supported game killers: {}", Killer.values().length - 1);
+        logger.info("Supported game maps: {}", RealmMap.values().length - 1);
     }
 
 
@@ -93,40 +74,6 @@ public class Boot {
         Thread thread = new Thread(logMonitor);
         thread.setDaemon(true);
         thread.start();
-    }
-
-    // TODO: I have removed the sniffer for now
-    private static void initConnectionManager(InetAddress localAddr) throws PcapNativeException, NotOpenException {
-        if (!appProperties.getBoolean("debug")) {
-            logger.info("Starting net traffic sniffer...");
-            try {
-                connectionManager = new DedicatedServerConnectionManager(localAddr, new SnifferListener() {
-
-                    @Override
-                    public void notifyMatchConnect(Connection connection) {
-                        logger.debug("Detected new connection: {}", connection);
-                        SwingUtilities.invokeLater(() -> ui.connectToMatch(connection.getRemoteAddr().getHostAddress()));
-                    }
-
-                    public void notifyMatchDisconnect() {
-//                        SwingUtilities.invokeLater(() -> ui.disconnectFromMatch());
-                    }
-
-                    @Override
-                    public void handleException(Exception e) {
-                        logger.error("Fatal error while sniffing packets.", e);
-                        fatalErrorDialog("A fatal error occurred while processing connections.\nPlease, send us the log files.");
-                    }
-                });
-            } catch (InvalidNetworkInterfaceException e) {
-                fatalErrorDialog("The device you selected doesn't seem to exist. Double-check the IP you entered.");
-            }
-
-            // start connection manager thread
-            Thread thread = new Thread(() -> connectionManager.start());
-            thread.setDaemon(true);
-            thread.start();
-        }
     }
 
     private static void initUi() {
@@ -189,10 +136,6 @@ public class Boot {
         }
 
         logger.info("Terminated UI.");
-        if (connectionManager != null) {
-            connectionManager.close();
-        }
-
         System.exit(status);
     }
 

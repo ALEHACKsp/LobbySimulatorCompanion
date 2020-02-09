@@ -1,14 +1,30 @@
-package net.lobby_simulator_companion.loop.domain;
+package net.lobby_simulator_companion.loop.domain.stats;
 
 /**
  * @author NickyRamone
  */
-public class KillerStats {
+public class MapStats {
 
     private int matches;
     private int escapes;
     private int deaths;
     private int matchTime;
+
+    public int getMatches() {
+        return matches;
+    }
+
+    public int getEscapes() {
+        return escapes;
+    }
+
+    public int getDeaths() {
+        return deaths;
+    }
+
+    public int getMatchTime() {
+        return matchTime;
+    }
 
     public void incrementMatches() {
         matches++;
@@ -27,8 +43,8 @@ public class KillerStats {
     }
 
     @Override
-    protected KillerStats clone() {
-        KillerStats clone = new KillerStats();
+    protected MapStats clone() {
+        MapStats clone = new MapStats();
         clone.matches = this.matches;
         clone.escapes = this.escapes;
         clone.deaths = this.deaths;
@@ -36,4 +52,5 @@ public class KillerStats {
 
         return clone;
     }
+
 }

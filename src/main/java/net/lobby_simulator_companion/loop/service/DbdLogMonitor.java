@@ -59,6 +59,9 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final String REGEX__MATCH_WAIT_CANCEL = "RESPONSE: code 200.+?POST https://.+?/api/v1/queue/cancel\\]";
     private static final Pattern PATTERN__MATCH_WAIT_CANCEL = Pattern.compile(REGEX__MATCH_WAIT_CANCEL);
 
+    private static final String REGEX__MAP_GENERATION = "ProceduralLevelGeneration: InitLevel: Theme: .* Map: ([^\\s]+)";
+    private static final Pattern PATTERN__MAP_GENERATION = Pattern.compile(REGEX__MAP_GENERATION);
+
 
     private static final Map<Killer, String[]> KILLER_TO_OUTFIT_MAPPING = Stream.of(new Object[][]{
             {Killer.CANNIBAL, new String[]{"CA"}},
@@ -96,6 +99,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             MATCH_END,
             KILLER_PLAYER,
             KILLER_CHARACTER,
+            MAP_GENERATE,
             SERVER_DISCONNECT,
         }
 
@@ -147,6 +151,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
                 this::checkForMatchWait,
                 this::checkForMatchWaitCancel,
                 this::checkForMatchStart,
+                this::checkForMapGeneration,
                 this::checkForMatchEnd,
                 this::checkForServerDisconnect
         );
@@ -288,17 +293,21 @@ public class DbdLogMonitor extends Observable implements Runnable {
     }
 
     private Boolean checkForMatchWaitCancel(String logLine) {
+        boolean result = false;
         Matcher matcher = PATTERN__MATCH_WAIT_CANCEL.matcher(logLine);
-        if (!matcher.find() && !logLine.contains("[MirrorsSocialPresence::DestroyParty]")
-                && !logLine.contains("[PartyContextComponent::OnQuickmatchComplete] result : UnknownError")) {
-            return false;
+
+        if (matcher.find()
+                || logLine.contains("[MirrorsSocialPresence::DestroyParty]")
+                || logLine.contains("[PartyContextComponent::OnQuickmatchComplete] result : UnknownError")
+                || logLine.contains("[UDBDGameInstance::RegisterDisconnectError]") // NAT error?
+        ) {
+            Event event = new Event(Event.Type.MATCH_WAIT_CANCEL, null);
+            setChanged();
+            notifyObservers(event);
+            result = true;
         }
 
-        Event event = new Event(Event.Type.MATCH_WAIT_CANCEL, null);
-        setChanged();
-        notifyObservers(event);
-
-        return true;
+        return result;
     }
 
     private Boolean checkForMatchStart(String logLine) {
@@ -309,6 +318,22 @@ public class DbdLogMonitor extends Observable implements Runnable {
             return true;
         }
         return false;
+    }
+
+    private Boolean checkForMapGeneration(String logLine) {
+        Matcher matcher = PATTERN__MAP_GENERATION.matcher(logLine);
+
+        if (!matcher.find()) {
+            return false;
+        }
+
+        String mapId = matcher.group(1);
+        logger.debug("Detected map generation for '{}'", mapId);
+        Event event = new Event(Event.Type.MAP_GENERATE, mapId);
+        setChanged();
+        notifyObservers(event);
+
+        return true;
     }
 
     private Boolean checkForMatchEnd(String logLine) {

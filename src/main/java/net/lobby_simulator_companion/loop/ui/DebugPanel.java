@@ -70,6 +70,9 @@ public class DebugPanel extends JPanel {
         JPanel matchPanel = new JPanel();
         matchPanel.setLayout(new BoxLayout(matchPanel, BoxLayout.X_AXIS));
         container.add(matchPanel);
+        button = new JButton("Generate Map");
+        button.addActionListener(e -> simulateMapGeneration());
+        matchPanel.add(button);
         button = new JButton("Start Match");
         button.addActionListener(e -> simulateMatchStart());
         matchPanel.add(button);
@@ -116,6 +119,10 @@ public class DebugPanel extends JPanel {
 
     private void simulateLobbyLeave() {
         simulateMatchSearchCancel();
+    }
+
+    private void simulateMapGeneration() {
+        writeLog("--- ProceduralLevelGeneration: InitLevel: Theme: Hospital Map: Hos_Treatment ---");
     }
 
     private void simulateMatchStart() {

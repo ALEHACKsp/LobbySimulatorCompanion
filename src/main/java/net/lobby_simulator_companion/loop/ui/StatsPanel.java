@@ -2,38 +2,36 @@ package net.lobby_simulator_companion.loop.ui;
 
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Killer;
-import net.lobby_simulator_companion.loop.domain.PeriodStats;
-import net.lobby_simulator_companion.loop.domain.Stats;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
+import net.lobby_simulator_companion.loop.domain.stats.PeriodStats;
+import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
+import net.lobby_simulator_companion.loop.service.StatsUtils;
 import net.lobby_simulator_companion.loop.ui.common.CollapsablePanel;
 import net.lobby_simulator_companion.loop.ui.common.Colors;
 import net.lobby_simulator_companion.loop.ui.common.ComponentUtils;
 import net.lobby_simulator_companion.loop.ui.common.NameValueInfoPanel;
 import net.lobby_simulator_companion.loop.ui.common.ResourceFactory;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
-import sun.misc.JavaLangAccess;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
+import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-import static java.time.temporal.ChronoUnit.MILLIS;
-import static java.time.temporal.ChronoUnit.SECONDS;
-import static net.lobby_simulator_companion.loop.domain.Stats.Period;
+import static net.lobby_simulator_companion.loop.domain.stats.Stats.Period;
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
 
 /**
@@ -44,6 +42,7 @@ public class StatsPanel extends JPanel {
     public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
 
     private static final Font font = ResourceFactory.getRobotoFont();
+    private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
 
     private enum StatType {
         MATCHES_PLAYED("Matches played"),
@@ -60,7 +59,8 @@ public class StatsPanel extends JPanel {
         DEATHS("Deaths"),
         DEATHS_IN_A_ROW("Deaths in a row - streak"),
         MAX_DEATHS_IN_A_ROW("Deaths in a row - record"),
-        SURVIVAL_PROBABILITY("Survival rate");
+        SURVIVAL_PROBABILITY("Survival rate"),
+        MAP_RANDOMNESS("Map variation");
 
         final String description;
         final String tooltip;
@@ -82,8 +82,6 @@ public class StatsPanel extends JPanel {
     private final Settings settings;
     private final LoopDataService dataService;
 
-    private JLabel escapedButton;
-    private JLabel diedButton;
     private JLabel periodLabel;
     private JLabel statsPeriodTitle;
     private NameValueInfoPanel<StatType> statsContainer;
@@ -91,8 +89,8 @@ public class StatsPanel extends JPanel {
     private Period currentStatPeriod;
     private SurvivalStatus survivalStatus = SurvivalStatus.None;
     private Stats statsBackup;
-    private boolean matchEnded;
     private Killer killer = Killer.UNIDENTIFIED;
+    private RealmMap realmMap;
 
 
     public StatsPanel(Settings settings, LoopDataService dataService) {
@@ -125,6 +123,7 @@ public class StatsPanel extends JPanel {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
+                logger.info("Resetting stats timer for {}", periodStats.getClass());
                 periodStats.reset();
                 dataService.notifyChange();
                 timer.cancel();
@@ -253,9 +252,9 @@ public class StatsPanel extends JPanel {
             return;
         }
         if (escaped) {
-            dataService.getStats().incrementEscapes(killer);
+            dataService.getStats().incrementEscapes(killer, realmMap);
         } else {
-            dataService.getStats().incrementDeaths(killer);
+            dataService.getStats().incrementDeaths(killer, realmMap);
         }
         dataService.notifyChange();
         refreshStats();
@@ -307,7 +306,51 @@ public class StatsPanel extends JPanel {
         setStatValue(StatType.DEATHS, String.valueOf(currentStats.getDeaths()));
         setStatValue(StatType.DEATHS_IN_A_ROW, String.valueOf(currentStats.getDeathsInARow()));
         setStatValue(StatType.MAX_DEATHS_IN_A_ROW, String.valueOf(currentStats.getMaxDeathsInARow()));
-        setStatValue(StatType.SURVIVAL_PROBABILITY, String.format("%.1f %%", currentStats.getSurvivalProbability()));
+
+        setStatValue(StatType.SURVIVAL_PROBABILITY, currentStats.getMatchesSubmitted() == 0 ?
+                "N/A" :
+                String.format("%.1f %%", currentStats.getSurvivalProbability()));
+
+        float mapVariability = calculateMapsDistro(currentStats);
+        setStatValue(StatType.MAP_RANDOMNESS, currentStats.getMatchesPlayed() == 0 ?
+                "N/A" :
+                String.format("%.1f %% (%s)", mapVariability * 100, getMapVariationLabel(mapVariability)));
+    }
+
+
+    private float calculateMapsDistro(PeriodStats periodStats) {
+        Collection<Integer> mapsDistro = Arrays.stream(RealmMap.values())
+                .filter(rm -> rm.isIdentified())
+                .map(rm ->
+                        periodStats.getMapStats() != null
+                                && periodStats.getMapStats() != null
+                                && periodStats.getMapStats().containsKey(rm) ?
+                                periodStats.getMapStats().get(rm).getMatches()
+                                : 0)
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+
+        return StatsUtils.rateDistribution(mapsDistro);
+    }
+
+    private String getMapVariationLabel(float mapVariability) {
+        String label;
+
+        if (mapVariability >= 0 && mapVariability <= 0.25) {
+            label = "poor";
+        } else if (mapVariability > 0.25 && mapVariability <= 0.6) {
+            label = "pretty bad";
+        } else if (mapVariability > 0.6 && mapVariability <= 0.7) {
+            label = "a bit bad";
+        } else if (mapVariability > 0.7 && mapVariability <= 0.8) {
+            label = "decent";
+        } else if (mapVariability > 0.8 && mapVariability <= 0.9) {
+            label = "good";
+        } else {
+            label = "very good";
+        }
+
+        return label;
     }
 
     private void copyStatsToClipboard() {
@@ -333,22 +376,24 @@ public class StatsPanel extends JPanel {
         this.killer = killer;
     }
 
+    public void updateMap(RealmMap realmMap) {
+        this.realmMap = realmMap;
+    }
+
 
     public void notifyMatchDetected() {
-        matchEnded = false;
         firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null);
     }
 
     public void notifyEndOfMatch(int matchSeconds) {
-        matchEnded = true;
         Stats stats = dataService.getStats();
-        stats.incrementMatchesPlayed(killer);
-        stats.incrementSecondsPlayed(killer, matchSeconds);
+        stats.incrementMatchesPlayed(killer, realmMap);
+        stats.incrementSecondsPlayed(matchSeconds, killer, realmMap);
         backupStats();
         if (survivalStatus == SurvivalStatus.Escaped) {
-            stats.incrementEscapes(killer);
+            stats.incrementEscapes(killer, realmMap);
         } else if (survivalStatus == SurvivalStatus.Died) {
-            stats.incrementDeaths(killer);
+            stats.incrementDeaths(killer, realmMap);
         }
         dataService.notifyChange();
         refreshStats();

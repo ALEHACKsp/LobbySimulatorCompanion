@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.domain;
+package net.lobby_simulator_companion.loop.domain.stats;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -7,6 +7,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import net.lobby_simulator_companion.loop.domain.Killer;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
 
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
@@ -64,24 +66,24 @@ public class Stats {
         Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsQueued(seconds));
     }
 
-    public void incrementMatchesPlayed(Killer killer) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementMatchesPlayed(killer));
+    public void incrementMatchesPlayed(Killer killer, RealmMap realmMap) {
+        Arrays.stream(periodsStats).forEach(s -> s.incrementMatchesPlayed(killer, realmMap));
     }
 
-    public void incrementSecondsPlayed(Killer killer, int secondsPlayed) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsPlayed(killer, secondsPlayed));
+    public void incrementSecondsPlayed(int secondsPlayed, Killer killer, RealmMap realmMap) {
+        Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsPlayed(secondsPlayed, killer, realmMap));
     }
 
     public void incrementSecondsWaited(int secondsWaited) {
         Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsWaited(secondsWaited));
     }
 
-    public void incrementEscapes(Killer killer) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementEscapes(killer));
+    public void incrementEscapes(Killer killer, RealmMap realmMap) {
+        Arrays.stream(periodsStats).forEach(s -> s.incrementEscapes(killer, realmMap));
     }
 
-    public void incrementDeaths(Killer killer) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementDeaths(killer));
+    public void incrementDeaths(Killer killer, RealmMap realmMap) {
+        Arrays.stream(periodsStats).forEach(s -> s.incrementDeaths(killer, realmMap));
     }
 
     @Override

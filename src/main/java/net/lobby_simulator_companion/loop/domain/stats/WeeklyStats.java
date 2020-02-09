@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.domain;
+package net.lobby_simulator_companion.loop.domain.stats;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;

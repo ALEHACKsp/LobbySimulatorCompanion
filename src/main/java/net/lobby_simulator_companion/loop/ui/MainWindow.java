@@ -5,6 +5,7 @@ import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.Player;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
 import net.lobby_simulator_companion.loop.service.PlayerDto;
@@ -58,7 +59,7 @@ public class MainWindow extends JFrame implements Observer {
     /**
      * Minimum time connected from which we can assume that a match has taken place.
      */
-    private static final int MIN_MATCH_SECONDS = 1 * 60;
+    private static final int MIN_MATCH_SECONDS = 60;
     private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
 
     private enum GameState {
@@ -88,11 +89,7 @@ public class MainWindow extends JFrame implements Observer {
     private boolean connectionCountedAsMatch = false;
 
     private SurvivalInputPanel survivalInputPanel;
-    private JLabel appLabel;
-    private JLabel separatorLabel;
-    private JPanel collapsablePanel;
     private JPanel titleBar;
-    private JPanel connMsgPanel;
     private JPanel messagePanel;
     private JLabel lastConnMsgLabel;
     private JLabel connStatusLabel;
@@ -104,7 +101,6 @@ public class MainWindow extends JFrame implements Observer {
     private JPanel titleBarTimerContainer;
     private JLabel connTimerLabel;
     private JLabel titleBarMinimizeLabel;
-    private JPanel titleBarButtonContainer;
     private JPanel detailPanel;
 
 
@@ -177,7 +173,7 @@ public class MainWindow extends JFrame implements Observer {
         detailPanel.setVisible(!settings.getBoolean(SETTING__MAIN_PANEL_COLLAPSED));
 
 
-        collapsablePanel = new JPanel();
+        JPanel collapsablePanel = new JPanel();
         collapsablePanel.setMaximumSize(new Dimension(INFINITE_SIZE, 30));
         collapsablePanel.setBackground(Color.BLACK);
         collapsablePanel.setLayout(new BoxLayout(collapsablePanel, BoxLayout.Y_AXIS));
@@ -208,7 +204,7 @@ public class MainWindow extends JFrame implements Observer {
         if (settings.getExperimentalSwitch(2)) {
             Killer killerChar = killerPanel.getKillerCharacter();
             killerCharLabel.setVisible(killerChar != null && killerPanel.isShowKillerCharacter());
-            if (killerChar.isIdentified()) {
+            if (killerChar != null && killerChar != Killer.UNIDENTIFIED) {
                 killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar.alias()));
             }
         }
@@ -240,12 +236,12 @@ public class MainWindow extends JFrame implements Observer {
     private JPanel createTitleBar() {
         Border border = new EmptyBorder(3, 5, 0, 5);
 
-        appLabel = new JLabel(appProperties.get("app.name.short"));
+        JLabel appLabel = new JLabel(appProperties.get("app.name.short"));
         appLabel.setBorder(border);
         appLabel.setForeground(Color.WHITE);
         appLabel.setFont(font);
 
-        separatorLabel = new JLabel("|");
+        JLabel separatorLabel = new JLabel("|");
         separatorLabel.setBorder(border);
         separatorLabel.setForeground(Color.WHITE);
         separatorLabel.setFont(font);
@@ -306,7 +302,7 @@ public class MainWindow extends JFrame implements Observer {
         titleBarTimerContainer.add(connTimerLabel);
         titleBarTimerContainer.setVisible(false);
 
-        connMsgPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        JPanel connMsgPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         connMsgPanel.add(appLabel);
         connMsgPanel.add(separatorLabel);
@@ -342,7 +338,7 @@ public class MainWindow extends JFrame implements Observer {
             }
         });
 
-        titleBarButtonContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel titleBarButtonContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
         titleBarButtonContainer.add(switchOffButton);
         titleBarButtonContainer.add(titleBarMinimizeLabel);
@@ -400,6 +396,9 @@ public class MainWindow extends JFrame implements Observer {
                 case KILLER_CHARACTER:
                     action = () -> notifyNewKillerCharacter((Killer) event.argument);
                     break;
+                case MAP_GENERATE:
+                    action = () -> notifyMapGeneration((String) event.argument);
+                    break;
                 case MATCH_START:
                     action = this::notifyMatchStart;
                     break;
@@ -411,12 +410,9 @@ public class MainWindow extends JFrame implements Observer {
                     break;
             }
 
-            if (action != null) {
-                SwingUtilities.invokeLater(action);
-            }
+            SwingUtilities.invokeLater(action);
         }
     }
-
 
     private String shortenKillerPlayerName(String playerName) {
         String result = playerName;
@@ -512,6 +508,13 @@ public class MainWindow extends JFrame implements Observer {
         logger.debug("Event: new killer character");
         killerPanel.updateKillerCharacter(killer);
         statsPanel.updateKiller(killer);
+    }
+
+
+    private void notifyMapGeneration(String mapId) {
+        RealmMap realmMap = RealmMap.fromDbdId(mapId);
+        logger.debug("Event: map generation: {}", realmMap.alias());
+        statsPanel.updateMap(realmMap);
     }
 
 
