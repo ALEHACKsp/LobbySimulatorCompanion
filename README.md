@@ -1,7 +1,7 @@
 # What is LOOP?
 
-LOOP (which comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") survivor players have a better experience in the game,
-especially while waiting in the match lobbies.
+LOOP (which comes from "LObby simulatOr comPanion") is a tool for helping DBD ("Dead By Daylight") survivor players
+have a better experience in the game, especially while waiting in the match lobbies.
 
 LOOP can show you information about the server you are connecting to (such as the location), 
 as well as information about the killer (such as how many times you played against them or how much time you spent 
@@ -24,9 +24,6 @@ own personal notes for rating them) and a bunch of statistics that include survi
 1. Make sure you satisfy the system requirements:
     * Microsoft Windows (preferrably, Windows 10, which is what we test in)
     * Java Runtime of at least version 8 (https://java.com/en/download/)
-    * Npcap (https://nmap.org/npcap/).
-      * Tick "Install Npcap in WinPcap API-compatible Mode" during installation 
-        (For advanced users: Add %SystemRoot%\System32\Npcap\ to PATH instead.)
 1. Download loop.exe from the [releases page](https://github.com/nickyramone/LobbySimulatorCompanion/releases).
 1. Create a folder where you would like to install this app (Example, under C:\Program Files\LobbySimulatorCompanion) 
    and place the exe there.
@@ -43,10 +40,10 @@ own personal notes for rating them) and a bunch of statistics that include survi
    If you want to avoid having to select the network device IP every time you start the app, edit loop.settings.ini and make sure you have this line: network.interface.autoload = true
 
 
-
-## How does it work?
-LOOP uses a packet capture library to detect server connections and scrapes log files to get some extra information. 
-It uses a file for storing data locally.
+# Is my data (like stats or personal notes) stored in any servers?
+No. We don't publish any data to any servers, which means that if you lose your installation folder 
+(or format your hard disk), your data will be lost.
+To prevent this, we recommend doing backups of the 'loop.dat' file.
 
 
 ## Can I get banned by EAC (Easy Anti Cheat) for using LOOP?
@@ -54,13 +51,14 @@ Short answer: No.
 
 
 While with these things you can never have a 100% guarantee, here's why you shouldn't get banned:
-1) This app does not modify or interact with DBD in any way.
-2) It's a completely external/independent desktop application, which does not hook to any Steam/DBD process.
-3) It only reads some network traffic for tracking connections but never sends packets or fiddles with them.
-4) It doesn't alter the game mechanics in any way.
-5) It is based on the MLGA codebase, which it not banned by EAC, and running since 2016.
-6) The tool does nothing that you couldn't do manually. It just organizes and simplifies the information.
-7) I have contacted EAC (Easy Anti Cheat) and they replied that it's not in their interest to ban these kinds of applications,
+1) This app does not modify or interfere with DBD in any way.
+2) It is not aimed at cheating but at getting more stats that the game does not provide.
+3) It is a completely external/independent desktop application, which does not hook to any Steam/DBD process.
+4) It may read network traffic for tracking connections but never sends packets or fiddles with them.
+5) It doesn't alter the game mechanics in any way.
+6) It is based on the MLGA codebase, which was not banned by EAC before.
+7) The tool does nothing that you couldn't do manually. It just organizes and simplifies the information.
+8) I have contacted EAC (Easy Anti Cheat) and they replied that it's not in their interest to ban these kinds of applications,
    unless explicitly asked by the game developers. Their "main focus is on the specifically crafted cheating tools".
 
 
