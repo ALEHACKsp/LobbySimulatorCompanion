@@ -10,6 +10,23 @@ public class KillerStats {
     private int deaths;
     private int matchTime;
 
+
+    public int getMatches() {
+        return matches;
+    }
+
+    public int getEscapes() {
+        return escapes;
+    }
+
+    public int getDeaths() {
+        return deaths;
+    }
+
+    public int getMatchTime() {
+        return matchTime;
+    }
+
     public void incrementMatches() {
         matches++;
     }

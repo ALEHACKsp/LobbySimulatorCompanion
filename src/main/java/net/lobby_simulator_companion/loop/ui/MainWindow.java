@@ -61,6 +61,8 @@ public class MainWindow extends JFrame implements Observer {
      */
     private static final int MIN_MATCH_SECONDS = 60;
     private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
+    private static final int SURVIVAL_INPUT_WINDOW_DELAY = 3000;
+
 
     private enum GameState {
         IDLE,
@@ -159,7 +161,7 @@ public class MainWindow extends JFrame implements Observer {
             }
         });
 
-        survivalInputPanel = new SurvivalInputPanel(statsPanel, killerPanel);
+        survivalInputPanel = new SurvivalInputPanel(statsPanel, killerPanel, dataService);
         survivalInputPanel.addPropertyChangeListener(evt -> {
             survivalInputPanel.setVisible(false);
             pack();
@@ -484,6 +486,7 @@ public class MainWindow extends JFrame implements Observer {
         dataService.getStats().incrementSecondsInQueue(queueTime);
         dataService.notifyChange();
         statsPanel.refreshStats();
+        statsPanel.updateMap(RealmMap.UNIDENTIFIED);
         connStatusLabel.setText(MSG_CONNECTED);
         killerPanel.clearKillerInfo();
         survivalInputPanel.setVisible(false);
@@ -638,20 +641,25 @@ public class MainWindow extends JFrame implements Observer {
 
     private static final class SurvivalInputPanel extends JPanel {
         private static final String EVENT_SURVIVAL_INPUT_DONE = "survival_input_done";
+
+        private enum SelectionState {NONE, ESCAPED, DIED, IGNORE}
+
         private StatsPanel statsPanel;
         private KillerPanel killerPanel;
+        private LoopDataService dataService;
         private JLabel escapedButton;
         private JLabel diedButton;
         private JLabel ignoreButton;
         private Timer timer;
 
-        private enum SelectionState {NONE, ESCAPED, DIED, IGNORE}
-
         private SelectionState selectionState = SelectionState.NONE;
+        private Player killerPlayerBackup;
 
-        SurvivalInputPanel(StatsPanel statsPanel, KillerPanel killerPanel) {
+
+        SurvivalInputPanel(StatsPanel statsPanel, KillerPanel killerPanel, LoopDataService dataService) {
             this.statsPanel = statsPanel;
             this.killerPanel = killerPanel;
+            this.dataService = dataService;
             initTimer();
 
             UIManager.put("ToolTip.font", ResourceFactory.getRobotoFont().deriveFont(14f));
@@ -711,11 +719,26 @@ public class MainWindow extends JFrame implements Observer {
             add(survivalStatusButtonPanel);
             add(survivalMessagePanel);
             setVisible(false);
+
+            SurvivalInputPanel thisPanel = this;
+
+            addComponentListener(new ComponentAdapter() {
+                @Override
+                public void componentShown(ComponentEvent e) {
+                    thisPanel.backupStats();
+                }
+            });
+        }
+
+        private void backupStats() {
+            if (killerPanel.getKillerPlayer() != null) {
+                killerPlayerBackup = killerPanel.getKillerPlayer().clone();
+            }
+            statsPanel.backupStats();
         }
 
         private void handleSurvivalStatusChange(SelectionState newSelectionState) {
-            killerPanel.restoreKillerPlayer();
-            statsPanel.restoreStats();
+            restoreStats();
 
             if (newSelectionState == this.selectionState) {
                 resetButtons();
@@ -743,8 +766,21 @@ public class MainWindow extends JFrame implements Observer {
             timer.restart();
         }
 
+        private void restoreStats() {
+            Player killerPlayer = killerPanel.getKillerPlayer();
+
+            if (killerPlayer != null) {
+                killerPlayer.setEscapesAgainst(killerPlayerBackup.getEscapesAgainst());
+                killerPlayer.setDeaths(killerPlayerBackup.getDeathsBy());
+                dataService.notifyChange();
+                killerPanel.updateKillerPlayer(killerPlayer);
+            }
+
+            statsPanel.restoreStats();
+        }
+
         private void initTimer() {
-            timer = new Timer(3000, e -> {
+            timer = new Timer(SURVIVAL_INPUT_WINDOW_DELAY, e -> {
                 timer.stop();
                 firePropertyChange(EVENT_SURVIVAL_INPUT_DONE, null, null);
             });

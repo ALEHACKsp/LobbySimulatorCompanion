@@ -157,6 +157,10 @@ public abstract class PeriodStats implements Cloneable {
         return mapStats;
     }
 
+    public Map<Killer, KillerStats> getKillersStats() {
+        return killersStats;
+    }
+
     public void incrementLobbiesFound() {
         lobbiesFound++;
     }

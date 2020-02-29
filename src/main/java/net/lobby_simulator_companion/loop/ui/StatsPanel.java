@@ -60,7 +60,8 @@ public class StatsPanel extends JPanel {
         DEATHS_IN_A_ROW("Deaths in a row - streak"),
         MAX_DEATHS_IN_A_ROW("Deaths in a row - record"),
         SURVIVAL_PROBABILITY("Survival rate"),
-        MAP_RANDOMNESS("Map variation");
+        MAP_RANDOMNESS("Map variation"),
+        KILLER_VARIABILITY("Killer variation");
 
         final String description;
         final String tooltip;
@@ -77,8 +78,6 @@ public class StatsPanel extends JPanel {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
-    private enum SurvivalStatus {None, Escaped, Died}
-
     private final Settings settings;
     private final LoopDataService dataService;
 
@@ -87,7 +86,6 @@ public class StatsPanel extends JPanel {
     private NameValueInfoPanel<StatType> statsContainer;
     private final Period[] statPeriods = Period.values();
     private Period currentStatPeriod;
-    private SurvivalStatus survivalStatus = SurvivalStatus.None;
     private Stats statsBackup;
     private Killer killer = Killer.UNIDENTIFIED;
     private RealmMap realmMap;
@@ -117,13 +115,14 @@ public class StatsPanel extends JPanel {
         if (periodStats.getPeriodEnd() == null) {
             return;
         }
-        Date statsResetDate = Date.from(periodStats.getPeriodEnd().atZone(ZoneId.systemDefault()).toInstant());
+        Date statsResetDate = Date.from(periodStats.getPeriodEnd().atZone(ZoneId.systemDefault()).toInstant()
+                .plusSeconds(5L));
 
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                logger.info("Resetting stats timer for {}", periodStats.getClass());
+                logger.debug("Resetting stats timer for {}", periodStats.getClass());
                 periodStats.reset();
                 dataService.notifyChange();
                 timer.cancel();
@@ -242,7 +241,7 @@ public class StatsPanel extends JPanel {
         if (statsBackup != null) {
             dataService.getStats().copyFrom(statsBackup);
             dataService.notifyChange();
-            survivalStatus = SurvivalStatus.None;
+//            survivalStatus = SurvivalStatus.None;
             refreshStats();
         }
     }
@@ -314,37 +313,55 @@ public class StatsPanel extends JPanel {
         float mapVariability = calculateMapsDistro(currentStats);
         setStatValue(StatType.MAP_RANDOMNESS, currentStats.getMatchesPlayed() == 0 ?
                 "N/A" :
-                String.format("%.1f %% (%s)", mapVariability * 100, getMapVariationLabel(mapVariability)));
+                String.format("%.1f %% (%s)", mapVariability * 100, getVariabilityLabel(mapVariability)));
+
+        float killerVariability = calculateKillersDistro(currentStats);
+        setStatValue(StatType.KILLER_VARIABILITY, currentStats.getMatchesPlayed() == 0 ?
+                "N/A" :
+                String.format("%.1f %% (%s)", killerVariability * 100, getVariabilityLabel(killerVariability)));
     }
 
 
     private float calculateMapsDistro(PeriodStats periodStats) {
         Collection<Integer> mapsDistro = Arrays.stream(RealmMap.values())
-                .filter(rm -> rm.isIdentified())
-                .map(rm ->
-                        periodStats.getMapStats() != null
-                                && periodStats.getMapStats() != null
-                                && periodStats.getMapStats().containsKey(rm) ?
-                                periodStats.getMapStats().get(rm).getMatches()
-                                : 0)
+                .filter(RealmMap::isIdentified)
+                .map(rm -> periodStats.getMapStats() != null
+                        && periodStats.getMapStats() != null
+                        && periodStats.getMapStats().containsKey(rm) ?
+                        periodStats.getMapStats().get(rm).getMatches()
+                        : 0)
                 .sorted(Comparator.reverseOrder())
                 .collect(Collectors.toList());
 
         return StatsUtils.rateDistribution(mapsDistro);
     }
 
-    private String getMapVariationLabel(float mapVariability) {
+    private float calculateKillersDistro(PeriodStats periodStats) {
+        Collection<Integer> distro = Arrays.stream(Killer.values())
+                .filter(Killer::isIdentified)
+                .map(k -> periodStats.getKillersStats() != null
+                        && periodStats.getKillersStats() != null
+                        && periodStats.getKillersStats().containsKey(k) ?
+                        periodStats.getKillersStats().get(k).getMatches() :
+                        0)
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+
+        return StatsUtils.rateDistribution(distro);
+    }
+
+    private String getVariabilityLabel(float variability) {
         String label;
 
-        if (mapVariability >= 0 && mapVariability <= 0.25) {
+        if (variability >= 0 && variability <= 0.25) {
             label = "poor";
-        } else if (mapVariability > 0.25 && mapVariability <= 0.6) {
+        } else if (variability > 0.25 && variability <= 0.6) {
             label = "pretty bad";
-        } else if (mapVariability > 0.6 && mapVariability <= 0.7) {
+        } else if (variability > 0.6 && variability <= 0.7) {
             label = "a bit bad";
-        } else if (mapVariability > 0.7 && mapVariability <= 0.8) {
+        } else if (variability > 0.7 && variability <= 0.8) {
             label = "decent";
-        } else if (mapVariability > 0.8 && mapVariability <= 0.9) {
+        } else if (variability > 0.8 && variability <= 0.9) {
             label = "good";
         } else {
             label = "very good";
@@ -389,12 +406,6 @@ public class StatsPanel extends JPanel {
         Stats stats = dataService.getStats();
         stats.incrementMatchesPlayed(killer, realmMap);
         stats.incrementSecondsPlayed(matchSeconds, killer, realmMap);
-        backupStats();
-        if (survivalStatus == SurvivalStatus.Escaped) {
-            stats.incrementEscapes(killer, realmMap);
-        } else if (survivalStatus == SurvivalStatus.Died) {
-            stats.incrementDeaths(killer, realmMap);
-        }
         dataService.notifyChange();
         refreshStats();
     }

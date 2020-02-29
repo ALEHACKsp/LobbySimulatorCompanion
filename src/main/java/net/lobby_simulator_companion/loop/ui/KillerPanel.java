@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -81,12 +82,10 @@ public class KillerPanel extends JPanel {
     private LoopDataService dataService;
     private SteamProfileDao steamProfileDao;
 
-    private JPanel titleBar;
     private JLabel playerNameLabel;
     private JLabel playerSteamButton;
     private JLabel titleBarCharacterLabel;
     private JLabel playerRateLabel;
-    private JPanel detailsPanel;
     private NameValueInfoPanel<InfoType> statsContainer;
     private JPanel charValuePanel;
     private JLabel characterValueLabel;
@@ -95,7 +94,6 @@ public class KillerPanel extends JPanel {
     private JTextArea userNotesArea;
 
     private Player killerPlayer;
-    private Player killerPlayerBackup;
     private Killer killerCharacter = Killer.UNIDENTIFIED;
     private Timer userNotesUpdateTimer;
     private boolean showCharacter;
@@ -107,11 +105,11 @@ public class KillerPanel extends JPanel {
         this.steamProfileDao = steamProfileDao;
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        titleBar = createTitleBar();
-        detailsPanel = createDetailsPanel();
-
-        JPanel collapsablePanel = new CollapsablePanel(titleBar, detailsPanel,
-                settings, "ui.panel.killer.collapsed");
+        JPanel collapsablePanel = new CollapsablePanel(
+                createTitleBar(),
+                createDetailsPanel(),
+                settings,
+                "ui.panel.killer.collapsed");
         collapsablePanel.addPropertyChangeListener(evt -> firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null));
         add(collapsablePanel);
     }
@@ -285,16 +283,23 @@ public class KillerPanel extends JPanel {
             userNotesUpdateTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    if (killerPlayer != null) {
-                        String notes = userNotesArea.getText().trim();
-                        notes = notes.isEmpty() ? null : notes;
-                        killerPlayer.setDescription(notes);
-                        userNotesUpdateTimer = null;
-                        dataService.notifyChange();
-                        firePropertyChange(EVENT_KILLER_UPDATE, null, null);
-                    }
+                    SwingUtilities.invokeLater(() -> updatePlayerDescription());
                 }
             }, DESCRIPTION_UPDATE_DELAY_MS);
+        }
+    }
+
+    private void updatePlayerDescription() {
+        if (killerPlayer != null) {
+            String newNotes = userNotesArea.getText().trim();
+            newNotes = newNotes.isEmpty() ? null : newNotes;
+            userNotesUpdateTimer = null;
+
+            if (!Objects.equals(newNotes, killerPlayer.getDescription())) {
+                killerPlayer.setDescription(newNotes);
+                dataService.notifyChange();
+                firePropertyChange(EVENT_KILLER_UPDATE, null, null);
+            }
         }
     }
 
@@ -349,7 +354,6 @@ public class KillerPanel extends JPanel {
 
         return container;
     }
-
 
     public void receiveNewKillerPlayer(PlayerDto playerDto) {
         String playerName;
@@ -408,7 +412,7 @@ public class KillerPanel extends JPanel {
         toggleUserNotesAreaVisibility(false);
     }
 
-    private void updateKillerPlayer(Player player) {
+    public void updateKillerPlayer(Player player) {
         killerPlayer = player;
 
         playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName() : "");
@@ -514,6 +518,9 @@ public class KillerPanel extends JPanel {
     }
 
     public Player getKillerPlayer() {
+        /* we need to enforce updating the description, since it's update may have been deferred and the
+           object might not be reflecting the latest state. */
+        updatePlayerDescription();
         return killerPlayer;
     }
 
@@ -537,23 +544,7 @@ public class KillerPanel extends JPanel {
         }
 
         dataService.notifyChange();
-        backupKillerPlayer();
     }
-
-    public void backupKillerPlayer() {
-        if (killerPlayer != null) {
-            killerPlayerBackup = killerPlayer.clone();
-        }
-    }
-
-    public void restoreKillerPlayer() {
-        if (killerPlayer != null && killerPlayerBackup != null) {
-            killerPlayer.copyFrom(killerPlayerBackup);
-            dataService.notifyChange();
-            updateKillerPlayer(killerPlayer);
-        }
-    }
-
 
     public void notifySurvivalAgainstCurrentKiller(Boolean escaped) {
         if (killerPlayer == null || escaped == null) {
@@ -566,6 +557,11 @@ public class KillerPanel extends JPanel {
             killerPlayer.incrementDeaths();
         }
         dataService.notifyChange();
+
+        // make sure the buffered description is on the Player object
+        updatePlayerDescription();
+
+        // shortcut to refreshing the killer player stats
         updateKillerPlayer(killerPlayer);
     }
 

@@ -1,6 +1,9 @@
 package net.lobby_simulator_companion.loop.service;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Comparator.reverseOrder;
 
@@ -66,7 +69,7 @@ import static java.util.Comparator.reverseOrder;
  *        --> the first factor weighs the position of the component;
  *            the second factor gets higher as the component gets lower in relation to the previous component
  *
- * Once we have our function(d), we can calculate the distribution "goodness" by relating it to the worst-case
+ * Once we have our function(d), we can calculate the distribution "goodness" by rating it over the best-case
  * distribution.
  * The time complexity is O(1).
  *
@@ -93,12 +96,12 @@ import static java.util.Comparator.reverseOrder;
  *
  * Possible problems:
  * ------------------
- * A natural consequence of the function is that values more those distributions that have more non-zero components,
+ * A natural consequence of the function is that it values more those distributions that have more non-zero components,
  * which in some cases can be controversial. For example:
  * [3, 3, 2, 0, 0] ==> 67.74%
  * [5, 1, 1, 1, 0] ==> 83.87%
- * Is the second distro really better than the first one? it spreads the sum towards more components (one more) but
- * at the expense of playing 5 times on the same map. The first one seems to spread more evenly, at the cost of
+ * Is the second distro really (that) better than the first one? it spreads the sum towards more components (one more)
+ * but at the expense of playing 5 times on the same map. The first one seems to spread more evenly, at the cost of
  * reaching one less component.
  *
  *
@@ -122,7 +125,6 @@ import static java.util.Comparator.reverseOrder;
  */
 public class StatsUtils {
 
-
     public static float rateDistribution(Collection<Integer> distro) {
         int n = distro.stream().reduce(0, (result, element) -> result += element);
         int k = distro.size();
@@ -131,7 +133,7 @@ public class StatsUtils {
             return 1;
         }
 
-        int[] bestDistro = calculateBestDistribution(n, k);
+        int[] bestDistro = generateBestDistribution(n, k);
         int[] currentDistro = distro.stream()
                 .sorted(reverseOrder())
                 .mapToInt(i -> i)
@@ -143,7 +145,7 @@ public class StatsUtils {
         return (float) (currentScore / bestScore);
     }
 
-    private static int[] calculateBestDistribution(int n, int k) {
+    private static int[] generateBestDistribution(int n, int k) {
         int[] d = new int[k];
 
         for (int i = 0, m = k; i < k; i++, m--) {

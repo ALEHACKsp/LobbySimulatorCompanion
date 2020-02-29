@@ -138,12 +138,20 @@ public class Player implements Serializable, Cloneable {
         return escapes;
     }
 
+    public void setEscapesAgainst(int escapes) {
+        this.escapes = escapes;
+    }
+
     public void incrementEscapes() {
         escapes++;
     }
 
     public int getDeathsBy() {
         return deaths;
+    }
+
+    public void setDeaths(int deaths) {
+        this.deaths = deaths;
     }
 
     public void incrementDeaths() {
