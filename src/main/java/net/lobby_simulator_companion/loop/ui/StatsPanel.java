@@ -241,7 +241,6 @@ public class StatsPanel extends JPanel {
         if (statsBackup != null) {
             dataService.getStats().copyFrom(statsBackup);
             dataService.notifyChange();
-//            survivalStatus = SurvivalStatus.None;
             refreshStats();
         }
     }

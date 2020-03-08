@@ -95,6 +95,7 @@ public class MainWindow extends JFrame implements Observer {
     private JPanel messagePanel;
     private JLabel lastConnMsgLabel;
     private JLabel connStatusLabel;
+    private JLabel killerSkullIcon;
     private JPanel killerInfoContainer;
     private JLabel killerPlayerValueLabel;
     private JLabel killerPlayerRateLabel;
@@ -212,6 +213,23 @@ public class MainWindow extends JFrame implements Observer {
         }
 
         if (player != null) {
+            if (player.getMatchesPlayed() == 0) {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_WHITE));
+                killerSkullIcon.setToolTipText("You have not played against this killer player.");
+            }
+            else if (player.getEscapesAgainst() == player.getDeathsBy()) {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_BLACK));
+                killerSkullIcon.setToolTipText("You are tied against this killer player.");
+            }
+            else if (player.getEscapesAgainst() > player.getDeathsBy()) {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_BLUE));
+                killerSkullIcon.setToolTipText("You dominate this killer player in record.");
+            }
+            else {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_RED));
+                killerSkullIcon.setToolTipText("You are dominated by this killer player in record.");
+            }
+
             if (settings.getExperimentalSwitch(1)) {
                 killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
             }
@@ -253,10 +271,9 @@ public class MainWindow extends JFrame implements Observer {
         connStatusLabel.setForeground(Color.WHITE);
         connStatusLabel.setFont(font);
 
-        JLabel killerPlayerLabel = new JLabel();
-        killerPlayerLabel.setBorder(border);
-        killerPlayerLabel.setFont(font);
-        killerPlayerLabel.setIcon(ResourceFactory.getIcon(Icon.SKULL));
+        killerSkullIcon = new JLabel();
+        killerSkullIcon.setBorder(border);
+        killerSkullIcon.setFont(font);
 
         killerPlayerValueLabel = new JLabel();
         killerPlayerValueLabel.setBorder(border);
@@ -280,7 +297,7 @@ public class MainWindow extends JFrame implements Observer {
         killerInfoContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         killerInfoContainer.setBorder(NO_BORDER);
         killerInfoContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
-        killerInfoContainer.add(killerPlayerLabel);
+        killerInfoContainer.add(killerSkullIcon);
         killerInfoContainer.add(killerPlayerValueLabel);
         killerInfoContainer.add(killerPlayerRateLabel);
         killerInfoContainer.add(killerPlayerNotesLabel);

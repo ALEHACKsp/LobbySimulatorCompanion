@@ -3,7 +3,7 @@ package net.lobby_simulator_companion.loop.ui.common;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.ImageIcon;
+import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,7 +43,10 @@ public final class ResourceFactory {
         GEO_LOCATION("/geo-location_icon.png"),
         RATE("/rate_icon.png"),
         STEAM("/steam_icon.png"),
-        SKULL("/skull_icon.png"),
+        SKULL_WHITE("/skull-white_icon.png"),
+        SKULL_BLACK("/skull-black_icon.png"),
+        SKULL_BLUE("/skull-blue_icon.png"),
+        SKULL_RED("/skull-red_icon.png"),
         SWITCH_OFF("/switch-off_icon.png");
 
         final String imagePath;
