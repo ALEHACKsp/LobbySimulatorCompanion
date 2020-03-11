@@ -47,6 +47,7 @@ public final class ResourceFactory {
         SKULL_BLACK("/skull-black_icon.png"),
         SKULL_BLUE("/skull-blue_icon.png"),
         SKULL_RED("/skull-red_icon.png"),
+        DISCONNECT("/broken-link_icon.png"),
         SWITCH_OFF("/switch-off_icon.png");
 
         final String imagePath;
