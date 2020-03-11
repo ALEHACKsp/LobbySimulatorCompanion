@@ -66,6 +66,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final Map<Killer, String[]> KILLER_TO_OUTFIT_MAPPING = Stream.of(new Object[][]{
             {Killer.CANNIBAL, new String[]{"CA"}},
             {Killer.CLOWN, new String[]{"GK", "Clown"}},
+            {Killer.DEATHSLINGER, new String[]{"UkraineKiller", "UK"}},
             {Killer.DEMOGORGON, new String[]{"QK"}},
             {Killer.DOCTOR, new String[]{"DO", "DOW04", "Killer07"}},
             {Killer.GHOSTFACE, new String[]{"OK"}},
@@ -100,7 +101,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
             KILLER_PLAYER,
             KILLER_CHARACTER,
             MAP_GENERATE,
-            SERVER_DISCONNECT,
+            SERVER_DISCONNECT
         }
 
         public final Type type;
@@ -120,6 +121,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
         }
     }
 
+    private boolean connected;
+    private boolean notifiedDisconnect; // to avoid reporting disconnection repeatedly
     private File logFile;
     private List<Function<String, Boolean>> lineProcessors;
     private BufferedReader reader;
@@ -127,14 +130,6 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private PlayerDto lastPlayer;
     private PlayerDto lastKillerPlayer;
     private Killer lastKiller;
-
-
-    public static void main(String[] args) {
-        String i = "--- RESPONSE: code 200, request [POST https://latest.live.dbd.bhvronline.com/api/v1/queue/cancel] ---";
-        Matcher m = PATTERN__MATCH_WAIT_CANCEL.matcher(i);
-
-        System.out.println(m.find());
-    }
 
 
     public DbdLogMonitor() throws IOException {
@@ -188,6 +183,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
                 line = reader.readLine();
 
                 if (line != null) {
+                    connected = true;
+                    notifiedDisconnect = false;
                     processLine(line);
                 } else {
                     // for now, there are no more entries in the file
@@ -353,6 +350,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
 
             Event event = new Event(Event.Type.SERVER_DISCONNECT, null);
             setChanged();
+            notifiedDisconnect = true;
             notifyObservers(event);
             return true;
         }

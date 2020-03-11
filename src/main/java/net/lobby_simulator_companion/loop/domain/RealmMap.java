@@ -28,6 +28,9 @@ public enum RealmMap {
     DISTURBED_WARD("Asy_Asylum", "Disturbed Ward"),
     FATHER_CAMPBELLS_CHAPEL("Asy_Chapel", "Father Campbell's Chapel"),
 
+    // Grave of Glenvale
+    DEAD_DAWG_SALOON("Ukr_Saloon", "Dead Dawg Saloon"),
+
     // Haddonfield
     LAMPKIN_LANE("Sub_Street", "Lampkin Lane"),
 
