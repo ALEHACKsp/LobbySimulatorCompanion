@@ -103,6 +103,7 @@ public class MainWindow extends JFrame implements Observer {
     private JLabel killerCharLabel;
     private JPanel titleBarTimerContainer;
     private JLabel connTimerLabel;
+    private JLabel disconnectButton;
     private JLabel titleBarMinimizeLabel;
     private JPanel detailPanel;
 
@@ -332,6 +333,19 @@ public class MainWindow extends JFrame implements Observer {
         connMsgPanel.addMouseListener(mouseDragListener);
         connMsgPanel.addMouseMotionListener(mouseDragListener);
 
+        disconnectButton = ComponentUtils.createButtonLabel(
+                null,
+                "Disconnect (this will not affect the game)",
+                Icon.DISCONNECT,
+                new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        turnToIdle();
+                    }
+                });
+        disconnectButton.setBorder(border);
+        disconnectButton.setVisible(false);
+
         JLabel switchOffButton = new JLabel();
         switchOffButton.setBorder(border);
         switchOffButton.setIcon(ResourceFactory.getIcon(Icon.SWITCH_OFF));
@@ -359,6 +373,7 @@ public class MainWindow extends JFrame implements Observer {
 
         JPanel titleBarButtonContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        titleBarButtonContainer.add(disconnectButton);
         titleBarButtonContainer.add(switchOffButton);
         titleBarButtonContainer.add(titleBarMinimizeLabel);
 
@@ -467,6 +482,7 @@ public class MainWindow extends JFrame implements Observer {
             return;
         }
         logger.debug("Event: waiting for match");
+        disconnectButton.setVisible(true);
         changeTitleBarColor(Colors.CONNECTION_BAR_WAITING, Color.BLACK);
         connStatusLabel.setText("Waiting for match");
         queueStartTime = System.currentTimeMillis();
@@ -496,6 +512,7 @@ public class MainWindow extends JFrame implements Observer {
         }
 
         logger.debug("Event: lobby join");
+        disconnectButton.setVisible(true);
         queueTime = (int) (System.currentTimeMillis() - queueStartTime) / 1000;
         queueStartTime = null;
         queueTimer.stop();
@@ -593,10 +610,10 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void notifyServerDisconnect() {
-        logger.debug("Event: server disconnect");
-        if (gameState != GameState.IN_MATCH && gameState != GameState.AFTER_MATCH) {
+        if (gameState != GameState.IN_MATCH && gameState != GameState.AFTER_MATCH && gameState != GameState.IN_LOBBY) {
             return;
         }
+        logger.debug("Event: server disconnect");
         turnToIdle();
         pack();
     }
@@ -608,6 +625,7 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void turnToIdle() {
+        disconnectButton.setVisible(false);
         dbdLogMonitor.resetKiller();
         queueStartTime = null;
         queueTime = null;
