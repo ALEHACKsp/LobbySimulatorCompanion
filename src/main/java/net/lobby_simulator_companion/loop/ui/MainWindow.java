@@ -1,6 +1,5 @@
 package net.lobby_simulator_companion.loop.ui;
 
-import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Killer;
@@ -59,7 +58,8 @@ public class MainWindow extends JFrame implements Observer {
     /**
      * Minimum time connected from which we can assume that a match has taken place.
      */
-    private static final int MIN_MATCH_SECONDS = 60;
+    private static final int DEFAULT_MIN_MATCH_SECONDS = 60;
+    private static final int DEBUG_MIN_MATCH_SECONDS = 1;
     private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
     private static final int SURVIVAL_INPUT_WINDOW_DELAY = 3000;
 
@@ -72,14 +72,15 @@ public class MainWindow extends JFrame implements Observer {
         AFTER_MATCH
     }
 
-    private Settings settings;
-    private DbdLogMonitor dbdLogMonitor;
-    private LoopDataService dataService;
-    private ServerPanel serverPanel;
-    private KillerPanel killerPanel;
-    private StatsPanel statsPanel;
+    private final Settings settings;
+    private final AppProperties appProperties;
+    private final DbdLogMonitor dbdLogMonitor;
+    private final LoopDataService dataService;
+    private final ServerPanel serverPanel;
+    private final KillerPanel killerPanel;
+    private final StatsPanel statsPanel;
 
-    private AppProperties appProperties = Factory.getAppProperties();
+    private int minMatchSeconds;
     private GameState gameState = GameState.IDLE;
     private Timer queueTimer;
     private Long queueStartTime;
@@ -108,15 +109,17 @@ public class MainWindow extends JFrame implements Observer {
     private JPanel detailPanel;
 
 
-    public MainWindow(Settings settings, DbdLogMonitor dbdLogMonitor, LoopDataService loopDataService,
+    public MainWindow(Settings settings, AppProperties appProperties, DbdLogMonitor dbdLogMonitor, LoopDataService loopDataService,
                       ServerPanel serverPanel, KillerPanel killerPanel, StatsPanel statsPanel) {
         this.settings = settings;
+        this.appProperties = appProperties;
         this.dbdLogMonitor = dbdLogMonitor;
         this.dataService = loopDataService;
         this.serverPanel = serverPanel;
         this.killerPanel = killerPanel;
         this.statsPanel = statsPanel;
 
+        minMatchSeconds = appProperties.getBoolean("debug")? DEBUG_MIN_MATCH_SECONDS: DEFAULT_MIN_MATCH_SECONDS;
         dbdLogMonitor.addObserver(this);
         initTimers();
 
@@ -463,7 +466,7 @@ public class MainWindow extends JFrame implements Observer {
             int seconds = getMatchDuration();
             displayMatchTimer(seconds);
 
-            if (seconds >= MIN_MATCH_SECONDS && !connectionCountedAsMatch) {
+            if (seconds >= minMatchSeconds && !connectionCountedAsMatch) {
                 connectionCountedAsMatch = true;
                 statsPanel.notifyMatchDetected();
             }
@@ -602,7 +605,7 @@ public class MainWindow extends JFrame implements Observer {
     private void reportEndOfMatchStats() {
         survivalInputPanel.reset();
         int matchTime = getMatchDuration();
-        if (matchTime >= MIN_MATCH_SECONDS) {
+        if (matchTime >= minMatchSeconds) {
             killerPanel.notifyEndOfMatch(matchTime);
             statsPanel.notifyEndOfMatch(matchTime);
             survivalInputPanel.setVisible(true);

@@ -100,7 +100,7 @@ public class Stats {
 
     private void copy(Stats source, Stats target) {
         Arrays.stream(Period.values()).forEach(p ->
-                target.periodsStats[p.ordinal()] = source.periodsStats[p.ordinal()].clone());
+                target.periodsStats[p.ordinal()].copyFrom(source.periodsStats[p.ordinal()].clone()));
     }
 
     public Stream<PeriodStats> asStream() {
