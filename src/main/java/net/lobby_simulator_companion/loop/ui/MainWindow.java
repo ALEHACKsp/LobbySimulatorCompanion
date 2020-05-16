@@ -208,7 +208,7 @@ public class MainWindow extends JFrame implements Observer {
         connStatusLabel.setVisible(false);
         killerInfoContainer.setVisible(true);
 
-        if (settings.getExperimentalSwitch(2)) {
+        if (settings.getExperimentalSwitchWithChance(2)) {
             Killer killerChar = killerPanel.getKillerCharacter();
             killerCharLabel.setVisible(killerChar != null && killerPanel.isShowKillerCharacter());
             if (killerChar != null && killerChar != Killer.UNIDENTIFIED) {
@@ -234,7 +234,7 @@ public class MainWindow extends JFrame implements Observer {
                 killerSkullIcon.setToolTipText("You are dominated by this killer player in record.");
             }
 
-            if (settings.getExperimentalSwitch(1)) {
+            if (settings.getExperimentalSwitchWithChance(1)) {
                 killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
             }
 

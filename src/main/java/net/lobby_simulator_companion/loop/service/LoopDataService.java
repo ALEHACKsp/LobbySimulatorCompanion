@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Service for managing data related to players and servers.
@@ -112,6 +111,5 @@ public class LoopDataService {
             logger.error("Failed to save data.", e);
         }
     }
-
 
 }

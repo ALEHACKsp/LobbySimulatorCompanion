@@ -1,13 +1,29 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import net.lobby_simulator_companion.loop.domain.Killer;
+import net.lobby_simulator_companion.loop.domain.RealmMap;
+import net.lobby_simulator_companion.loop.domain.stats.KillerStats;
+import net.lobby_simulator_companion.loop.domain.stats.MapStats;
+import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.LoopDataService;
+import net.lobby_simulator_companion.loop.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * A panel for debugging purposes.
@@ -20,9 +36,11 @@ public class DebugPanel extends JPanel {
     private static final Logger logger = LoggerFactory.getLogger(ServerPanel.class);
     private JFrame frame;
     private FileWriter logWriter;
+    private LoopDataService dataService;
 
 
-    public DebugPanel(DbdLogMonitor logMonitor) throws Exception {
+    public DebugPanel(DbdLogMonitor logMonitor, LoopDataService dataService) throws Exception {
+        this.dataService = dataService;
         this.logWriter = new FileWriter(logMonitor.getLogFile());
         logger.debug("Monitoring log file: {}", logMonitor.getLogFile());
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -99,6 +117,16 @@ public class DebugPanel extends JPanel {
         button = new JButton("Detect Killer Player B");
         button.addActionListener(e -> simulateNewKillerPlayer(2));
         killerPanel.add(button);
+
+        JPanel statsPanel = new JPanel();
+        container.add(statsPanel);
+        button = new JButton("Export map stats to clipboard");
+        button.addActionListener(e -> exportMapStats());
+        statsPanel.add(button);
+
+        button = new JButton("Export killer stats to clipboard");
+        button.addActionListener(e -> exportKillerStats());
+        statsPanel.add(button);
     }
 
     private void simulateMatchSearch() {
@@ -150,6 +178,75 @@ public class DebugPanel extends JPanel {
         } catch (IOException e) {
             logger.error("Failed to write to log file", e);
         }
+    }
+
+
+    private void exportMapStats() {
+        Map<RealmMap, MapStats> mapStats = dataService.getStats().get(Stats.Period.YEARLY).getMapStats();
+
+        int totalMatches = mapStats.entrySet().stream()
+                .map(e -> e.getValue().getEscapes() + e.getValue().getDeaths())
+                .reduce(0, Integer::sum);
+
+        String statsText = "Map Name, Matches Played , Occurrence Rate, Survival Rate, Average Match Time\n" +
+                mapStats.entrySet().stream()
+                        .map(e -> mapStatToCsvRow(e.getKey(), e.getValue(), totalMatches))
+                        .collect(Collectors.joining("\n"));
+
+
+        StringSelection stringSelection = new StringSelection(statsText);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+        logger.info("Stats copied to clipboard.");
+    }
+
+    private String mapStatToCsvRow(RealmMap realmMap, MapStats mapStats, int totalMatches) {
+        int matches = mapStats.getEscapes() + mapStats.getDeaths();
+        float survivalRate = (float) mapStats.getEscapes() / matches;
+        int averageMatchDuration = mapStats.getMatchTime() / matches;
+
+        List<Object> values = new ArrayList<>();
+        values.add("\"" + realmMap.alias() + "\"");
+        values.add(matches);
+        values.add((double) matches / totalMatches);
+        values.add(survivalRate);
+        values.add("\"" + TimeUtil.formatTimeUpToHours(averageMatchDuration) + "\"");
+
+        return values.stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    private void exportKillerStats() {
+        Map<Killer, KillerStats> stats = dataService.getStats().get(Stats.Period.YEARLY).getKillersStats();
+        List<Map.Entry<Killer, KillerStats>> entries = stats.entrySet().stream().filter(e -> e.getKey().isIdentified()).collect(toList());
+
+        int totalMatches = entries.stream()
+                .map(e -> e.getValue().getEscapes() + e.getValue().getDeaths())
+                .reduce(0, Integer::sum);
+
+        String statsText = "Killer Name, Matches Played Against, Occurrence Rate, Survival Rate, Average Match Time\n" +
+                entries.stream()
+                        .map(e -> killerStatToCsvRow(e.getKey(), e.getValue(), totalMatches))
+                        .collect(Collectors.joining("\n"));
+
+
+        StringSelection stringSelection = new StringSelection(statsText);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+        logger.info("Stats copied to clipboard.");
+    }
+
+
+    private String killerStatToCsvRow(Killer killer, KillerStats stats, int totalMatches) {
+        int matches = stats.getEscapes() + stats.getDeaths();
+        float survivalRate = (float) stats.getEscapes() / matches;
+        int averageMatchDuration = stats.getMatchTime() / matches;
+
+        List<Object> values = new ArrayList<>();
+        values.add("\"" + killer.alias() + "\"");
+        values.add(matches);
+        values.add((double) matches / totalMatches);
+        values.add(survivalRate);
+        values.add("\"" + TimeUtil.formatTimeUpToHours(averageMatchDuration) + "\"");
+
+        return values.stream().map(String::valueOf).collect(Collectors.joining(","));
     }
 
 }

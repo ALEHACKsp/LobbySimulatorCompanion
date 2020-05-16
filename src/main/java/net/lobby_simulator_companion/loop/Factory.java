@@ -158,7 +158,7 @@ public final class Factory {
     public static DebugPanel getDebugPanel() {
         try {
             return getInstance(DebugPanel.class, unchecked(() ->
-                    new DebugPanel(getDbdLogMonitor())));
+                    new DebugPanel(getDbdLogMonitor(), getLoopDataService())));
         } catch (Exception e) {
             throw new RuntimeException();
         }

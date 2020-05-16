@@ -9,9 +9,20 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
  * Handles user preferences storing them in memory and in disk.
@@ -28,8 +39,11 @@ public class Settings {
 
     private final Wini ini;
     private final Profile.Section globalSection;
+    private final Random r = new Random();
     private volatile boolean dirty;
     private long lastChange;
+    private Set<Integer> featuresEnabled = new HashSet<>();
+    private Map<Integer, Double> featureChances = new HashMap<>();
 
 
     public Settings() throws IOException {
@@ -53,6 +67,8 @@ public class Settings {
                 save();
             }
         }, SAVE_INTERVAL_SECONDS * 1000, SAVE_INTERVAL_SECONDS * 1000);
+
+        initSwitches();
     }
 
 
@@ -86,11 +102,48 @@ public class Settings {
         return val != null ? Boolean.parseBoolean(val) : defaultValue;
     }
 
-    public boolean getExperimentalSwitch(int featureNum) {
-        int featureCode = Integer.parseInt(Factory.getAppProperties().get("app.feature.experimental." + featureNum));
+    private void initSwitches() {
+        LocalDate expFeaturesLastUpdate = Instant.ofEpochSecond(
+                Long.parseLong(Factory.getAppProperties().get("app.feature.experimental.lastUpdate")))
+                .atZone(ZoneId.systemDefault()).toLocalDate();
+        int days = (int) DAYS.between(expFeaturesLastUpdate, LocalDate.now());
+        double chance = 1 - days / 20.0;
+        int i = 1;
+        String featureCodeList;
 
-        return getBoolean(String.format("loop.feature.experimental.%s",
-                Integer.toHexString((featureCode >>> 4) | (featureCode << (Integer.SIZE - 4)))), false);
+        while (true) {
+            featureCodeList = Factory.getAppProperties().get("app.feature.experimental." + i);
+            if (featureCodeList == null) {
+                break;
+            }
+            int[] codes = Arrays.stream(featureCodeList.split(","))
+                    .map(String::trim)
+                    .mapToInt(Integer::parseInt)
+                    .toArray();
+
+            for (int j = 0; j < codes.length; j++) {
+                int code = codes[j];
+                boolean switchVal = getBoolean(String.format("loop.feature.experimental.%s",
+                        Integer.toHexString((code >>> 4) | (code << (Integer.SIZE - 4)))), false);
+
+                if (switchVal) {
+                    featuresEnabled.add(i);
+                    featureChances.put(i, (j == codes.length - 1 ? 1 : chance));
+                    break;
+                } else {
+                    featureChances.put(i, 0.0);
+                }
+            }
+            i++;
+        }
+    }
+
+    public boolean getExperimentalSwitch(int featureNum) {
+        return featuresEnabled.contains(featureNum);
+    }
+
+    public boolean getExperimentalSwitchWithChance(int featureNum) {
+        return r.nextDouble() <= featureChances.get(featureNum);
     }
 
     public void set(String key, Object value) {

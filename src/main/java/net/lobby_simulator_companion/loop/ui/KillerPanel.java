@@ -418,7 +418,7 @@ public class KillerPanel extends JPanel {
         playerNameLabel.setText(player.getMostRecentName() != null ? player.getMostRecentName() : "");
         playerSteamButton.setVisible(true);
 
-        if (settings.getExperimentalSwitch(1)) {
+        if (settings.getExperimentalSwitchWithChance(1)) {
             JLabel otherNamesValueLabel = statsContainer.get(InfoType.KILLER_PLAYER_NAMES);
             otherNamesValueLabel.setText(null);
             otherNamesValueLabel.setToolTipText(null);
@@ -503,7 +503,8 @@ public class KillerPanel extends JPanel {
 
 
     public void updateKillerCharacter(Killer killer) {
-        if (!this.killerCharacter.isIdentified() || !this.killerCharacter.equals(killer)) {
+        if ((!this.killerCharacter.isIdentified() || !this.killerCharacter.equals(killer))
+                && settings.getExperimentalSwitchWithChance(2)) {
             this.killerCharacter = killer;
 
             if (showCharacter) {
