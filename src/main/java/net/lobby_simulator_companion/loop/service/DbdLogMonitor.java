@@ -47,9 +47,8 @@ public class DbdLogMonitor extends Observable implements Runnable {
     private static final String REGEX__KILLER_OUTFIT = "LogCustomization: --> ([a-zA-Z0-9]+)_[a-zA-Z0-9]+";
     private static final Pattern PATTERN__KILLER_OUTFIT = Pattern.compile(REGEX__KILLER_OUTFIT);
 
-    private static final String REGEX__SERVER_CONNECT =
-            "Browse: ([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})(?::([0-9]{1,5}))?"
-                    + "//Game/Maps/OfflineLobby\\?UseDedicatedServer";
+    private static final String REGEX__SERVER_CONNECT = "UPendingNetGame::SendInitialJoin.+RemoteAddr: "
+            + "([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})(?::([0-9]{1,5}))?";
     private static final Pattern PATTERN__SERVER_CONNECT = Pattern.compile(REGEX__SERVER_CONNECT);
 
     private static final String REGEX__MATCH_WAIT = "(POST https://.+?/api/v1/queue\\])|"
@@ -308,7 +307,7 @@ public class DbdLogMonitor extends Observable implements Runnable {
     }
 
     private Boolean checkForMatchStart(String logLine) {
-        if (logLine.contains("//Game/Maps/ProceduralLevel")) {
+        if (logLine.contains("GameFlow: ACollectable::BeginPlay")) {
             Event event = new Event(Event.Type.MATCH_START, null);
             setChanged();
             notifyObservers(event);
