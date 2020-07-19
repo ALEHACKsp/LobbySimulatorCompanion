@@ -7,8 +7,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import net.lobby_simulator_companion.loop.domain.Killer;
-import net.lobby_simulator_companion.loop.domain.RealmMap;
+import lombok.RequiredArgsConstructor;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.DailyStats;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.GlobalStats;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.MonthlyStats;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.PeriodStats;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.WeeklyStats;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.YearlyStats;
 
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
@@ -20,6 +25,7 @@ import java.util.stream.Stream;
  */
 public class Stats {
 
+    @RequiredArgsConstructor
     public enum Period {
         DAILY("Daily"),
         WEEKLY("Weekly"),
@@ -27,13 +33,10 @@ public class Stats {
         YEARLY("Yearly"),
         GLOBAL("Global");
 
-        private String description;
+        private final String description;
 
-        Period(String description) {
-            this.description = description;
-        }
-
-        public String description() {
+        @Override
+        public String toString() {
             return description;
         }
     }
@@ -58,54 +61,17 @@ public class Stats {
         periodsStats[period.ordinal()] = periodStats;
     }
 
-    public void incrementLobbiesFound() {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementLobbiesFound());
-    }
 
-    public void incrementSecondsInQueue(int seconds) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsQueued(seconds));
-    }
-
-    public void incrementMatchesPlayed(Killer killer, RealmMap realmMap) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementMatchesPlayed(killer, realmMap));
-    }
-
-    public void incrementSecondsPlayed(int secondsPlayed, Killer killer, RealmMap realmMap) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsPlayed(secondsPlayed, killer, realmMap));
-    }
-
-    public void incrementSecondsWaited(int secondsWaited) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementSecondsWaited(secondsWaited));
-    }
-
-    public void incrementEscapes(Killer killer, RealmMap realmMap) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementEscapes(killer, realmMap));
-    }
-
-    public void incrementDeaths(Killer killer, RealmMap realmMap) {
-        Arrays.stream(periodsStats).forEach(s -> s.incrementDeaths(killer, realmMap));
-    }
-
-    @Override
-    public Stats clone() {
-        Stats clone = new Stats();
-        copy(this, clone);
-
-        return clone;
-    }
-
-    public void copyFrom(Stats other) {
-        copy(other, this);
-    }
-
-    private void copy(Stats source, Stats target) {
-        Arrays.stream(Period.values()).forEach(p ->
-                target.periodsStats[p.ordinal()].copyFrom(source.periodsStats[p.ordinal()].clone()));
+    public void addMatchStats(Match matchStats) {
+        for (PeriodStats p : periodsStats) {
+            p.addMatchStats(matchStats);
+        }
     }
 
     public Stream<PeriodStats> asStream() {
         return Arrays.stream(periodsStats);
     }
+
 
 
     public static final class Serializer implements JsonSerializer<Stats> {
@@ -129,7 +95,7 @@ public class Stats {
             Stats result = new Stats();
 
             JsonObject jsonObj = json.getAsJsonObject();
-            jsonObj.entrySet().stream().forEach(e -> {
+            jsonObj.entrySet().forEach(e -> {
                 Stats.Period period = Stats.Period.valueOf(e.getKey().toUpperCase());
                 PeriodStats periodStats = null;
 

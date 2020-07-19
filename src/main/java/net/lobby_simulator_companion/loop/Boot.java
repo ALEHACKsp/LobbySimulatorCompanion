@@ -1,96 +1,77 @@
 package net.lobby_simulator_companion.loop;
 
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
-import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.domain.Killer;
-import net.lobby_simulator_companion.loop.domain.RealmMap;
-import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
+import net.lobby_simulator_companion.loop.ui.startup.PluginLoadUi;
 import net.lobby_simulator_companion.loop.util.FileUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Path;
 
+@Slf4j
 public class Boot {
-    private static Logger logger;
     private static MainWindow ui;
-    private static DbdLogMonitor logMonitor;
-    private static Settings settings;
-    private static AppProperties appProperties;
 
 
-    public static void main(String[] args) throws Exception {
-        configureLogger();
+    public static void main(String[] args) {
         try {
             init();
         } catch (Exception e) {
-            logger.error("Failed to initialize application: {}", e.getMessage(), e);
+            log.error("Failed to initialize application: {}", e.getMessage(), e);
             fatalErrorDialog("Failed to initialize application: " + e.getMessage());
             exitApplication(1);
         }
     }
 
-    private static void configureLogger() throws URISyntaxException {
-        URI execUri = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().toURI();
-        Path appHome = new File(execUri).toPath().getParent();
-        System.setProperty("app.home", appHome.toString());
-        logger = LoggerFactory.getLogger(Boot.class);
-    }
-
-
     private static void init() throws Exception {
-        logger.info("Initializing...");
-        Factory.init();
-        settings = Factory.getSettings();
-        appProperties = Factory.getAppProperties();
-
-        System.setProperty("jna.nosys", "true");
-        boolean performSanityCheck = Factory.getSettings().getBoolean("loop.feature.sanity_check", true);
-
-        if (performSanityCheck && !Sanity.check()) {
-            System.exit(1);
-        }
-        setupTray();
-
-        initLogMonitor();
+        log.info("Initializing...");
+        Factory.appProperties();
         initUi();
-        logger.info("Supported game killers: {}", Killer.values().length - 1);
-        logger.info("Supported game maps: {}", RealmMap.values().length - 1);
-    }
 
-
-    private static void initLogMonitor() {
-        logger.info("Starting log monitor...");
-        logMonitor = Factory.getDbdLogMonitor();
-        Thread thread = new Thread(logMonitor);
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-    private static void initUi() {
-        logger.info("Starting UI...");
+        startServices();
+        Factory.pluginLoadUi().loadPlugin();
         SwingUtilities.invokeLater(() -> {
-            if (appProperties.getBoolean("debug")) {
-                Factory.getDebugPanel();
-            }
-            ui = Factory.getMainWindow();
-            ui.addPropertyChangeListener(MainWindow.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
-            logger.info(Factory.getAppProperties().get("app.name.short") + " is ready.");
+            Factory.mainWindow().start();
+            log.info(Factory.appProperties().get("app.name.short") + " is ready.");
         });
     }
 
 
+    private static void initUi() throws Exception {
+        log.info("Starting UI...");
+        SwingUtilities.invokeLater(() -> {
+            if (Factory.appProperties().getBoolean("debug.panel")) {
+                DevModeConfigurer.init();
+                Factory.debugPanel();
+            }
+            ui = Factory.mainWindow();
+            ui.addPropertyChangeListener(MainWindow.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
+        });
+        doSanityCheck();
+        setupTray();
+    }
+
+    private static void doSanityCheck() {
+        boolean performSanityCheck = Factory.settings().getBoolean("loop.feature.sanity_check", true);
+
+        if (performSanityCheck && !Sanity.check()) {
+            System.exit(1);
+        }
+    }
+
+    private static void startServices() throws IOException {
+        Factory.loopDataService().start();
+        Factory.statsPanel().refreshStatsOnScreen();
+        Factory.dbdLogMonitor().start();
+    }
+
+    // TODO: separate tray icon
     public static void setupTray() throws AWTException, IOException {
-        final AppProperties appProperties = Factory.getAppProperties();
+        final AppProperties appProperties = Factory.appProperties();
         final SystemTray tray = SystemTray.getSystemTray();
         final PopupMenu popup = new PopupMenu();
         final MenuItem info = new MenuItem();
@@ -125,7 +106,7 @@ public class Boot {
     }
 
 
-    public static void exitApplication(int status) {
+    private static void exitApplication(int status) {
         SystemTray systemTray = SystemTray.getSystemTray();
 
         for (TrayIcon trayIcon : systemTray.getTrayIcons()) {
@@ -135,7 +116,7 @@ public class Boot {
             ui.close();
         }
 
-        logger.info("Terminated UI.");
+        log.info("Terminated UI.");
         System.exit(status);
     }
 

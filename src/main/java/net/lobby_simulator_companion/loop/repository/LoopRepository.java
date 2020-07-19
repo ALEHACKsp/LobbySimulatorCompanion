@@ -1,20 +1,12 @@
 package net.lobby_simulator_companion.loop.repository;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializer;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
-import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.LoopData;
-import net.lobby_simulator_companion.loop.domain.RealmMap;
-import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.util.FileUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -33,8 +25,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -43,85 +35,59 @@ import java.util.zip.GZIPOutputStream;
  *
  * @author NickyRamone, ShadowMoose
  */
+@Slf4j
 public class LoopRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoopRepository.class);
     private static final byte[] CIPHER_KEY_MATERIAL = new byte[]{2, 3, -57, 11, 73, 57, -66, 21};
     private static final String PROPERTY__READ_ENCRYPTED = "storage.read.encrypted";
     private static final String PROPERTY__WRITE_ENCRYPTED = "storage.write.encrypted";
 
     private AppProperties properties;
     private File saveFile;
-    private File legacySaveFile;
     private final Gson gson;
     private final String jsonIndent;
 
 
-    public LoopRepository(AppProperties properties) {
+    public LoopRepository(AppProperties properties, Gson gson) {
         this.properties = properties;
+        this.gson = gson;
         saveFile = Paths.get(properties.get("app.home")).resolve(properties.get("storage.file")).toFile();
-        legacySaveFile = Paths.get(properties.get("app.home")).resolve(properties.get("storage.file.legacy")).toFile();
-        GsonBuilder gsonBuilder = new GsonBuilder();
 
         if (properties.getBoolean(PROPERTY__WRITE_ENCRYPTED)) {
             jsonIndent = "";
         } else {
-            gsonBuilder.setPrettyPrinting();
             jsonIndent = "    ";
         }
-
-        configureSerializers(gsonBuilder);
-        gson = gsonBuilder.create();
     }
-
-    private void configureSerializers(GsonBuilder gsonBuilder) {
-
-        JsonSerializer<LocalDateTime> dateTimeSerializer = (o, type, jsonSerializationContext) ->
-                new JsonPrimitive(o.toEpochSecond(OffsetDateTime.now().getOffset()));
-        JsonDeserializer<LocalDateTime> dateTimeDeserializer = (jsonElement, type, jsonDeserializationContext) ->
-                LocalDateTime.ofEpochSecond(jsonElement.getAsLong(), 0, OffsetDateTime.now().getOffset());
-        gsonBuilder.registerTypeAdapter(LocalDateTime.class, dateTimeSerializer);
-        gsonBuilder.registerTypeAdapter(LocalDateTime.class, dateTimeDeserializer);
-
-        // Gson serializes map keys using toString()
-        JsonDeserializer<Killer> killerDeserializer = (jsonElement, type, context) ->
-                Killer.valueOf(jsonElement.getAsString().toUpperCase());
-        gsonBuilder.registerTypeAdapter(Killer.class, killerDeserializer);
-        JsonDeserializer<RealmMap> realmMapDeserializer = (jsonElement, type, context) ->
-                RealmMap.valueOf(jsonElement.getAsString().toUpperCase());
-        gsonBuilder.registerTypeAdapter(RealmMap.class, realmMapDeserializer);
-
-        gsonBuilder.registerTypeAdapter(Stats.class, new Stats.Serializer());
-        gsonBuilder.registerTypeAdapter(Stats.class, new Stats.Deserializer());
-    }
-
 
     public LoopData load() throws IOException {
-        logger.info("Loading data...");
+        log.info("Loading data...");
         LoopData loopData;
 
         try {
+            Instant loadStartTime = Instant.now();
             Cipher cipher = getCipher(true);
-            File dataFile = saveFile.exists() ? saveFile : legacySaveFile;
-            JsonReader reader = createJsonReader(dataFile, cipher);
+            JsonReader reader = createJsonReader(saveFile, cipher);
             loopData = gson.fromJson(reader, LoopData.class);
             reader.close();
+            Duration elapsed = Duration.between(loadStartTime, Instant.now());
+            log.info("Loaded data ({} players; {} matches) in {} ms.",
+                    loopData.getPlayers().size(),
+                    loopData.getMatchLog().matchCount(),
+                    elapsed.toMillis());
+
         } catch (FileNotFoundException e1) {
             throw e1;
         } catch (Exception e2) {
             throw new IOException("Failed to load data. File corrupt?", e2);
         }
-        logger.info("Loaded {} players.",
-                loopData.getPlayers().size());
 
         return loopData;
     }
 
     public void save(LoopData loopData) throws IOException {
-        // Keep a rolling backup of the Peers file, for safety.
-        logger.debug("Saving data ({} players)...",
-                loopData.getPlayers().size());
-
+        log.debug("Saving data ({} players)...", loopData.getPlayers().size());
+        Instant saveStartTime = Instant.now();
         if (this.saveFile.exists()) {
             FileUtil.saveFile(this.saveFile, "");
         }
@@ -130,6 +96,11 @@ public class LoopRepository {
         writer.setIndent(jsonIndent);
         gson.toJson(loopData, LoopData.class, writer);
         writer.close();
+        Duration elapsed = Duration.between(saveStartTime, Instant.now());
+        log.debug("Saved data ({} players; {} matches) in {} ms.",
+                loopData.getPlayers().size(),
+                loopData.getMatchLog().matchCount(),
+                elapsed.toMillis());
     }
 
 
@@ -142,7 +113,7 @@ public class LoopRepository {
             try {
                 decStream = new CipherInputStream(fis, cipher);
             } catch (Exception e) {
-                logger.error("Failed to create encrypted stream.", e);
+                log.error("Failed to create encrypted stream.", e);
                 throw new IOException(e.getMessage());
             }
             inputStream = new GZIPInputStream(decStream);
@@ -162,7 +133,7 @@ public class LoopRepository {
             try {
                 cipher = getCipher(false);
             } catch (Exception e) {
-                logger.error("Failed to configure encryption.", e);
+                log.error("Failed to configure encryption.", e);
                 throw new IOException(e.getMessage());
             }
             outputStream = new GZIPOutputStream(new CipherOutputStream(new FileOutputStream(saveFile), cipher));

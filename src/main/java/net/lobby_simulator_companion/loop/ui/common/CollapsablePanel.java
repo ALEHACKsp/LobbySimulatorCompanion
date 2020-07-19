@@ -11,8 +11,6 @@ import java.awt.event.MouseEvent;
 
 /**
  * @author NickyRamone
- *
- * TODO: This needs to be improved. The component is not very flexible.
  */
 public class CollapsablePanel extends JPanel {
 
@@ -28,6 +26,7 @@ public class CollapsablePanel extends JPanel {
         collapseButton = createCollapseButton();
         titlePanel.add(collapseButton);
 
+        setBackground(Color.BLACK);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         add(titlePanel);
         add(contentPanel);

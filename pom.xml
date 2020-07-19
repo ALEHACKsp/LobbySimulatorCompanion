@@ -1,17 +1,108 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.lobby-simulator-companion</groupId>
     <artifactId>loop</artifactId>
-    <version>2.5.4-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
     <description>LObby simulatOr comPanion (LOOP)</description>
 
 
     <properties>
-        <exe.version>2.5.3.0</exe.version>
+        <exe.version>3.0.0.0</exe.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <!--<finalName>${project.artifactId}-fatjar</finalName>-->
+                            <appendAssemblyId>true</appendAssemblyId>
+                            <!--<classifier>fatjar</classifier>-->
+                            <archive>
+                                <manifest>
+                                    <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
+                                </manifest>
+                            </archive>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                        <artifactId>launch4j-maven-plugin</artifactId>
+                        <version>1.7.25</version>
+                        <executions>
+                            <execution>
+                                <id>loop-gui</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>launch4j</goal>
+                                </goals>
+                                <configuration>
+                                    <headerType>gui</headerType>
+                                    <outfile>${project.build.directory}/${project.artifactId}.exe</outfile>
+                                    <!--<jar>${project.build.directory}/${project.artifactId}.jar</jar>-->
+                                    <jar>${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar</jar>
+                                    <icon>docs/images/loop_logo.ico</icon>
+                                    <errTitle>${project.description}</errTitle>
+                                    <classPath>
+                                        <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
+                                    </classPath>
+                                    <jre>
+                                        <minVersion>${maven.compiler.source}</minVersion>
+                                    </jre>
+                                    <singleInstance>
+                                        <mutexName>${project.artifactId}</mutexName>
+                                        <windowTitle>${project.description}</windowTitle>
+                                    </singleInstance>
+                                    <versionInfo>
+                                        <fileVersion>${exe.version}</fileVersion>
+                                        <txtFileVersion>${project.version}</txtFileVersion>
+                                        <fileDescription>GUI</fileDescription>
+                                        <copyright>Nicky Ramone, 2019</copyright>
+                                        <productVersion>${exe.version}</productVersion>
+                                        <txtProductVersion>${project.version}</txtProductVersion>
+                                        <productName>${project.description}</productName>
+                                        <internalName>${project.artifactId}</internalName>
+                                        <originalFilename>${project.artifactId}.exe</originalFilename>
+                                    </versionInfo>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-release-plugin</artifactId>
+                        <version>2.5.3</version>
+                        <configuration>
+                            <goals>install</goals>
+                            <tagNameFormat>@{project.version}</tagNameFormat>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 
     <build>
         <resources>
@@ -25,80 +116,56 @@
             </resource>
         </resources>
         <plugins>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>${project.artifactId}</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <archive>
-                        <manifest>
-                            <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
-            <plugin>
-                <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                <artifactId>launch4j-maven-plugin</artifactId>
-                <version>1.7.25</version>
-                <executions>
-                    <execution>
-                        <id>loop-gui</id>
-                        <phase>package</phase>
-                        <goals><goal>launch4j</goal></goals>
-                        <configuration>
-                            <headerType>gui</headerType>
-                            <outfile>${project.build.directory}/${project.artifactId}.exe</outfile>
-                            <jar>${project.build.directory}/${project.artifactId}.jar</jar>
-                            <icon>docs/images/loop_logo.ico</icon>
-                            <errTitle>${project.description}</errTitle>
-                            <classPath>
-                                <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
-                            </classPath>
-                            <jre>
-                                <minVersion>${maven.compiler.source}</minVersion>
-                            </jre>
-                            <singleInstance>
-                                <mutexName>${project.artifactId}</mutexName>
-                                <windowTitle>${project.description}</windowTitle>
-                            </singleInstance>
-                            <versionInfo>
-                                <fileVersion>${exe.version}</fileVersion>
-                                <txtFileVersion>${project.version}</txtFileVersion>
-                                <fileDescription>GUI</fileDescription>
-                                <copyright>Nicky Ramone, 2019</copyright>
-                                <productVersion>${exe.version}</productVersion>
-                                <txtProductVersion>${project.version}</txtProductVersion>
-                                <productName>${project.description}</productName>
-                                <internalName>${project.artifactId}</internalName>
-                                <originalFilename>${project.artifactId}.exe</originalFilename>
-                            </versionInfo>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--<plugin>-->
+            <!--<groupId>com.akathist.maven.plugins.launch4j</groupId>-->
+            <!--<artifactId>launch4j-maven-plugin</artifactId>-->
+            <!--<version>1.7.25</version>-->
+            <!--<executions>-->
+            <!--<execution>-->
+            <!--<id>loop-gui</id>-->
+            <!--<phase>package</phase>-->
+            <!--<goals><goal>launch4j</goal></goals>-->
+            <!--<configuration>-->
+            <!--<headerType>gui</headerType>-->
+            <!--<outfile>${project.build.directory}/${project.artifactId}.exe</outfile>-->
+            <!--<jar>${project.build.directory}/${project.artifactId}.jar</jar>-->
+            <!--<icon>docs/images/loop_logo.ico</icon>-->
+            <!--<errTitle>${project.description}</errTitle>-->
+            <!--<classPath>-->
+            <!--<mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>-->
+            <!--</classPath>-->
+            <!--<jre>-->
+            <!--<minVersion>${maven.compiler.source}</minVersion>-->
+            <!--</jre>-->
+            <!--<singleInstance>-->
+            <!--<mutexName>${project.artifactId}</mutexName>-->
+            <!--<windowTitle>${project.description}</windowTitle>-->
+            <!--</singleInstance>-->
+            <!--<versionInfo>-->
+            <!--<fileVersion>${exe.version}</fileVersion>-->
+            <!--<txtFileVersion>${project.version}</txtFileVersion>-->
+            <!--<fileDescription>GUI</fileDescription>-->
+            <!--<copyright>Nicky Ramone, 2019</copyright>-->
+            <!--<productVersion>${exe.version}</productVersion>-->
+            <!--<txtProductVersion>${project.version}</txtProductVersion>-->
+            <!--<productName>${project.description}</productName>-->
+            <!--<internalName>${project.artifactId}</internalName>-->
+            <!--<originalFilename>${project.artifactId}.exe</originalFilename>-->
+            <!--</versionInfo>-->
+            <!--</configuration>-->
+            <!--</execution>-->
+            <!--</executions>-->
+            <!--</plugin>-->
 
-            <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.3</version>
-                <configuration>
-                    <goals>install</goals>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                </configuration>
-            </plugin>
+            <!--<plugin>-->
+            <!--<artifactId>maven-release-plugin</artifactId>-->
+            <!--<version>2.5.3</version>-->
+            <!--<configuration>-->
+            <!--<goals>install</goals>-->
+            <!--<tagNameFormat>@{project.version}</tagNameFormat>-->
+            <!--</configuration>-->
+            <!--</plugin>-->
         </plugins>
     </build>
 
@@ -108,23 +175,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
-        </dependency>
-
-        <!-- network traffic sniffing -->
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>4.4.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.pcap4j</groupId>
-            <artifactId>pcap4j-core</artifactId>
-            <version>1.8.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.pcap4j</groupId>
-            <artifactId>pcap4j-packetfactory-static</artifactId>
-            <version>1.8.2</version>
         </dependency>
 
         <!-- HTTP client -->
@@ -160,6 +210,22 @@
             <artifactId>ini4j</artifactId>
             <version>0.5.4</version>
         </dependency>
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.9.12</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.12</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+        </dependency>
 
         <!-- Testing -->
         <dependency>
@@ -169,8 +235,10 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
     <scm>
         <connection>scm:git:https://github.com/nickyramone/LobbySimulatorCompanion.git</connection>
         <tag>HEAD</tag>
     </scm>
+
 </project>

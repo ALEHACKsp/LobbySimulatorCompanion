@@ -1,8 +1,21 @@
 package net.lobby_simulator_companion.loop.domain.stats;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 /**
  * @author NickyRamone
  */
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@EqualsAndHashCode
+@ToString
 public class KillerStats {
 
     private int matches;
@@ -11,46 +24,41 @@ public class KillerStats {
     private int matchTime;
 
 
-    public int getMatches() {
-        return matches;
-    }
-
-    public int getEscapes() {
-        return escapes;
-    }
-
-    public int getDeaths() {
-        return deaths;
-    }
-
-    public int getMatchTime() {
-        return matchTime;
-    }
-
-    public void incrementMatches() {
+    void incrementMatches() {
         matches++;
     }
 
-    public void incrementEscapes() {
+    void decrementMatches() {
+        matches--;
+    }
+
+    void incrementEscapes() {
         escapes++;
     }
 
-    public void incrementDeaths() {
+    void decrementEscapes() {
+        escapes--;
+    }
+
+    void incrementDeaths() {
         deaths++;
     }
 
-    public void incrementMatchTime(int seconds) {
+    void decrementDeaths() {
+        deaths--;
+    }
+
+    void incrementMatchTime(int seconds) {
         matchTime += seconds;
     }
 
-    @Override
-    protected KillerStats clone() {
-        KillerStats clone = new KillerStats();
-        clone.matches = this.matches;
-        clone.escapes = this.escapes;
-        clone.deaths = this.deaths;
-        clone.matchTime = this.matchTime;
-
-        return clone;
+    void decrementMatchTime(int seconds) {
+        matchTime -= seconds;
     }
+
+    @Override
+    public KillerStats clone() {
+        return toBuilder().build();
+    }
+
 }

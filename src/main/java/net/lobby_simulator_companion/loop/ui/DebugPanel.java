@@ -1,5 +1,7 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import lombok.extern.slf4j.Slf4j;
+import net.lobby_simulator_companion.loop.DevModeConfigurer;
 import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.RealmMap;
 import net.lobby_simulator_companion.loop.domain.stats.KillerStats;
@@ -8,19 +10,16 @@ import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -31,9 +30,9 @@ import static java.util.stream.Collectors.toList;
  *
  * @author NickyRamone
  */
+@Slf4j
 public class DebugPanel extends JPanel {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServerPanel.class);
     private JFrame frame;
     private FileWriter logWriter;
     private LoopDataService dataService;
@@ -42,7 +41,11 @@ public class DebugPanel extends JPanel {
     public DebugPanel(DbdLogMonitor logMonitor, LoopDataService dataService) throws Exception {
         this.dataService = dataService;
         this.logWriter = new FileWriter(logMonitor.getLogFile());
-        logger.debug("Monitoring log file: {}", logMonitor.getLogFile());
+
+        DevModeConfigurer.configureMockSteamProfileDaoResponse("1", "Dummy Name 1");
+        DevModeConfigurer.configureMockSteamProfileDaoResponse("2", "Dummy Name 2");
+
+        log.debug("Monitoring log file: {}", logMonitor.getLogFile());
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
         setOpaque(true);
@@ -54,8 +57,8 @@ public class DebugPanel extends JPanel {
         frame.setBackground(Color.WHITE);
         frame.setAlwaysOnTop(true);
         frame.pack();
-        frame.setLocation(800, 300);
-        frame.setSize(new Dimension(400, 300));
+        frame.setLocation(900, 300);
+        frame.setSize(new Dimension(500, 300));
         frame.setVisible(true);
 
         JPanel contentPanel = new JPanel();
@@ -117,6 +120,9 @@ public class DebugPanel extends JPanel {
         button = new JButton("Detect Killer Player B");
         button.addActionListener(e -> simulateNewKillerPlayer(2));
         killerPanel.add(button);
+        button = new JButton("Killer Character");
+        button.addActionListener(e -> simulateRandomKillerCharacter());
+        killerPanel.add(button);
 
         JPanel statsPanel = new JPanel();
         container.add(statsPanel);
@@ -138,7 +144,9 @@ public class DebugPanel extends JPanel {
     }
 
     private void simulateServerConnect() {
-        writeLog("--- Browse: 35.159.49.240:7779//Game/Maps/OfflineLobby?UseDedicatedServer?GameType=0?... ---");
+        writeLog("[2020.06.19-15.41.57:856][178]LogNet: UPendingNetGame::SendInitialJoin: Sending hello. "
+                + "[UNetConnection] RemoteAddr: 18.156.246.136:7777, Name: SteamNetConnection_1, Driver: "
+                + "PendingNetDriver SteamNetDriver_1, IsServer: NO, PC: NULL, Owner: NULL, UniqueId: INVALID");
     }
 
     private void simulateServerDisconnect() {
@@ -154,7 +162,7 @@ public class DebugPanel extends JPanel {
     }
 
     private void simulateMatchStart() {
-        writeLog("--- //Game/Maps/ProceduralLevel ---");
+        writeLog("--- ^^^ OnEnteringOnlineMultiplayer ^^^ ---");
     }
 
     private void simulateMatchEnd() {
@@ -162,12 +170,16 @@ public class DebugPanel extends JPanel {
     }
 
     private void simulateNewKillerPlayer(int id) {
-        if (id == 1) {
-            writeLog("--- Mirrors: [FOnlineSessionMirrors::AddSessionPlayer] Session:GameSession PlayerId:ab-cd-ef-1|76561198961125794 ---");
-        } else if (id == 2) {
-            writeLog("--- Mirrors: [FOnlineSessionMirrors::AddSessionPlayer] Session:GameSession PlayerId:ab-cd-ef-2|76561198977148626 ---");
-        }
-        writeLog("--- LogCustomization: --> CA_123 ---");
+        writeLog(String.format(
+                "--- Mirrors: [FOnlineSessionMirrors::AddSessionPlayer] Session:GameSession PlayerId:ab-cd-ef-1|%d ---", id));
+
+        simulateRandomKillerCharacter();
+    }
+
+    private void simulateRandomKillerCharacter() {
+        String[] outfits = new String[]{"TR", "HB", "BE", "CA"};
+        String outfit = outfits[new Random().nextInt(outfits.length)];
+        writeLog(String.format("--- LogCustomization: --> %s_123 ---", outfit));
     }
 
 
@@ -176,7 +188,7 @@ public class DebugPanel extends JPanel {
             logWriter.write(s + "\n");
             logWriter.flush();
         } catch (IOException e) {
-            logger.error("Failed to write to log file", e);
+            log.error("Failed to write to log file", e);
         }
     }
 
@@ -196,7 +208,7 @@ public class DebugPanel extends JPanel {
 
         StringSelection stringSelection = new StringSelection(statsText);
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
-        logger.info("Stats copied to clipboard.");
+        log.info("Stats copied to clipboard.");
     }
 
     private String mapStatToCsvRow(RealmMap realmMap, MapStats mapStats, int totalMatches) {
@@ -205,7 +217,7 @@ public class DebugPanel extends JPanel {
         int averageMatchDuration = mapStats.getMatchTime() / matches;
 
         List<Object> values = new ArrayList<>();
-        values.add("\"" + realmMap.alias() + "\"");
+        values.add("\"" + realmMap + "\"");
         values.add(matches);
         values.add((double) matches / totalMatches);
         values.add(survivalRate);
@@ -230,7 +242,7 @@ public class DebugPanel extends JPanel {
 
         StringSelection stringSelection = new StringSelection(statsText);
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
-        logger.info("Stats copied to clipboard.");
+        log.info("Stats copied to clipboard.");
     }
 
 

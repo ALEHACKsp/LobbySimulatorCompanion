@@ -1,73 +1,52 @@
 package net.lobby_simulator_companion.loop.service;
 
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.domain.LoopData;
+import net.lobby_simulator_companion.loop.domain.MatchLog;
 import net.lobby_simulator_companion.loop.domain.Player;
+import net.lobby_simulator_companion.loop.domain.stats.Match;
 import net.lobby_simulator_companion.loop.domain.stats.Stats;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
+
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toConcurrentMap;
 
 /**
  * Service for managing data related to players and servers.
  *
  * @author NickyRamone
  */
+@Slf4j
 public class LoopDataService {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoopDataService.class);
     private static final long SAVE_PERIOD_MS = 5000;
 
     private final LoopRepository repository;
+    private Map<String, Player> players = new HashMap<>();
 
-    private LoopData loopData;
-    private final Map<String, Player> players = new ConcurrentHashMap<>();
+    private LoopData loopData = new LoopData();
     private boolean dirty;
 
 
-    public LoopDataService(LoopRepository loopRepository) throws IOException {
+    public LoopDataService(LoopRepository loopRepository) {
         repository = loopRepository;
-        try {
-            loopData = repository.load();
-        } catch (FileNotFoundException e) {
-            loopData = new LoopData();
-            repository.save(loopData);
-        }
+    }
 
-        for (Player player : loopData.getPlayers()) {
-            // backwards compatibility: supporting the legacy UUID field
-            if (player.getUID() != null && !player.getUID().isEmpty()) {
-                player.setSteamId64(player.getUID());
-                player.setUID(null);
-                dirty = true;
-            }
-            players.put(player.getSteamId64(), player);
-        }
 
-        // backwards compatibility: support new 'secondsQueued' and 'lobbiesFound' fields
-        loopData.getStats().asStream().forEach(s -> {
-            if (s.getSecondsQueued() == 0 && s.getSecondsWaited() != 0) {
-                // approximation
-                int queueTime = s.getSecondsWaited();
-                int waitTime = queueTime + 120 * s.getMatchesPlayed();
-                s.setSecondsQueued(queueTime);
-                s.setSecondsWaited(waitTime);
-                dirty = true;
-            }
-
-            if (s.getLobbiesFound() == 0 && s.getMatchesPlayed() != 0) {
-                // approximation
-                s.setLobbiesFound(s.getMatchesPlayed());
-                dirty = true;
-            }
-        });
+    public void start() throws IOException {
+        loopData = loadData();
+        players = loopData.getPlayers().stream()
+                .collect(toConcurrentMap(Player::getSteamId64, identity()));
 
         // schedule thread for saving dirty data
         Timer timer = new Timer();
@@ -79,16 +58,54 @@ public class LoopDataService {
         }, SAVE_PERIOD_MS, SAVE_PERIOD_MS);
     }
 
+
+    private LoopData loadData() throws IOException {
+        LoopData data;
+
+        try {
+            data = repository.load();
+        } catch (FileNotFoundException e) {
+            data = new LoopData();
+            repository.save(data);
+        }
+
+        return data;
+    }
+
     public Stats getStats() {
         return loopData.getStats();
     }
 
-    public Player getPlayerBySteamId(String steamId) {
-        return players.get(steamId);
+    public MatchLog getMatchHistory() {
+        return loopData.getMatchLog();
     }
 
-    public void addPlayer(String steamId, Player player) {
-        players.put(steamId, player);
+    public void addMatch(Match match) {
+        Player player = players.get(match.getKillerPlayerSteamId64());
+
+        if (player != null) {
+            player.incrementMatchesPlayed();
+            player.incrementSecondsPlayed(match.getSecondsPlayed());
+
+            if (match.escaped()) {
+                player.incrementEscapes();
+            } else if (match.died()) {
+                player.incrementDeaths();
+            }
+        }
+
+        loopData.getStats().addMatchStats(match);
+        loopData.getMatchLog().add(match);
+        dirty = true;
+    }
+
+
+    public Optional<Player> getPlayerBySteamId(String steamId) {
+        return Optional.ofNullable(steamId).filter(StringUtils::isNotBlank).map(players::get);
+    }
+
+    public void addPlayer(Player player) {
+        players.put(player.getSteamId64(), player);
         dirty = true;
     }
 
@@ -106,9 +123,8 @@ public class LoopDataService {
         try {
             repository.save(loopData);
             dirty = false;
-            logger.debug("Saved Loop data.");
         } catch (IOException e) {
-            logger.error("Failed to save data.", e);
+            log.error("Failed to save data.", e);
         }
     }
 

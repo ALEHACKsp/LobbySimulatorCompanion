@@ -19,7 +19,8 @@ import java.io.IOException;
 public class ExtremeIpDao implements ServerDao {
 
     private static final JsonObjectParser jsonObjParser = new JsonObjectParser(new JacksonFactory());
-    private static final HttpRequestFactory httpReqFactory = new NetHttpTransport().createRequestFactory(request -> request.setParser(jsonObjParser));
+    private static final HttpRequestFactory httpReqFactory = new NetHttpTransport().createRequestFactory(
+            request -> request.setParser(jsonObjParser));
 
     private final String serviceUrlPrefix;
 
@@ -45,16 +46,16 @@ public class ExtremeIpDao implements ServerDao {
 
 
     private Server convertDtoToDomain(String ipAddress, ExtremeIpDto dto) {
-        Server server = new Server(ipAddress);
-        server.setCity(dto.getCity());
-        server.setCountry(dto.getCountry());
-        server.setRegion(dto.getRegion());
-        server.setHostName(dto.getIpName());
-        server.setLatitude(Double.parseDouble(dto.getLat()));
-        server.setLongitude(Double.parseDouble(dto.getLon()));
-        server.setIsp(dto.getIsp());
-
-        return server;
+        return Server.builder()
+                .address(ipAddress)
+                .city(dto.getCity())
+                .country(dto.getCountry())
+                .region(dto.getRegion())
+                .hostName(dto.getIpName())
+                .latitude(Double.parseDouble(dto.getLat()))
+                .longitude(Double.parseDouble(dto.getLon()))
+                .isp(dto.getIsp())
+                .build();
     }
 
 }

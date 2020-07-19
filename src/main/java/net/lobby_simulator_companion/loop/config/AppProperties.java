@@ -1,8 +1,7 @@
 package net.lobby_simulator_companion.loop.config;
 
-import net.lobby_simulator_companion.loop.util.FileUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import net.lobby_simulator_companion.loop.Boot;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,8 +14,8 @@ import java.util.Properties;
  *
  * @author NickyRamone
  */
+@Slf4j
 public class AppProperties {
-    private static final Logger logger = LoggerFactory.getLogger(AppProperties.class);
 
     private Properties properties;
 
@@ -24,11 +23,14 @@ public class AppProperties {
         properties = new Properties();
         properties.load(AppProperties.class.getClassLoader().getResourceAsStream("app.properties"));
 
-        URI execUri = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().toURI();
-        properties.put("app.home", new File(execUri).toPath().getParent().toString());
+        URI execUri = Boot.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+        String appHomePath = new File(execUri).toPath().getParent().toString();
+        System.setProperty("app.home", appHomePath);
 
-        logger.info("App home: {}", properties.getProperty("app.home"));
-        logger.info("App version: {}", properties.getProperty("app.version"));
+        properties.put("app.home", appHomePath);
+
+        log.info("App home: {}", properties.getProperty("app.home"));
+        log.info("App version: {}", properties.getProperty("app.version"));
     }
 
     public String get(String key) {
@@ -43,6 +45,12 @@ public class AppProperties {
         String value = properties.getProperty(key);
 
         return value == null ? defaultValue : Boolean.parseBoolean(value);
+    }
+
+    public int getInt(String key) {
+        String value = properties.getProperty(key);
+
+        return value == null ? 0 : Integer.parseInt(value);
     }
 
 }
