@@ -1,4 +1,4 @@
-package net.lobby_simulator_companion.loop.ui;
+package net.lobby_simulator_companion.loop.manual_testing;
 
 import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.DevModeConfigurer;

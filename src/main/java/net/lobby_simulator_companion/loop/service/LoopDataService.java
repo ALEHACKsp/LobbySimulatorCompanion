@@ -6,12 +6,17 @@ import net.lobby_simulator_companion.loop.domain.MatchLog;
 import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.domain.stats.Match;
 import net.lobby_simulator_companion.loop.domain.stats.Stats;
+import net.lobby_simulator_companion.loop.domain.stats.periodic.PeriodStats;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
+import net.lobby_simulator_companion.loop.util.event.EventListener;
+import net.lobby_simulator_companion.loop.util.event.EventSupport;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -29,13 +34,17 @@ import static java.util.stream.Collectors.toConcurrentMap;
 @Slf4j
 public class LoopDataService {
 
+    public enum DataServiceEvent {
+        STATS_RESET
+    }
+
     private static final long SAVE_PERIOD_MS = 5000;
 
     private final LoopRepository repository;
     private Map<String, Player> players = new HashMap<>();
-
     private LoopData loopData = new LoopData();
     private boolean dirty;
+    private EventSupport eventSupport = new EventSupport();
 
 
     public LoopDataService(LoopRepository loopRepository) {
@@ -56,6 +65,8 @@ public class LoopDataService {
                 save();
             }
         }, SAVE_PERIOD_MS, SAVE_PERIOD_MS);
+
+        initStatResetTimers();
     }
 
 
@@ -71,6 +82,32 @@ public class LoopDataService {
 
         return data;
     }
+
+    private void initStatResetTimers() {
+        getStats().asStream().forEach(this::initStatResetTimer);
+    }
+
+    private void initStatResetTimer(PeriodStats periodStats) {
+        if (periodStats.getPeriodEnd() == null) {
+            return;
+        }
+        Date statsResetDate = Date.from(periodStats.getPeriodEnd().atZone(ZoneId.systemDefault()).toInstant()
+                .plusSeconds(5L));
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                log.debug("Resetting stats timer for {}", periodStats.getClass());
+                periodStats.reset();
+                notifyChange();
+                timer.cancel();
+                initStatResetTimer(periodStats);
+                eventSupport.fireEvent(DataServiceEvent.STATS_RESET);
+            }
+        }, statsResetDate);
+    }
+
 
     public Stats getStats() {
         return loopData.getStats();
@@ -128,4 +165,7 @@ public class LoopDataService {
         }
     }
 
+    public void registerListener(EventListener eventListener) {
+        eventSupport.registerListener(eventListener);
+    }
 }

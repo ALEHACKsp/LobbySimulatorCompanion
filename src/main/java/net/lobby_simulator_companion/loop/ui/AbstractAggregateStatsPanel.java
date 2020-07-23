@@ -25,7 +25,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
-import static net.lobby_simulator_companion.loop.ui.common.UiConstants.*;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__NAME_COLUMN;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__VALUE_COLUMN;
 
 /**
  * @param <G> Enum describing the aggregate group.
@@ -74,6 +75,8 @@ public abstract class AbstractAggregateStatsPanel<G extends Enum<G>, A extends A
             return description;
         }
     }
+
+    private static final String MSG__NOT_AVAILABLE = "--";
 
 
     private final Settings settings;
@@ -147,13 +150,12 @@ public abstract class AbstractAggregateStatsPanel<G extends Enum<G>, A extends A
         freqTitleContainer.add(statsPeriodTitle);
         freqTitleContainer.add(copyToClipboardButton);
 
-        NameValueInfoPanel.Builder builder = new NameValueInfoPanel.Builder();
-        builder.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 410);
-        for (StatType statType : StatType.values()) {
-            builder.addField(statType, statType + ":", statType.tooltip);
-        }
+        statsContainer = new NameValueInfoPanel();
+        statsContainer.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 410);
 
-        statsContainer = builder.build();
+        for (StatType statType : StatType.values()) {
+            statsContainer.addField(statType, statType.getTooltip());
+        }
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(UiConstants.COLOR__INFO_PANEL__BG);
@@ -194,17 +196,17 @@ public abstract class AbstractAggregateStatsPanel<G extends Enum<G>, A extends A
         setStatValue(StatType.MAX_DEATHS_IN_A_ROW, String.valueOf(stats.getMaxDeathsInARow()));
 
         setStatValue(StatType.SURVIVAL_PROBABILITY, stats.getMatchesSubmitted() == 0 ?
-                "N/A" :
+                MSG__NOT_AVAILABLE :
                 String.format("%.1f %%", stats.getSurvivalProbability()));
 
         float mapVariability = calculateMapsDistro(stats);
         setStatValue(StatType.MAP_RANDOMNESS, stats.getMatchesPlayed() == 0 ?
-                "N/A" :
+                MSG__NOT_AVAILABLE :
                 String.format("%.1f %% (%s)", mapVariability * 100, getVariabilityLabel(mapVariability)));
 
         float killerVariability = calculateKillersDistro(stats);
         setStatValue(StatType.KILLER_VARIABILITY, stats.getMatchesPlayed() == 0 ?
-                "N/A" :
+                MSG__NOT_AVAILABLE :
                 String.format("%.1f %% (%s)", killerVariability * 100, getVariabilityLabel(killerVariability)));
     }
 
@@ -215,7 +217,7 @@ public abstract class AbstractAggregateStatsPanel<G extends Enum<G>, A extends A
 
 
     private void setStatValue(StatType statType, String value) {
-        statsContainer.get(statType, JLabel.class).setText(value);
+        statsContainer.getRight(statType, JLabel.class).setText(value);
     }
 
     private float calculateMapsDistro(AggregateStats stats) {
@@ -273,7 +275,7 @@ public abstract class AbstractAggregateStatsPanel<G extends Enum<G>, A extends A
 
         statsContainer.entrySet().forEach(e -> {
             content.append(((StatType) e.getKey()).description).append(": ");
-            content.append(((JLabel) e.getValue()).getText()).append('\n');
+            content.append(((JLabel) e.getValue().getRight()).getText()).append('\n');
         });
 
         StringSelection stringSelection = new StringSelection(content.toString());

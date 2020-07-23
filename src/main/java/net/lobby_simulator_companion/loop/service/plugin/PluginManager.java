@@ -46,6 +46,7 @@ public class PluginManager {
     public void loadPlugin(Class pluginClass) {
         try {
             pluginInstance = pluginClass.newInstance();
+            log.info("Successfully instantiated plugin: {}", pluginInstance.getClass().getName());
         } catch (Exception e) {
             log.error("Failed to instantiate plugin class: " + pluginClass, e);
         }
@@ -73,12 +74,13 @@ public class PluginManager {
 
     private Optional<URL> getPluginClasspathUrl(AppProperties appProperties) throws MalformedURLException {
         String pluginClasspath = System.getProperty("plugin.classpath");
+        boolean pluginDev = appProperties.getBoolean("plugin.development");
 
-        if (pluginClasspath != null) {
-            if (!appProperties.getBoolean("plugin.development")) {
-                return Optional.empty();
+        if (pluginDev) {
+            if (pluginClasspath != null) {
+                return getPluginClassesUrl(pluginClasspath);
             }
-            return getPluginClassesUrl(pluginClasspath);
+            return Optional.empty();
         }
 
         return getPluginJarUrl(appProperties);

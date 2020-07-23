@@ -177,7 +177,6 @@ public class MainLogProcessor extends MultiPurposeDbdLogProcessor {
     }
 
     private Boolean checkForServerDisconnect(String logLine, StateWrapper stateWrapper) {
-        // TODO: consider using a state machine
         if (stateWrapper.state != State.IN_MATCH && stateWrapper.state != State.IN_POST_GAME_CHAT && stateWrapper.state != State.IN_LOBBY) {
             return false;
         }

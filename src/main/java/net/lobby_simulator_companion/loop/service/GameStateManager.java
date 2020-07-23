@@ -1,13 +1,13 @@
 package net.lobby_simulator_companion.loop.service;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.domain.RealmMap;
 import net.lobby_simulator_companion.loop.domain.stats.Match;
-import net.lobby_simulator_companion.loop.domain.stats.periodic.PeriodStats;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.log_event_orchestrators.ChaseEventManager;
 import net.lobby_simulator_companion.loop.service.log_processing.DbdLogEvent;
@@ -19,11 +19,7 @@ import net.lobby_simulator_companion.loop.util.event.SwingEventSupport;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import static javax.swing.SwingUtilities.invokeLater;
 
@@ -52,12 +48,11 @@ public class GameStateManager {
     private final Stopwatch queueStopwatch = new Stopwatch();
     private final Stopwatch matchWaitStopwatch = new Stopwatch();
     private final Stopwatch matchStopwatch = new Stopwatch();
-    private final int minMatchSeconds;
 
-
+    @Setter
+    private int minMatchSeconds;
     @Getter
     private Match currentMatch;
-
     private boolean resetMatchWait;
 
 
@@ -68,8 +63,7 @@ public class GameStateManager {
         this.dataService = dataService;
         this.steamProfileDao = steamProfileDao;
         this.chaseEventManager = chaseEventManager;
-        this.minMatchSeconds = appProperties.getBoolean("debug.panel") ?
-                appProperties.getInt("debug.minMatchSeconds") : DEFAULT_MIN_MATCH_SECONDS;
+        this.minMatchSeconds = DEFAULT_MIN_MATCH_SECONDS;
 
         init();
     }
@@ -91,38 +85,14 @@ public class GameStateManager {
         chaseEventManager.registerEventListener(ChaseEventManager.Event.CHASE_START, evt -> fireEvent(GameEvent.CHASE_STARTED, evt.getValue()));
         chaseEventManager.registerEventListener(ChaseEventManager.Event.CHASE_END, evt -> fireEvent(GameEvent.CHASE_ENDED));
 
-        initStatResetTimers();
-    }
-
-    private void initStatResetTimers() {
-        dataService.getStats().asStream().forEach(this::initStatResetTimer);
-    }
-
-    private void initStatResetTimer(PeriodStats periodStats) {
-        if (periodStats.getPeriodEnd() == null) {
-            return;
-        }
-        Date statsResetDate = Date.from(periodStats.getPeriodEnd().atZone(ZoneId.systemDefault()).toInstant()
-                .plusSeconds(5L));
-
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                log.debug("Resetting stats timer for {}", periodStats.getClass());
-                periodStats.reset();
-                dataService.notifyChange();
-                timer.cancel();
-                initStatResetTimer(periodStats);
-                fireEvent(GameEvent.UPDATED_STATS);
-            }
-        }, statsResetDate);
+        dataService.registerListener(evt -> fireEvent(GameEvent.UPDATED_STATS));
     }
 
 
     public void forceDisconnect() {
         turnToIdle();
     }
+
 
     private void handleMatchWaitStart() {
         log.debug("Game event: searching for lobby");
@@ -261,6 +231,9 @@ public class GameStateManager {
     }
 
     public Optional<Player> getKillerPlayer() {
+        if (currentMatch == null) {
+            return Optional.empty();
+        }
         return dataService.getPlayerBySteamId(currentMatch.getKillerPlayerSteamId64());
     }
 

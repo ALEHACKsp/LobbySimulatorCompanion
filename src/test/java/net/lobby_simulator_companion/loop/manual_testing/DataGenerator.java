@@ -1,13 +1,15 @@
 package net.lobby_simulator_companion.loop.manual_testing;
 
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.Player;
 import net.lobby_simulator_companion.loop.domain.RealmMap;
 import net.lobby_simulator_companion.loop.domain.stats.Match;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
-import org.junit.Test;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Random;
@@ -16,18 +18,20 @@ import java.util.UUID;
 /**
  * @author NickyRamone
  */
+@Slf4j
 public class DataGenerator {
 
     private static final Random random = new Random();
     private static final LoopDataService dataService = Factory.loopDataService();
 
 
-    @Test
-    public void run() {
-        addPlayers(2000);
-        addMatches(2000);
+    public static void main(String[] args) {
+        DataGenerator dg = new DataGenerator();
+        Instant startInstant = Instant.now();
+        dg.addPlayers(2000);
+        dg.addMatches(2000);
         dataService.save();
-        System.out.println("done");
+        log.info("Elapsed: {} seconds", Duration.between(startInstant, Instant.now()).toMillis() / 1000.0);
     }
 
     private void addPlayers(int n) {

@@ -59,18 +59,32 @@ public class MatchLog {
 
 
     public void add(Match match) {
+
         for (RollingGroup group : RollingGroup.values()) {
-
-            AggregateStats aggregateStats = statsByGroup.get(group);
-
-            if (matches.size() >= group.aggregateSize) {
-                Match oldestMatch = matches.get(matches.size() - group.aggregateSize);
-                aggregateStats.substractMatchStats(oldestMatch);
-            }
-
-            aggregateStats.addMatchStats(match);
+            recalculateGroupStatsForNewMatch(group, match);
         }
+
         matches.add(match);
+    }
+
+
+    /**
+     * When the queue is full we cannot calculate the escape streaks/records in O(1) with no additional structure.
+     * As a simplification, we will recalculate the stats for every group.
+     */
+    private void recalculateGroupStatsForNewMatch(RollingGroup group, Match match) {
+
+        AggregateStats stats = statsByGroup.get(group);
+        int startIdx = matches.size() - group.aggregateSize + 1;
+
+        if (startIdx >= 0) {
+            stats.reset();
+            for (int i = startIdx; i < matches.size(); i++) {
+                stats.addMatchStats(matches.get(i));
+            }
+        }
+
+        stats.addMatchStats(match);
     }
 
 

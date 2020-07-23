@@ -29,10 +29,9 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__LOOP_MAIN;
 import static net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator.UiEvent;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
-
-import static net.lobby_simulator_companion.loop.ui.common.UiConstants.*;
 
 /**
  * @author NickyRamone
@@ -150,9 +149,9 @@ public class MainWindow extends JFrame {
         gameStateManager.registerListener(GameEvent.MATCH_ENDED, evt -> handleMatchEnd((Match) evt.getValue()));
         gameStateManager.registerListener(GameEvent.NEW_KILLER_PLAYER, evt -> refreshKillerPlayerOnTitleBar((Player) evt.getValue()));
 
-        uiEventOrchestrator.addEventListener(UiEvent.UPDATE_KILLER_PLAYER_TITLE_EXTRA,
-                evt -> refreshKillerPlayerSubtitleOnScreen((String) evt.getNewValue()));
-        uiEventOrchestrator.addEventListener(UiEvent.STRUCTURE_RESIZED, evt -> pack());
+        uiEventOrchestrator.registerListener(UiEvent.UPDATE_KILLER_PLAYER_TITLE_EXTRA,
+                evt -> refreshKillerPlayerSubtitleOnScreen((String) evt.getValue()));
+        uiEventOrchestrator.registerListener(UiEvent.STRUCTURE_RESIZED, evt -> pack());
     }
 
 

@@ -3,7 +3,6 @@ package net.lobby_simulator_companion.loop;
 import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
-import net.lobby_simulator_companion.loop.ui.startup.PluginLoadUi;
 import net.lobby_simulator_companion.loop.util.FileUtil;
 
 import javax.imageio.ImageIO;
@@ -44,10 +43,6 @@ public class Boot {
     private static void initUi() throws Exception {
         log.info("Starting UI...");
         SwingUtilities.invokeLater(() -> {
-            if (Factory.appProperties().getBoolean("debug.panel")) {
-                DevModeConfigurer.init();
-                Factory.debugPanel();
-            }
             ui = Factory.mainWindow();
             ui.addPropertyChangeListener(MainWindow.PROPERTY_EXIT_REQUEST, evt -> exitApplication(0));
         });

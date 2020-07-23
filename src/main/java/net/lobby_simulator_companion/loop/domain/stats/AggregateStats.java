@@ -91,65 +91,6 @@ public class AggregateStats {
         }
     }
 
-    /**
-     * Note: We cannot properly resolve escapes/deaths in a row.
-     * TODO: resolve/more info
-     */
-    public void substractMatchStats(Match matchStats) {
-        lobbiesFound -= matchStats.getLobbiesFound();
-        secondsQueued -= matchStats.getSecondsQueued();
-        secondsWaited -= matchStats.getSecondsWaited();
-        secondsPlayed -= matchStats.getSecondsPlayed();
-        matchesPlayed--;
-
-        if (matchStats.escaped()) {
-            escapes--;
-            escapesInARow--;
-        } else if (matchStats.died()) {
-            deaths--;
-            deathsInARow--;
-        }
-
-        disaggregateKillerStats(matchStats);
-        disaggregateMapStats(matchStats);
-    }
-
-    private void disaggregateKillerStats(Match matchStats) {
-        Killer killer = matchStats.getKiller();
-
-        if (killer == null) {
-            return;
-        }
-
-        KillerStats killerStats = getKillerStats(killer);
-        killerStats.decrementMatches();
-        killerStats.decrementMatchTime(matchStats.getSecondsPlayed());
-
-        if (matchStats.escaped()) {
-            killerStats.decrementEscapes();
-        } else if (matchStats.died()) {
-            killerStats.decrementDeaths();
-        }
-    }
-
-    private void disaggregateMapStats(Match matchStats) {
-        RealmMap realmMap = matchStats.getRealmMap();
-
-        if (realmMap == null) {
-            return;
-        }
-
-        MapStats mapStats = getMapStats(realmMap);
-        mapStats.decrementMatches();
-        mapStats.decrementMatchTime(matchStats.getSecondsPlayed());
-
-        if (matchStats.escaped()) {
-            mapStats.decrementEscapes();
-        } else if (matchStats.died()) {
-            mapStats.decrementDeaths();
-        }
-    }
-
     public int getAverageSecondsInQueue() {
         return lobbiesFound == 0 ? 0 : secondsQueued / lobbiesFound;
     }

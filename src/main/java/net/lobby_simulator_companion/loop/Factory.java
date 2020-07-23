@@ -18,7 +18,6 @@ import net.lobby_simulator_companion.loop.service.log_processing.impl.KillerLogP
 import net.lobby_simulator_companion.loop.service.log_processing.impl.MainLogProcessor;
 import net.lobby_simulator_companion.loop.service.log_processing.impl.RealmMapLogProcessor;
 import net.lobby_simulator_companion.loop.service.plugin.PluginManager;
-import net.lobby_simulator_companion.loop.ui.DebugPanel;
 import net.lobby_simulator_companion.loop.ui.KillerPanel;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.ui.MatchPanel;
@@ -36,6 +35,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static net.lobby_simulator_companion.loop.util.LangUtil.unchecked;
+
+
 /**
  * Factory for components.
  * Can eventually be replaced by an IOC container like Guice or Spring.
@@ -52,25 +54,6 @@ public final class Factory {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-
-    public static interface ThrowingFunction<T, R> {
-        R apply() throws Exception;
-
-        @SuppressWarnings("unchecked")
-        static <T extends Exception, R> R sneakyThrow(Exception t) throws T {
-            throw (T) t;
-        }
-    }
-
-    static Supplier unchecked(ThrowingFunction f) {
-        return () -> {
-            try {
-                return f.apply();
-            } catch (Exception ex) {
-                return ThrowingFunction.sneakyThrow(ex);
-            }
-        };
-    }
 
     private static <T> T getInstance(Class<T> clazz, Supplier<T> objFactory) {
         T instance = clazz.cast(instances.get(clazz));
@@ -123,7 +106,7 @@ public final class Factory {
     }
 
     public static ServerDao serverDao() {
-        return getInstance(ExtremeIpDao.class, () -> {
+        return getInstance(ServerDao.class, () -> {
             String serviceUrlPrefix = appProperties().get("dao.server.extreme_ip.url_prefix");
             return new ExtremeIpDao(serviceUrlPrefix);
         });
@@ -226,15 +209,6 @@ public final class Factory {
                 new RollingAggregateStatsPanel(settings(), loopDataService(), gameStateManager()));
     }
 
-    public static DebugPanel debugPanel() {
-        try {
-            return getInstance(DebugPanel.class, unchecked(() ->
-                    new DebugPanel(dbdLogMonitor(), loopDataService())));
-        } catch (Exception e) {
-            throw new RuntimeException();
-        }
-
-    }
 
     public static PluginManager pluginManager() {
         return getInstance(PluginManager.class, unchecked(

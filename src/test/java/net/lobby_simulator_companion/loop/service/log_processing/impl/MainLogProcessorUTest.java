@@ -2,7 +2,6 @@ package net.lobby_simulator_companion.loop.service.log_processing.impl;
 
 import net.lobby_simulator_companion.loop.service.log_processing.DbdLogEvent;
 import net.lobby_simulator_companion.loop.service.log_processing.EventCaptor;
-import net.lobby_simulator_companion.loop.service.log_processing.impl.MainLogProcessor;
 import net.lobby_simulator_companion.loop.util.event.EventSupport;
 import org.junit.Test;
 

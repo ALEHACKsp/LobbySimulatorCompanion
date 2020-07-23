@@ -44,14 +44,21 @@ public class MatchPanel extends JPanel {
 
 
     @RequiredArgsConstructor
-    private enum InfoType {
+    public enum InfoType {
         QUEUE_TIME("Time in queue:"),
         WAIT_TIME("Total match wait time:"),
         PLAY_TIME("Time played in match:"),
         REALM_MAP("Map:"),
+        KILLER("Killer:"),
         SURVIVED("Survived?:");
 
         final String description;
+
+
+        @Override
+        public String toString() {
+            return description;
+        }
     }
 
     private final GameStateManager gameStateManager;
@@ -81,7 +88,7 @@ public class MatchPanel extends JPanel {
         gameStateManager.registerListener(GameEvent.UPDATED_CHASE_SUMMARY,
                 evt -> refreshChaseSummaryOnScreen((List<ChaseInfo>) evt.getValue()));
         gameStateManager.registerListener(GameEvent.MATCH_ENDED,
-                evt -> refreshMatchInfoOnScreen());
+                evt -> handleMatchEnd());
     }
 
     private void draw(Settings settings) {
@@ -136,14 +143,9 @@ public class MatchPanel extends JPanel {
     }
 
     private JPanel createMatchInfoPanel() {
-        NameValueInfoPanel.Builder panelBuilder = new NameValueInfoPanel.Builder();
-        panelBuilder.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 120);
-        panelBuilder.addField(InfoType.QUEUE_TIME, InfoType.QUEUE_TIME.description);
-        panelBuilder.addField(InfoType.WAIT_TIME, InfoType.WAIT_TIME.description);
-        panelBuilder.addField(InfoType.PLAY_TIME, InfoType.PLAY_TIME.description);
-        panelBuilder.addField(InfoType.REALM_MAP, InfoType.REALM_MAP.description);
-        panelBuilder.addField(InfoType.SURVIVED, InfoType.SURVIVED.description);
-        matchInfoPanel = panelBuilder.build();
+        matchInfoPanel = new NameValueInfoPanel();
+        matchInfoPanel.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 140);
+        matchInfoPanel.addFields(InfoType.class);
 
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -169,20 +171,25 @@ public class MatchPanel extends JPanel {
         title.setForeground(Color.MAGENTA);
         title.setAlignmentX(JLabel.CENTER_ALIGNMENT);
 
-        NameValueInfoPanel.Builder panelBuilder = new NameValueInfoPanel.Builder();
-        panelBuilder.setSizes(300, 300, 200);
-        panelBuilder.addField(0, null);
-        panelBuilder.addField(1, null);
-        panelBuilder.addField(2, null);
-        panelBuilder.addField(3, null);
+        runnerPodiumPanel = new NameValueInfoPanel();
+        runnerPodiumPanel.setSizes(300, 300, 200);
+        runnerPodiumPanel.addField(0);
+        runnerPodiumPanel.addField(1);
+        runnerPodiumPanel.addField(2);
+        runnerPodiumPanel.addField(3);
 
-        runnerPodiumPanel = panelBuilder.build();
         panel.add(title, JLabel.CENTER);
         panel.add(Box.createVerticalStrut(5));
         panel.add(runnerPodiumPanel);
         panel.add(Box.createVerticalGlue());
 
         return panel;
+    }
+
+
+    private void handleMatchEnd() {
+        refreshMatchInfoOnScreen();
+        refreshMatchInfoField(InfoType.KILLER, gameStateManager.getCurrentMatch().getKiller());
     }
 
 
@@ -201,12 +208,13 @@ public class MatchPanel extends JPanel {
     }
 
     private void refreshMatchInfoField(InfoType infoType, Object value) {
-        matchInfoPanel.get(infoType).setText(Optional.ofNullable(value).map(Object::toString).orElse(MSG__NOT_AVAILABLE));
+        Optional.ofNullable(matchInfoPanel.getRight(infoType, JLabel.class)).ifPresent(
+                l -> l.setText(Optional.ofNullable(value).map(Object::toString).orElse(MSG__NOT_AVAILABLE))
+        );
     }
 
 
     private void refreshChaseSummaryOnScreen(List<ChaseInfo> chases) {
-        log.trace("Chase summary: {}", chases);
         detailsRunnersPanel.setVisible(!chases.isEmpty());
         int numRunners = chases.size();
 
@@ -223,8 +231,8 @@ public class MatchPanel extends JPanel {
 
 
     private void refreshChaseRow(int rowIndex, ChaseInfo chaseSummaryEntry) {
-        JLabel nameLabel = runnerPodiumPanel.getNameComponent(rowIndex);
-        JLabel valueLabel = (JLabel) runnerPodiumPanel.getValueComponent(rowIndex);
+        JLabel nameLabel = runnerPodiumPanel.getLeftByRow(rowIndex);
+        JLabel valueLabel = (JLabel) runnerPodiumPanel.getRightByRow(rowIndex);
 
         String player = null;
         String chaseTime = null;

@@ -1,17 +1,29 @@
 package net.lobby_simulator_companion.loop;
 
+import net.lobby_simulator_companion.loop.domain.Server;
+import net.lobby_simulator_companion.loop.repository.ServerDao;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * @author NickyRamone
+ */
 public class DevModeConfigurer {
 
     private static final Map<String, String> steamPlayerNamesById = new HashMap<>();
 
 
-    public static void init() {
-        mockSteamProfileDao(steamPlayerNamesById);
+    public static void init() throws IOException {
+        Factory.setInstance(SteamProfileDao.class, mockSteamProfileDao());
+        Factory.setInstance(ServerDao.class, mockServerDao());
+        Factory.gameStateManager().setMinMatchSeconds(5);
     }
 
     public static void configureMockSteamProfileDaoResponse(String id64, String steamPlayerName) {
@@ -19,25 +31,23 @@ public class DevModeConfigurer {
     }
 
 
-    private static void mockSteamProfileDao(Map<String, String> playerNamesById) {
-        Factory.setInstance(SteamProfileDao.class, new MockSteamProfileDao(playerNamesById));
+    private static SteamProfileDao mockSteamProfileDao() throws IOException {
+        SteamProfileDao dao = mock(SteamProfileDao.class);
+        when(dao.getPlayerName(any())).thenAnswer(
+                invocationOnMock -> steamPlayerNamesById.get(invocationOnMock.getArgument(0)));
+
+        return dao;
     }
 
+    private static ServerDao mockServerDao() throws IOException {
+        ServerDao dao = mock(ServerDao.class);
+        when(dao.getByIpAddress(any())).thenReturn(Server.builder()
+                .country("Argentina")
+                .city("Buenos Aires")
+                .isp("Argento-Server")
+                .build());
 
-    private static class MockSteamProfileDao extends SteamProfileDao {
-
-        private final Map<String, String> namesById;
-
-
-        public MockSteamProfileDao(Map<String, String> namesById) {
-            super("");
-            this.namesById = namesById;
-        }
-
-        @Override
-        public String getPlayerName(String id64) {
-            return namesById.get(id64);
-        }
-
+        return dao;
     }
+
 }

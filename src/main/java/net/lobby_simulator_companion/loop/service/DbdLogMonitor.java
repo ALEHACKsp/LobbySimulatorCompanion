@@ -142,7 +142,6 @@ public class DbdLogMonitor implements Runnable {
     }
 
     public void registerProcessor(AbstractDbdLogProcessor processor) {
-        log.debug("Registering log processor: {}", processor.getClass().getSimpleName());
         processors.add(processor);
     }
 

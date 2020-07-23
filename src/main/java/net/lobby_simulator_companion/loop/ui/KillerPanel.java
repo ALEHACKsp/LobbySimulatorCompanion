@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.Factory;
 import net.lobby_simulator_companion.loop.config.Settings;
@@ -32,13 +33,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import static javax.swing.SwingUtilities.invokeLater;
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
-import static net.lobby_simulator_companion.loop.ui.common.UiConstants.*;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__NAME_COLUMN;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__VALUE_COLUMN;
 import static net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator.UiEvent;
 
 /**
@@ -56,19 +57,21 @@ public class KillerPanel extends JPanel {
     private static final int MAX_KILLER_DESCRIPTION_SIZE = 1256;
     private static final Font font = ResourceFactory.getRobotoFont();
 
+    @RequiredArgsConstructor
     private enum InfoType {
-        KILLER_PLAYER_NAMES("Previous names seen"),
-        TIMES_ENCOUNTERED("Times encountered"),
-        MATCHES_AGAINST_PLAYER("Matches played against"),
-        TIME_PLAYED_AGAINST("Total time played against"),
-        ESCAPES_AGAINST("Total escapes against"),
-        DEATHS_BY("Times died against"),
-        NOTES("Your notes");
+        KILLER_PLAYER_NAMES("Previous names seen:"),
+        TIMES_ENCOUNTERED("Times encountered:"),
+        MATCHES_AGAINST_PLAYER("Matches played against:"),
+        TIME_PLAYED_AGAINST("Total time played against:"),
+        ESCAPES_AGAINST("Total escapes against:"),
+        DEATHS_BY("Times died against:"),
+        NOTES("Your notes:");
 
-        String description;
+        private final String description;
 
-        InfoType(String description) {
-            this.description = description;
+        @Override
+        public String toString() {
+            return description;
         }
     }
 
@@ -105,7 +108,7 @@ public class KillerPanel extends JPanel {
                 evt -> refreshKillerPlayerOnScreen());
         gameStateManager.registerListener(GameEvent.UPDATED_STATS,
                 evt -> refreshKillerPlayerOnScreen());
-        uiEventOrchestrator.addEventListener(UiEvent.UPDATE_KILLER_PLAYER,
+        uiEventOrchestrator.registerListener(UiEvent.UPDATE_KILLER_PLAYER,
                 evt -> refreshKillerPlayerOnScreen());
     }
 
@@ -208,17 +211,10 @@ public class KillerPanel extends JPanel {
         });
         userNotesEditButton.setVisible(false);
 
-        NameValueInfoPanel.Builder builder = new NameValueInfoPanel.Builder();
-        builder.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 170);
-        builder.addField(InfoType.KILLER_PLAYER_NAMES,
-                InfoType.KILLER_PLAYER_NAMES.description + ":");
-        builder.addField(InfoType.TIMES_ENCOUNTERED, InfoType.TIMES_ENCOUNTERED.description + ":");
-        builder.addField(InfoType.MATCHES_AGAINST_PLAYER, InfoType.MATCHES_AGAINST_PLAYER.description + ":");
-        builder.addField(InfoType.ESCAPES_AGAINST, InfoType.ESCAPES_AGAINST.description + ":");
-        builder.addField(InfoType.DEATHS_BY, InfoType.DEATHS_BY.description + ":");
-        builder.addField(InfoType.TIME_PLAYED_AGAINST, InfoType.TIME_PLAYED_AGAINST.description + ":");
-        builder.addField(InfoType.NOTES, InfoType.NOTES.description + ":", userNotesEditButton);
-        statsContainer = builder.build();
+        statsContainer = new NameValueInfoPanel();
+        statsContainer.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 170);
+        statsContainer.addFields(InfoType.class);
+        statsContainer.setRight(InfoType.NOTES, userNotesEditButton);
 
         JPanel container = new JPanel();
         container.setBackground(UiConstants.COLOR__INFO_PANEL__BG);
@@ -315,13 +311,13 @@ public class KillerPanel extends JPanel {
         titleBarPlayerExtraInfoLabel.setText(null);
         playerRateLabel.setIcon(null);
 
-        statsContainer.get(InfoType.KILLER_PLAYER_NAMES).setText(null);
-        statsContainer.get(InfoType.KILLER_PLAYER_NAMES).setToolTipText(null);
-        statsContainer.get(InfoType.TIMES_ENCOUNTERED).setText(null);
-        statsContainer.get(InfoType.MATCHES_AGAINST_PLAYER).setText(null);
-        statsContainer.get(InfoType.ESCAPES_AGAINST).setText(null);
-        statsContainer.get(InfoType.DEATHS_BY).setText(null);
-        statsContainer.get(InfoType.TIME_PLAYED_AGAINST).setText(null);
+        statsContainer.getRight(InfoType.KILLER_PLAYER_NAMES).setText(null);
+        statsContainer.getRight(InfoType.KILLER_PLAYER_NAMES).setToolTipText(null);
+        statsContainer.getRight(InfoType.TIMES_ENCOUNTERED).setText(null);
+        statsContainer.getRight(InfoType.MATCHES_AGAINST_PLAYER).setText(null);
+        statsContainer.getRight(InfoType.ESCAPES_AGAINST).setText(null);
+        statsContainer.getRight(InfoType.DEATHS_BY).setText(null);
+        statsContainer.getRight(InfoType.TIME_PLAYED_AGAINST).setText(null);
 
         userNotesEditButton.setVisible(false);
         userNotesArea.setText("");
@@ -337,7 +333,7 @@ public class KillerPanel extends JPanel {
         playerNameLabel.setText(killerPlayer.getMostRecentName().map(FontUtil::replaceNonDisplayableChars).orElse(null));
         playerSteamButton.setVisible(true);
 
-        JLabel otherNamesValueLabel = statsContainer.get(InfoType.KILLER_PLAYER_NAMES);
+        JLabel otherNamesValueLabel = statsContainer.getRight(InfoType.KILLER_PLAYER_NAMES);
         otherNamesValueLabel.setText("--");
         otherNamesValueLabel.setToolTipText(null);
 
@@ -359,11 +355,11 @@ public class KillerPanel extends JPanel {
             otherNamesValueLabel.setText(previousName);
         }
 
-        statsContainer.get(InfoType.TIMES_ENCOUNTERED).setText(String.valueOf(killerPlayer.getTimesEncountered()));
-        statsContainer.get(InfoType.MATCHES_AGAINST_PLAYER).setText(String.valueOf(killerPlayer.getMatchesPlayed()));
-        statsContainer.get(InfoType.ESCAPES_AGAINST).setText(String.valueOf(killerPlayer.getEscapes()));
-        statsContainer.get(InfoType.DEATHS_BY).setText(String.valueOf(killerPlayer.getDeaths()));
-        statsContainer.get(InfoType.TIME_PLAYED_AGAINST).setText(TimeUtil.formatTimeUpToHours(killerPlayer.getSecondsPlayed()));
+        statsContainer.getRight(InfoType.TIMES_ENCOUNTERED).setText(String.valueOf(killerPlayer.getTimesEncountered()));
+        statsContainer.getRight(InfoType.MATCHES_AGAINST_PLAYER).setText(String.valueOf(killerPlayer.getMatchesPlayed()));
+        statsContainer.getRight(InfoType.ESCAPES_AGAINST).setText(String.valueOf(killerPlayer.getEscapes()));
+        statsContainer.getRight(InfoType.DEATHS_BY).setText(String.valueOf(killerPlayer.getDeaths()));
+        statsContainer.getRight(InfoType.TIME_PLAYED_AGAINST).setText(TimeUtil.formatTimeUpToHours(killerPlayer.getSecondsPlayed()));
 
         refreshKillerPlayerRatingOnScreen();
 

@@ -1,5 +1,6 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
@@ -22,9 +23,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Locale;
+import java.util.Optional;
 
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
-import static net.lobby_simulator_companion.loop.ui.common.UiConstants.*;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.COLOR__INFO_PANEL__BG;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__NAME_COLUMN;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__VALUE_COLUMN;
 
 
 /**
@@ -35,16 +39,19 @@ public class ServerPanel extends JPanel {
 
     private static final Font font = ResourceFactory.getRobotoFont();
 
+    @RequiredArgsConstructor
     private enum InfoType {
-        COUNTRY("Country"),
-        REGION("Region"),
-        CITY("City"),
-        PROVIDER("Provider");
+        COUNTRY("Country:"),
+        REGION("Region:"),
+        CITY("City:"),
+        PROVIDER("Provider:");
 
-        String description;
+        final String description;
 
-        InfoType(String description) {
-            this.description = description;
+
+        @Override
+        public String toString() {
+            return description;
         }
     }
 
@@ -140,14 +147,9 @@ public class ServerPanel extends JPanel {
     }
 
     private JPanel createDetailsPanel() {
-        NameValueInfoPanel.Builder builder = new NameValueInfoPanel.Builder();
-        builder.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 100);
-
-        for (InfoType infoType : InfoType.values()) {
-            builder.addField(infoType, infoType.description + ":");
-        }
-
-        detailsPanel = builder.build();
+        detailsPanel = new NameValueInfoPanel();
+        detailsPanel.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 100);
+        detailsPanel.addFields(InfoType.class);
 
         JPanel container = new JPanel();
         container.setBackground(COLOR__INFO_PANEL__BG);
@@ -195,7 +197,8 @@ public class ServerPanel extends JPanel {
     }
 
     private void setServerValue(InfoType type, String value) {
-        detailsPanel.get(type).setText(value);
+        detailsPanel.getRight(type, JLabel.class)
+                .setText(Optional.ofNullable(value).orElse("--"));
     }
 
 }

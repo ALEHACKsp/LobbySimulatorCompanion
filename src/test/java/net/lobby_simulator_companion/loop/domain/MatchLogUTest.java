@@ -78,6 +78,8 @@ public class MatchLogUTest {
                 .secondsPlayed(arithmeticSeriesSum(n, oldestMatchNum + 3, 1))
                 .escapes(n / 2)
                 .deaths(n / 2)
+                .escapesInARow(numMatchesAggregated % 2 == 0 ? 0 : 1)
+                .deathsInARow(numMatchesAggregated % 2 == 0 ? 1 : 0)
                 .maxEscapesInARow(1)
                 .maxDeathsInARow(1)
                 .build();

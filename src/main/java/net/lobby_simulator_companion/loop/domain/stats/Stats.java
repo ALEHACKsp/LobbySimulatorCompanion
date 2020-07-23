@@ -73,7 +73,6 @@ public class Stats {
     }
 
 
-
     public static final class Serializer implements JsonSerializer<Stats> {
         @Override
         public JsonElement serialize(Stats src, Type typeOfSrc, JsonSerializationContext context) {

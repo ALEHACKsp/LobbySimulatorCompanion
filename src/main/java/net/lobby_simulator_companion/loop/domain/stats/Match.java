@@ -39,8 +39,7 @@ public class Match {
         return Optional.ofNullable(escaped).map(e -> !e).orElse(false);
     }
 
-    public void incrementLobbiesFound()
-    {
+    public void incrementLobbiesFound() {
         lobbiesFound = Optional.ofNullable(lobbiesFound).orElse(0) + 1;
     }
 

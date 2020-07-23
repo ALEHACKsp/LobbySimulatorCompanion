@@ -3,7 +3,6 @@ package net.lobby_simulator_companion.loop.service.log_processing.impl;
 import net.lobby_simulator_companion.loop.domain.Survivor;
 import net.lobby_simulator_companion.loop.service.log_processing.DbdLogEvent;
 import net.lobby_simulator_companion.loop.service.log_processing.EventCaptor;
-import net.lobby_simulator_companion.loop.service.log_processing.impl.ChaseLogProcessor;
 import net.lobby_simulator_companion.loop.service.log_processing.impl.dto.ChaseEvent;
 import net.lobby_simulator_companion.loop.service.log_processing.impl.dto.HitEvent;
 import net.lobby_simulator_companion.loop.util.event.EventSupport;
