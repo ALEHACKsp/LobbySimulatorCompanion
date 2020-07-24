@@ -1,29 +1,48 @@
 package net.lobby_simulator_companion.loop;
 
-import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
 import net.lobby_simulator_companion.loop.util.FileUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 
-@Slf4j
+/**
+ * @author PsiLupan
+ * @author ShadowMoose
+ * @author NickyRamone
+ */
 public class Boot {
+
+    private static Logger log;
     private static MainWindow ui;
 
 
     public static void main(String[] args) {
         try {
+            configureLogger();
             init();
         } catch (Exception e) {
             log.error("Failed to initialize application: {}", e.getMessage(), e);
             fatalErrorDialog("Failed to initialize application: " + e.getMessage());
             exitApplication(1);
         }
+    }
+
+    private static void configureLogger() throws URISyntaxException {
+        URI execUri = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+        Path appHome = new File(execUri).toPath().getParent();
+        System.setProperty("app.home", appHome.toString());
+        log = LoggerFactory.getLogger(Boot.class);
     }
 
     private static void init() throws Exception {
@@ -38,7 +57,6 @@ public class Boot {
             log.info(Factory.appProperties().get("app.name.short") + " is ready.");
         });
     }
-
 
     private static void initUi() throws Exception {
         log.info("Starting UI...");
@@ -65,7 +83,7 @@ public class Boot {
     }
 
     // TODO: separate tray icon
-    public static void setupTray() throws AWTException, IOException {
+    private static void setupTray() throws AWTException, IOException {
         final AppProperties appProperties = Factory.appProperties();
         final SystemTray tray = SystemTray.getSystemTray();
         final PopupMenu popup = new PopupMenu();
