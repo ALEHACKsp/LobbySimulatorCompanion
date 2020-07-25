@@ -75,7 +75,7 @@ public class MatchLog {
     private void recalculateGroupStatsForNewMatch(RollingGroup group, Match match) {
 
         AggregateStats stats = statsByGroup.get(group);
-        int startIdx = getGroupOldestMatchIndex(group);
+        int startIdx = matches.size() - group.aggregateSize + 1;
 
         if (startIdx >= 0) {
             stats.reset();
