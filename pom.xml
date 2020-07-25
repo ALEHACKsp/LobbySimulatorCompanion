@@ -24,9 +24,7 @@
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
-                            <!--<finalName>${project.artifactId}-fatjar</finalName>-->
                             <appendAssemblyId>true</appendAssemblyId>
-                            <!--<classifier>fatjar</classifier>-->
                             <archive>
                                 <manifest>
                                     <mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>
@@ -60,8 +58,9 @@
                                 <configuration>
                                     <headerType>gui</headerType>
                                     <outfile>${project.build.directory}/${project.artifactId}.exe</outfile>
-                                    <!--<jar>${project.build.directory}/${project.artifactId}.jar</jar>-->
-                                    <jar>${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar</jar>
+                                    <jar>
+                                        ${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar
+                                    </jar>
                                     <icon>docs/images/loop_logo.ico</icon>
                                     <errTitle>${project.description}</errTitle>
                                     <classPath>
@@ -115,58 +114,6 @@
                 <filtering>true</filtering>
             </resource>
         </resources>
-        <plugins>
-
-            <!--<plugin>-->
-            <!--<groupId>com.akathist.maven.plugins.launch4j</groupId>-->
-            <!--<artifactId>launch4j-maven-plugin</artifactId>-->
-            <!--<version>1.7.25</version>-->
-            <!--<executions>-->
-            <!--<execution>-->
-            <!--<id>loop-gui</id>-->
-            <!--<phase>package</phase>-->
-            <!--<goals><goal>launch4j</goal></goals>-->
-            <!--<configuration>-->
-            <!--<headerType>gui</headerType>-->
-            <!--<outfile>${project.build.directory}/${project.artifactId}.exe</outfile>-->
-            <!--<jar>${project.build.directory}/${project.artifactId}.jar</jar>-->
-            <!--<icon>docs/images/loop_logo.ico</icon>-->
-            <!--<errTitle>${project.description}</errTitle>-->
-            <!--<classPath>-->
-            <!--<mainClass>net.lobby_simulator_companion.loop.Boot</mainClass>-->
-            <!--</classPath>-->
-            <!--<jre>-->
-            <!--<minVersion>${maven.compiler.source}</minVersion>-->
-            <!--</jre>-->
-            <!--<singleInstance>-->
-            <!--<mutexName>${project.artifactId}</mutexName>-->
-            <!--<windowTitle>${project.description}</windowTitle>-->
-            <!--</singleInstance>-->
-            <!--<versionInfo>-->
-            <!--<fileVersion>${exe.version}</fileVersion>-->
-            <!--<txtFileVersion>${project.version}</txtFileVersion>-->
-            <!--<fileDescription>GUI</fileDescription>-->
-            <!--<copyright>Nicky Ramone, 2019</copyright>-->
-            <!--<productVersion>${exe.version}</productVersion>-->
-            <!--<txtProductVersion>${project.version}</txtProductVersion>-->
-            <!--<productName>${project.description}</productName>-->
-            <!--<internalName>${project.artifactId}</internalName>-->
-            <!--<originalFilename>${project.artifactId}.exe</originalFilename>-->
-            <!--</versionInfo>-->
-            <!--</configuration>-->
-            <!--</execution>-->
-            <!--</executions>-->
-            <!--</plugin>-->
-
-            <!--<plugin>-->
-            <!--<artifactId>maven-release-plugin</artifactId>-->
-            <!--<version>2.5.3</version>-->
-            <!--<configuration>-->
-            <!--<goals>install</goals>-->
-            <!--<tagNameFormat>@{project.version}</tagNameFormat>-->
-            <!--</configuration>-->
-            <!--</plugin>-->
-        </plugins>
     </build>
 
     <dependencies>

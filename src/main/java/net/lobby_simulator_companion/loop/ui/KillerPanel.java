@@ -359,7 +359,7 @@ public class KillerPanel extends JPanel {
         statsContainer.getRight(InfoType.MATCHES_AGAINST_PLAYER).setText(String.valueOf(killerPlayer.getMatchesPlayed()));
         statsContainer.getRight(InfoType.ESCAPES_AGAINST).setText(String.valueOf(killerPlayer.getEscapes()));
         statsContainer.getRight(InfoType.DEATHS_BY).setText(String.valueOf(killerPlayer.getDeaths()));
-        statsContainer.getRight(InfoType.TIME_PLAYED_AGAINST).setText(TimeUtil.formatTimeUpToHours(killerPlayer.getSecondsPlayed()));
+        statsContainer.getRight(InfoType.TIME_PLAYED_AGAINST).setText(TimeUtil.formatTimeUpToYears(killerPlayer.getSecondsPlayed()));
 
         refreshKillerPlayerRatingOnScreen();
 

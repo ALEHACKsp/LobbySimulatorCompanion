@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static javax.swing.SwingUtilities.invokeLater;
+import static net.lobby_simulator_companion.loop.service.DbdLogMonitor.State;
 
 /**
  * The purpose of this class is to store state about game events (e.g., information about current killer player,
@@ -255,6 +256,10 @@ public class GameStateManager {
 
     public void registerListener(Object eventType, EventListener eventListener) {
         eventSupport.registerListener(eventType, eventListener);
+    }
+
+    public State getState() {
+        return dbdLogMonitor.getState();
     }
 
     public void fireEvent(Object eventType) {

@@ -113,7 +113,7 @@ public class LoopDataService {
         return loopData.getStats();
     }
 
-    public MatchLog getMatchHistory() {
+    public MatchLog getMatchLog() {
         return loopData.getMatchLog();
     }
 

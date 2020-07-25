@@ -75,7 +75,7 @@ public class MatchLog {
     private void recalculateGroupStatsForNewMatch(RollingGroup group, Match match) {
 
         AggregateStats stats = statsByGroup.get(group);
-        int startIdx = matches.size() - group.aggregateSize + 1;
+        int startIdx = getGroupOldestMatchIndex(group);
 
         if (startIdx >= 0) {
             stats.reset();
@@ -85,6 +85,24 @@ public class MatchLog {
         }
 
         stats.addMatchStats(match);
+    }
+
+    private int getGroupOldestMatchIndex(RollingGroup group) {
+        if (matches.isEmpty()) {
+            return -1;
+        }
+
+        if (matches.size() <= group.aggregateSize) {
+            return 0;
+        }
+
+        return matches.size() - group.aggregateSize + 1;
+    }
+
+    public Match getOldestMatchForGroup(RollingGroup group) {
+        int idx = getGroupOldestMatchIndex(group);
+
+        return idx >= 0? matches.get(idx): null;
     }
 
 

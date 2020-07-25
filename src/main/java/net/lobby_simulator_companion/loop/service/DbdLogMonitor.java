@@ -39,7 +39,12 @@ public class DbdLogMonitor implements Runnable {
         GENERATING_MAP,
         IN_MATCH,
         IN_POST_GAME_CHAT,
-        MATCH_END
+        MATCH_END;
+
+
+        public boolean isBefore(State otherState) {
+            return this.ordinal() < otherState.ordinal();
+        }
     }
 
     @NoArgsConstructor
@@ -135,6 +140,10 @@ public class DbdLogMonitor implements Runnable {
                         + processor.getClass().getSimpleName() + "'", e);
             }
         }
+    }
+
+    public State getState() {
+        return stateWrapper.state;
     }
 
     public File getLogFile() {

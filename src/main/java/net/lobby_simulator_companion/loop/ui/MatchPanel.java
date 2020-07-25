@@ -8,6 +8,7 @@ import net.lobby_simulator_companion.loop.domain.stats.Match;
 import net.lobby_simulator_companion.loop.service.GameEvent;
 import net.lobby_simulator_companion.loop.service.GameStateManager;
 import net.lobby_simulator_companion.loop.ui.common.CollapsablePanel;
+import net.lobby_simulator_companion.loop.ui.common.FontUtil;
 import net.lobby_simulator_companion.loop.ui.common.NameValueInfoPanel;
 import net.lobby_simulator_companion.loop.ui.common.ResourceFactory;
 import net.lobby_simulator_companion.loop.ui.common.UiConstants;
@@ -35,6 +36,7 @@ import static net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator.U
 @Slf4j
 public class MatchPanel extends JPanel {
 
+    private static final String MSG__TITLE = "Post-match:";
     private static final String MSG__SURVIVAL_TRUE = "yes";
     private static final String MSG__SURVIVAL_FALSE = "no";
     private static final String MSG__NOT_AVAILABLE = "--";
@@ -107,7 +109,7 @@ public class MatchPanel extends JPanel {
     private JPanel createTitleBar() {
         Border border = new EmptyBorder(5, 5, 5, 5);
 
-        JLabel summaryLabel = new JLabel("Match:");
+        JLabel summaryLabel = new JLabel(MSG__TITLE);
         summaryLabel.setBorder(border);
         summaryLabel.setForeground(UiConstants.COLOR__TITLE_BAR__FG);
         summaryLabel.setFont(ResourceFactory.getRobotoFont());
@@ -240,7 +242,9 @@ public class MatchPanel extends JPanel {
         if (chaseSummaryEntry != null) {
             StringBuilder sb = new StringBuilder();
 
-            sb.append(Optional.ofNullable(chaseSummaryEntry.getPlayerName()).orElse("?"));
+            sb.append(Optional.ofNullable(chaseSummaryEntry.getPlayerName())
+                    .map(FontUtil::replaceNonDisplayableChars)
+                    .orElse("?"));
             sb.append(" (").append(chaseSummaryEntry.getSurvivor());
 
             if (chaseSummaryEntry.getSurvivorTeamIdx() >= 0) {
