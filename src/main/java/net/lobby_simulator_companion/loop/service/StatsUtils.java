@@ -1,9 +1,6 @@
 package net.lobby_simulator_companion.loop.service;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Comparator.reverseOrder;
 
@@ -63,13 +60,14 @@ import static java.util.Comparator.reverseOrder;
  * 3) Components are more relevant from left to right.
  *
  * With those things in mind, we will construct a function 'f' that calculates a score from a given distribution
- * vector 'd':
+ * vector 'd'.
+ * Let 's(c)' be a function that calculates the score of a distribution component (count) on the i-th index. Then:
  * f(d) = sum(s(d[i])
  * s(c) = ((k - i) / k) * (1 - d[i] / d[i - 1])
  *        --> the first factor weighs the position of the component;
  *            the second factor gets higher as the component gets lower in relation to the previous component
  *
- * Once we have our function(d), we can calculate the distribution "goodness" by rating it over the best-case
+ * Once we have our 'f(d)' function, we can calculate any distribution "goodness" by rating it over the best-case
  * distribution.
  * The time complexity is O(1).
  *
@@ -100,7 +98,7 @@ import static java.util.Comparator.reverseOrder;
  * which in some cases can be controversial. For example:
  * [3, 3, 2, 0, 0] ==> 67.74%
  * [5, 1, 1, 1, 0] ==> 83.87%
- * Is the second distro really (that) better than the first one? it spreads the sum towards more components (one more)
+ * Is the second distro really (THAT) better than the first one? it spreads the sum towards more components (one more)
  * but at the expense of playing 5 times on the same map. The first one seems to spread more evenly, at the cost of
  * reaching one less component.
  *

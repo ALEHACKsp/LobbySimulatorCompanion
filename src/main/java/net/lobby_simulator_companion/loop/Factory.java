@@ -1,82 +1,59 @@
 package net.lobby_simulator_companion.loop;
 
+import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
+import net.lobby_simulator_companion.loop.config.LoopGsonFactory;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.repository.ExtremeIpDao;
 import net.lobby_simulator_companion.loop.repository.LoopRepository;
 import net.lobby_simulator_companion.loop.repository.ServerDao;
 import net.lobby_simulator_companion.loop.repository.SteamProfileDao;
 import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.service.GameStateManager;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
-import net.lobby_simulator_companion.loop.ui.DebugPanel;
+import net.lobby_simulator_companion.loop.service.log_event_orchestrators.ChaseEventManager;
+import net.lobby_simulator_companion.loop.service.log_processing.impl.ChaseLogProcessor;
+import net.lobby_simulator_companion.loop.service.log_processing.impl.KillerLogProcessor;
+import net.lobby_simulator_companion.loop.service.log_processing.impl.MainLogProcessor;
+import net.lobby_simulator_companion.loop.service.log_processing.impl.RealmMapLogProcessor;
+import net.lobby_simulator_companion.loop.service.plugin.PluginManager;
 import net.lobby_simulator_companion.loop.ui.KillerPanel;
 import net.lobby_simulator_companion.loop.ui.MainWindow;
+import net.lobby_simulator_companion.loop.ui.MatchPanel;
+import net.lobby_simulator_companion.loop.ui.PeriodAggregateStatsPanel;
+import net.lobby_simulator_companion.loop.ui.RollingAggregateStatsPanel;
 import net.lobby_simulator_companion.loop.ui.ServerPanel;
 import net.lobby_simulator_companion.loop.ui.StatsPanel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.lobby_simulator_companion.loop.ui.SurvivalInputPanel;
+import net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator;
+import net.lobby_simulator_companion.loop.ui.startup.PluginLoadUi;
+import net.lobby_simulator_companion.loop.util.event.EventSupport;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static net.lobby_simulator_companion.loop.util.LangUtil.unchecked;
+
+
 /**
- * Factory for all classes.
+ * Factory for components.
  * Can eventually be replaced by an IOC container like Guice or Spring.
  *
  * @author NickyRamone
  */
+@Slf4j
 public final class Factory {
-    private static final Logger logger = LoggerFactory.getLogger(Factory.class);
 
+    private static final String PROPERTY__WRITE_ENCRYPTED = "storage.write.encrypted";
     private static final Map<Class, Object> instances = new HashMap<>();
 
     private Factory() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-
-    public interface ThrowingFunction<T, R> {
-        R apply() throws Exception;
-
-        @SuppressWarnings("unchecked")
-        static <T extends Exception, R> R sneakyThrow(Exception t) throws T {
-            throw (T) t;
-        }
-    }
-
-    static Supplier unchecked(ThrowingFunction f) {
-        return () -> {
-            try {
-                return f.apply();
-            } catch (Exception ex) {
-                return ThrowingFunction.sneakyThrow(ex);
-            }
-        };
-    }
-
-
-    /**
-     * Eagerly create all instances.
-     */
-    public static void init() {
-        try {
-            createInstances();
-        } catch (Exception e) {
-            logger.error("Failed to instantiate classes.", e);
-            throw new RuntimeException("Failed to create instances.", e);
-        }
-    }
-
-    private static void createInstances() throws Exception {
-        getSettings();
-        getAppProperties();
-        getLoopRepository();
-        getLoopDataService();
-        getSteamProfileDao();
-        getServerDao();
-        getDbdLogMonitor();
-    }
 
     private static <T> T getInstance(Class<T> clazz, Supplier<T> objFactory) {
         T instance = clazz.cast(instances.get(clazz));
@@ -86,7 +63,7 @@ public final class Factory {
                 instance = objFactory.get();
                 instances.put(clazz, instance);
             } catch (Exception e) {
-                logger.error("Failed to instantiate class.", e);
+                log.error("Failed to instantiate class.", e);
                 throw new RuntimeException("Failed to instantiate class.");
             }
         }
@@ -94,76 +71,156 @@ public final class Factory {
         return instance;
     }
 
-    public static AppProperties getAppProperties() {
+    public static AppProperties appProperties() {
         return getInstance(AppProperties.class, unchecked(AppProperties::new));
     }
 
-    public static Settings getSettings() {
+    public static Settings settings() {
         return getInstance(Settings.class, unchecked(Settings::new));
     }
 
-    public static LoopRepository getLoopRepository() {
+    public static LoopRepository loopRepository() {
         return getInstance(LoopRepository.class,
-                () -> new LoopRepository(getAppProperties()));
+                () -> new LoopRepository(appProperties(), gson()));
     }
 
-    public static LoopDataService getLoopDataService() {
+    public static LoopDataService loopDataService() {
         return getInstance(LoopDataService.class, unchecked(
-                () -> new LoopDataService(getLoopRepository())));
+                () -> new LoopDataService(loopRepository())));
     }
 
-    public static SteamProfileDao getSteamProfileDao() {
+    public static PluginLoadUi pluginLoadUi() {
+        return getInstance(PluginLoadUi.class,
+                () -> new PluginLoadUi(appProperties(), settings(), pluginManager()));
+    }
+
+    public static UiEventOrchestrator uiEventOrchestrator() {
+        return getInstance(UiEventOrchestrator.class, () -> new UiEventOrchestrator());
+    }
+
+    public static SteamProfileDao steamProfileDao() {
         return getInstance(SteamProfileDao.class, () -> {
-            String steamProfileUrlPrefix = getAppProperties().get("steam.profile_url_prefix");
+            String steamProfileUrlPrefix = appProperties().get("steam.profile_url_prefix");
             return new SteamProfileDao(steamProfileUrlPrefix);
         });
     }
 
-    public static ServerDao getServerDao() {
-        return getInstance(ExtremeIpDao.class, () -> {
-            String serviceUrlPrefix = getAppProperties().get("dao.server.extreme_ip.url_prefix");
+    public static ServerDao serverDao() {
+        return getInstance(ServerDao.class, () -> {
+            String serviceUrlPrefix = appProperties().get("dao.server.extreme_ip.url_prefix");
             return new ExtremeIpDao(serviceUrlPrefix);
         });
     }
 
 
-    public static DbdLogMonitor getDbdLogMonitor() {
-        return getInstance(DbdLogMonitor.class, unchecked(() ->
-                getAppProperties().getBoolean("debug") ?
-                        new DbdLogMonitor(File.createTempFile("dbd-mock-log_", ".log"))
-                        : new DbdLogMonitor()));
+    public static DbdLogMonitor dbdLogMonitor() {
+        return getInstance(DbdLogMonitor.class, unchecked(() -> {
+                    DbdLogMonitor obj = appProperties().getBoolean("debug.panel") ?
+                            new DbdLogMonitor(dbdLogEventSupport(), File.createTempFile("dbd-mock-log_", ".log"))
+                            : new DbdLogMonitor(dbdLogEventSupport());
+
+                    obj.registerProcessor(mainLogProcessor());
+                    obj.registerProcessor(killerLogProcessor());
+                    obj.registerProcessor(realmMapLogProcessor());
+                    obj.registerProcessor(chaseLogProcessor());
+
+                    return obj;
+                })
+        );
     }
 
-    public static MainWindow getMainWindow() {
+    private static EventSupport dbdLogEventSupport() {
+        return getInstance(EventSupport.class, EventSupport::new);
+    }
+
+
+    private static MainLogProcessor mainLogProcessor() {
+        return getInstance(MainLogProcessor.class, () -> new MainLogProcessor(dbdLogEventSupport()));
+    }
+
+    private static KillerLogProcessor killerLogProcessor() {
+        return getInstance(KillerLogProcessor.class, () -> new KillerLogProcessor(dbdLogEventSupport()));
+    }
+
+    private static RealmMapLogProcessor realmMapLogProcessor() {
+        return getInstance(RealmMapLogProcessor.class, () -> new RealmMapLogProcessor(dbdLogEventSupport()));
+    }
+
+    private static ChaseLogProcessor chaseLogProcessor() {
+        return getInstance(ChaseLogProcessor.class, () -> new ChaseLogProcessor(dbdLogEventSupport()));
+    }
+
+    public static GameStateManager gameStateManager() {
+        return getInstance(GameStateManager.class,
+                () -> new GameStateManager(
+                        appProperties(),
+                        dbdLogMonitor(),
+                        loopDataService(),
+                        steamProfileDao(),
+                        chaseEventManager()
+                ));
+    }
+
+    private static ChaseEventManager chaseEventManager() {
+        return getInstance(ChaseEventManager.class,
+                () -> new ChaseEventManager(dbdLogMonitor()));
+    }
+
+    public static MainWindow mainWindow() {
         return getInstance(MainWindow.class, () ->
-                new MainWindow(getSettings(), getAppProperties(), getDbdLogMonitor(), getLoopDataService(),
-                        getServerPanel(), getKillerPanel(), getStatsPanel()));
+                new MainWindow(settings(), appProperties(), loopDataService(),
+                        gameStateManager(), uiEventOrchestrator(),
+                        serverPanel(), matchPanel(), killerPanel(), statsPanel(), survivalInputPanel()));
     }
 
-    public static ServerPanel getServerPanel() {
+    public static SurvivalInputPanel survivalInputPanel() {
+        return getInstance(SurvivalInputPanel.class, () ->
+                new SurvivalInputPanel(loopDataService(), gameStateManager(), uiEventOrchestrator()));
+    }
+
+    public static ServerPanel serverPanel() {
         return getInstance(ServerPanel.class, () -> new ServerPanel(
-                getSettings(), getAppProperties(), getServerDao()));
+                settings(), appProperties(), gameStateManager(), uiEventOrchestrator(), serverDao()));
     }
 
-    public static KillerPanel getKillerPanel() {
+    public static KillerPanel killerPanel() {
         return getInstance(KillerPanel.class, () ->
-                new KillerPanel(getSettings(), getLoopDataService(), getSteamProfileDao()));
+                new KillerPanel(settings(), loopDataService(), gameStateManager(),
+                        uiEventOrchestrator()));
     }
 
-    public static StatsPanel getStatsPanel() {
+    public static MatchPanel matchPanel() {
+        return getInstance(MatchPanel.class, () -> new MatchPanel(settings(), gameStateManager(), uiEventOrchestrator()));
+    }
+
+    public static StatsPanel statsPanel() {
         return getInstance(StatsPanel.class, () ->
-                new StatsPanel(getSettings(), getLoopDataService()));
+                new StatsPanel(settings(), loopDataService(), gameStateManager(), uiEventOrchestrator(),
+                        periodAggregateStatsPanel(), rollingAggregateStatsPanel()));
     }
 
-    public static DebugPanel getDebugPanel() {
-        try {
-            return getInstance(DebugPanel.class, unchecked(() ->
-                    new DebugPanel(getDbdLogMonitor(), getLoopDataService())));
-        } catch (Exception e) {
-            throw new RuntimeException();
-        }
-
+    public static PeriodAggregateStatsPanel periodAggregateStatsPanel() {
+        return getInstance(PeriodAggregateStatsPanel.class, () ->
+                new PeriodAggregateStatsPanel(settings(), loopDataService(), gameStateManager()));
     }
 
+    public static RollingAggregateStatsPanel rollingAggregateStatsPanel() {
+        return getInstance(RollingAggregateStatsPanel.class, () ->
+                new RollingAggregateStatsPanel(settings(), loopDataService(), gameStateManager()));
+    }
+
+
+    public static PluginManager pluginManager() {
+        return getInstance(PluginManager.class, unchecked(
+                () -> new PluginManager(appProperties())));
+    }
+
+    public static Gson gson() {
+        return getInstance(Gson.class, () -> LoopGsonFactory.gson(appProperties().getBoolean(PROPERTY__WRITE_ENCRYPTED)));
+    }
+
+    public static void setInstance(Class type, Object instance) {
+        instances.put(type, instance);
+    }
 
 }

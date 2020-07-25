@@ -1,7 +1,7 @@
 package net.lobby_simulator_companion.loop.ui.common;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,12 +16,14 @@ import java.util.Map;
  *
  * @author NickyRamone
  */
+@Slf4j
+@UtilityClass
 public final class ResourceFactory {
 
-    private static final Logger logger = LoggerFactory.getLogger(ResourceFactory.class);
     private static final String ROBOTO_FONT_PATH = "/Roboto-Medium.ttf";
     private static final Map<Icon, ImageIcon> iconCache = new HashMap<>();
     private static Font roboto;
+    private static Font robotoBig;
 
     public enum Icon {
         COLLAPSE("/collapse_icon.png"),
@@ -58,25 +60,21 @@ public final class ResourceFactory {
     }
 
 
-    private ResourceFactory() {
-    }
-
-
-    public static synchronized Font getRobotoFont() {
+    public Font getRobotoFont() {
         if (roboto == null) {
             InputStream is = ResourceFactory.class.getResourceAsStream(ROBOTO_FONT_PATH);
             try {
                 roboto = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(16f);
             } catch (FontFormatException e) {
-                logger.error("Font file is corrupt.", e);
+                log.error("Font file is corrupt.", e);
             } catch (IOException e) {
-                logger.error("Failed to load Roboto font.", e);
+                log.error("Failed to load Roboto font.", e);
             }
         }
         return roboto;
     }
 
-    public static synchronized ImageIcon getIcon(Icon icon) {
+    public ImageIcon getIcon(Icon icon) {
         ImageIcon imageIcon = iconCache.get(icon);
 
         if (imageIcon == null) {
@@ -86,7 +84,7 @@ public final class ResourceFactory {
                 imageIcon = new ImageIcon(imageUrl);
                 iconCache.put(icon, imageIcon);
             } else {
-                logger.error("Failed to load '{}' icon.", icon.name());
+                log.error("Failed to load '{}' icon.", icon.name());
             }
         }
 

@@ -1,10 +1,16 @@
 package net.lobby_simulator_companion.loop.domain;
 
-import java.util.Arrays;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
+/**
+ * @author NickyRamone
+ */
+@RequiredArgsConstructor
+@Getter
 public enum RealmMap {
 
-    UNIDENTIFIED(null, null),
+    UNIDENTIFIED(null, "?"),
 
     // Autohaven Wreckers
     AZAROVS_RESTING_PLACE("Jnk_Office", "Azarov's Resting Place"),
@@ -27,6 +33,9 @@ public enum RealmMap {
     // Crotus Prenn Asylum
     DISTURBED_WARD("Asy_Asylum", "Disturbed Ward"),
     FATHER_CAMPBELLS_CHAPEL("Asy_Chapel", "Father Campbell's Chapel"),
+
+    // Gideon Meat Plant
+    THE_GAME("Fin_Hideout", "The Game"),
 
     // Grave of Glenvale
     DEAD_DAWG_SALOON("Ukr_Saloon", "Dead Dawg Saloon"),
@@ -54,6 +63,9 @@ public enum RealmMap {
     MOTHERS_DWELLING("Brl_MaHouse", "Mother's Dwelling"),
     TEMPLE_OF_PURGATION("Brl_Temple", "The Temple of Purgation"),
 
+    // Silent Hill
+    MIDWICH_ELEMENTARY_SCHOOL("Wal_Level_01", "Midwich Elementary School"),
+
     // Springwood
     BADHAM_PRESCHOOL_1("Eng_Street_01", "Badham Preschool I"),
     BADHAM_PRESCHOOL_2("Eng_Street_02", "Badham Preschool II"),
@@ -61,27 +73,13 @@ public enum RealmMap {
     BADHAM_PRESCHOOL_4("Eng_Street_04", "Badham Preschool IV"),
     BADHAM_PRESCHOOL_5("Eng_Street_05", "Badham Preschool V"),
 
-    // Gideon Meat Plant
-    THE_GAME("Fin_Hideout", "The Game"),
-
     // Yamaoka Estate
     FAMILY_RESIDENCE("Hti_Manor", "Family Residence"),
     SANCTUM_OF_WRATH("Hti_Shrine", "Sanctum of Wrath"),
-
     ;
 
     private final String id;
-    private final String alias;
-
-
-    RealmMap(String id, String alias) {
-        this.id = id;
-        this.alias = alias;
-    }
-
-    public String alias() {
-        return alias;
-    }
+    private final String description;
 
     public boolean isIdentified() {
         return this != UNIDENTIFIED;
@@ -89,14 +87,7 @@ public enum RealmMap {
 
     @Override
     public String toString() {
-        return name().toLowerCase();
-    }
-
-    public static RealmMap fromDbdId(String mapId) {
-        return Arrays.stream(RealmMap.values())
-                .filter(m -> m.id != null && m.id.equals(mapId))
-                .findFirst()
-                .orElse(RealmMap.UNIDENTIFIED);
+        return description;
     }
 
 }

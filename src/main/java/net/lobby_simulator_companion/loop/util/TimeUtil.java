@@ -1,21 +1,20 @@
 package net.lobby_simulator_companion.loop.util;
 
+import lombok.experimental.UtilityClass;
+
 /**
  * @author NickyRamone
  */
-public final class TimeUtil {
+@UtilityClass
+public class TimeUtil {
 
     private static final int SECONDS_IN_A_MINUTE = 60;
     private static final int SECONDS_IN_AN_HOUR = 60 * SECONDS_IN_A_MINUTE;
     private static final int SECONDS_IN_A_DAY = 24 * SECONDS_IN_AN_HOUR;
     private static final int SECONDS_IN_A_WEEK = 7 * SECONDS_IN_A_DAY;
-    private static final int SECONDS_IN_A_MONTH = 30 * SECONDS_IN_A_WEEK;
-    private static final int SECONDS_IN_A_YEAR = 12 * SECONDS_IN_A_MONTH;
+    private static final int SECONDS_IN_A_MONTH = 30 * SECONDS_IN_A_DAY;
+    private static final int SECONDS_IN_A_YEAR = 365 * SECONDS_IN_A_DAY;
 
-
-    private TimeUtil() {
-        // this class should not be instantiated
-    }
 
     public static String formatTimeUpToHours(int totalSeconds) {
         int hours = totalSeconds / 3600;
@@ -90,7 +89,11 @@ public final class TimeUtil {
         return result;
     }
 
-    public static String formatTimeUpToYears(int totalSeconds) {
+    public static String formatTimeUpToYears(Integer totalSeconds) {
+        if (totalSeconds == null) {
+            return null;
+        }
+
         int years = totalSeconds / SECONDS_IN_A_YEAR;
         int mod = totalSeconds % SECONDS_IN_A_YEAR;
         int months = mod / SECONDS_IN_A_MONTH;

@@ -1,16 +1,19 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
 import net.lobby_simulator_companion.loop.domain.Server;
 import net.lobby_simulator_companion.loop.repository.ServerDao;
+import net.lobby_simulator_companion.loop.service.GameEvent;
+import net.lobby_simulator_companion.loop.service.GameStateManager;
 import net.lobby_simulator_companion.loop.ui.common.CollapsablePanel;
-import net.lobby_simulator_companion.loop.ui.common.Colors;
 import net.lobby_simulator_companion.loop.ui.common.ComponentUtils;
 import net.lobby_simulator_companion.loop.ui.common.NameValueInfoPanel;
 import net.lobby_simulator_companion.loop.ui.common.ResourceFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.lobby_simulator_companion.loop.ui.common.UiConstants;
+import net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,54 +23,78 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Locale;
+import java.util.Optional;
 
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.COLOR__INFO_PANEL__BG;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__NAME_COLUMN;
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__INFO_PANEL__VALUE_COLUMN;
+
 
 /**
  * @author NickyRamone
  */
+@Slf4j
 public class ServerPanel extends JPanel {
 
-    public static final String EVENT_STRUCTURE_CHANGED = "structure_changed";
     private static final Font font = ResourceFactory.getRobotoFont();
-    private static final Logger logger = LoggerFactory.getLogger(ServerPanel.class);
 
+    @RequiredArgsConstructor
     private enum InfoType {
-        COUNTRY("Country"),
-        REGION("Region"),
-        CITY("City"),
-        PROVIDER("Provider");
+        COUNTRY("Country:"),
+        REGION("Region:"),
+        CITY("City:"),
+        PROVIDER("Provider:");
 
-        String description;
+        final String description;
 
-        InfoType(String description) {
-            this.description = description;
+
+        @Override
+        public String toString() {
+            return description;
         }
     }
 
     private final Settings settings;
     private final AppProperties appProperties;
+    private final GameStateManager gameStateManager;
+    private final UiEventOrchestrator uiEventOrchestrator;
     private final ServerDao serverDao;
 
     private JLabel summaryLabel;
     private JLabel geoLocationLabel;
-    private NameValueInfoPanel<InfoType> detailsPanel;
+    private NameValueInfoPanel detailsPanel;
     private Server server;
 
 
-    public ServerPanel(Settings settings, AppProperties appProperties, ServerDao serverDao) {
+    public ServerPanel(Settings settings, AppProperties appProperties, GameStateManager gameStateManager,
+                       UiEventOrchestrator uiEventOrchestrator, ServerDao serverDao) {
         this.settings = settings;
         this.appProperties = appProperties;
+        this.gameStateManager = gameStateManager;
+        this.uiEventOrchestrator = uiEventOrchestrator;
         this.serverDao = serverDao;
 
+        initEventListeners();
+        draw();
+    }
+
+
+    private void initEventListeners() {
+        gameStateManager.registerListener(GameEvent.CONNECTED_TO_LOBBY,
+                evt -> updateServerIpAddress((String) evt.getValue()));
+    }
+
+    private void draw() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        detailsPanel = createDetailsPanel();
 
         JPanel collapsablePanel = new CollapsablePanel(
                 createTitleBar(),
-                detailsPanel,
+                createDetailsPanel(),
                 settings, "ui.panel.server.collapsed");
-        collapsablePanel.addPropertyChangeListener(evt -> firePropertyChange(EVENT_STRUCTURE_CHANGED, null, null));
+        collapsablePanel.addPropertyChangeListener(evt ->
+                uiEventOrchestrator.fireEvent(UiEventOrchestrator.UiEvent.STRUCTURE_RESIZED));
+
         add(collapsablePanel);
     }
 
@@ -75,7 +102,7 @@ public class ServerPanel extends JPanel {
     private JPanel createTitleBar() {
         JLabel serverLabel = new JLabel("Server:");
         serverLabel.setBorder(ComponentUtils.DEFAULT_BORDER);
-        serverLabel.setForeground(Colors.STATUS_BAR_FOREGROUND);
+        serverLabel.setForeground(UiConstants.COLOR__TITLE_BAR__FG);
         serverLabel.setFont(font);
 
         summaryLabel = new JLabel();
@@ -97,9 +124,9 @@ public class ServerPanel extends JPanel {
                                         server.getLatitude(), server.getLongitude(), Locale.US);
                                 Desktop.getDesktop().browse(new URL(profileUrl).toURI());
                             } catch (IOException e1) {
-                                logger.error("Failed to open browser at Google Maps.");
+                                log.error("Failed to open browser at Google Maps.");
                             } catch (URISyntaxException e1) {
-                                logger.error("Attempted to use an invalid URL for Google Maps.");
+                                log.error("Attempted to use an invalid URL for Google Maps.");
                             }
                         }
                     }
@@ -109,7 +136,7 @@ public class ServerPanel extends JPanel {
         JPanel container = new JPanel();
         container.setPreferredSize(new Dimension(200, 25));
         container.setMinimumSize(new Dimension(300, 25));
-        container.setBackground(Colors.STATUS_BAR_BACKGROUND);
+        container.setBackground(UiConstants.COLOR__TITLE_BAR__BG);
         container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
         container.add(serverLabel);
         container.add(summaryLabel);
@@ -119,29 +146,34 @@ public class ServerPanel extends JPanel {
         return container;
     }
 
-    private NameValueInfoPanel createDetailsPanel() {
-        NameValueInfoPanel.Builder<InfoType> builder = new NameValueInfoPanel.Builder<>();
-        for (InfoType infoType : InfoType.values()) {
-            builder.addField(infoType, infoType.description + ":");
-        }
+    private JPanel createDetailsPanel() {
+        detailsPanel = new NameValueInfoPanel();
+        detailsPanel.setSizes(WIDTH__INFO_PANEL__NAME_COLUMN, WIDTH__INFO_PANEL__VALUE_COLUMN, 100);
+        detailsPanel.addFields(InfoType.class);
 
-        return builder.build();
+        JPanel container = new JPanel();
+        container.setBackground(COLOR__INFO_PANEL__BG);
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.add(Box.createVerticalStrut(5));
+        container.add(detailsPanel);
+
+        return container;
     }
 
-    public void updateServerIpAddress(String ipAddress) {
+    private void updateServerIpAddress(String ipAddress) {
         new Thread(() -> {
             try {
                 server = serverDao.getByIpAddress(ipAddress);
-                SwingUtilities.invokeLater(() -> updateServerPanel(this.server));
+                SwingUtilities.invokeLater(() -> refreshServerOnScreen(this.server));
 
             } catch (IOException e) {
-                logger.error("Failed to retrieve server information.", e);
+                log.error("Failed to retrieve server information.", e);
             }
         }).start();
     }
 
-    public void updateServerPanel(Server server) {
-        clearServer();
+    private void refreshServerOnScreen(Server server) {
+        refreshClear();
         this.server = server;
         summaryLabel.setText(String.format("%s, %s", server.getCity(), server.getCountry()));
         if (server.getLatitude() != null && server.getLongitude() != null) {
@@ -154,7 +186,7 @@ public class ServerPanel extends JPanel {
         setServerValue(InfoType.PROVIDER, server.getIsp());
     }
 
-    public void clearServer() {
+    private void refreshClear() {
         server = null;
         summaryLabel.setText(null);
         geoLocationLabel.setVisible(false);
@@ -165,7 +197,8 @@ public class ServerPanel extends JPanel {
     }
 
     private void setServerValue(InfoType type, String value) {
-        detailsPanel.get(type).setText(value);
+        detailsPanel.getRight(type, JLabel.class)
+                .setText(Optional.ofNullable(value).orElse("--"));
     }
 
 }

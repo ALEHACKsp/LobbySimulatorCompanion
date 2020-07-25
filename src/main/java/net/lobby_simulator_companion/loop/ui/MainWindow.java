@@ -1,20 +1,20 @@
 package net.lobby_simulator_companion.loop.ui;
 
+import lombok.extern.slf4j.Slf4j;
 import net.lobby_simulator_companion.loop.config.AppProperties;
 import net.lobby_simulator_companion.loop.config.Settings;
-import net.lobby_simulator_companion.loop.domain.Killer;
 import net.lobby_simulator_companion.loop.domain.Player;
-import net.lobby_simulator_companion.loop.domain.RealmMap;
-import net.lobby_simulator_companion.loop.service.DbdLogMonitor;
+import net.lobby_simulator_companion.loop.domain.stats.Match;
+import net.lobby_simulator_companion.loop.service.GameEvent;
+import net.lobby_simulator_companion.loop.service.GameStateManager;
 import net.lobby_simulator_companion.loop.service.LoopDataService;
-import net.lobby_simulator_companion.loop.service.PlayerDto;
-import net.lobby_simulator_companion.loop.ui.common.Colors;
 import net.lobby_simulator_companion.loop.ui.common.ComponentUtils;
+import net.lobby_simulator_companion.loop.ui.common.FontUtil;
 import net.lobby_simulator_companion.loop.ui.common.MouseDragListener;
 import net.lobby_simulator_companion.loop.ui.common.ResourceFactory;
+import net.lobby_simulator_companion.loop.ui.common.UiConstants;
+import net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator;
 import net.lobby_simulator_companion.loop.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -24,74 +24,65 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.Queue;
 
 import static net.lobby_simulator_companion.loop.ui.common.ResourceFactory.Icon;
-
+import static net.lobby_simulator_companion.loop.ui.common.UiConstants.WIDTH__LOOP_MAIN;
+import static net.lobby_simulator_companion.loop.ui.common.UiEventOrchestrator.UiEvent;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 /**
  * @author NickyRamone
  */
-public class MainWindow extends JFrame implements Observer {
+@Slf4j
+public class MainWindow extends JFrame {
 
     public static final String PROPERTY_EXIT_REQUEST = "exit.request";
-
-    private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
 
     private static final String SETTING__WINDOW_FRAME_X = "ui.window.position.x";
     private static final String SETTING__WINDOW_FRAME_Y = "ui.window.position.y";
     private static final String SETTING__MAIN_PANEL_COLLAPSED = "ui.panel.main.collapsed";
-    private static final String MSG_CONNECTED = "In Lobby";
-    private static final String MSG_DISCONNECTED = "Idle";
-    private static final String MSG_KILLER_CHARACTER = "(as %s)";
-    private static final Dimension MINIMUM_SIZE = new Dimension(600, 25);
-    private static final Dimension MAXIMUM_SIZE = new Dimension(600, 500);
-    private static final Border NO_BORDER = new EmptyBorder(0, 0, 0, 0);
+    private static final Dimension MINIMUM_SIZE = new Dimension(WIDTH__LOOP_MAIN, 25);
+    private static final Dimension MAXIMUM_SIZE = new Dimension(WIDTH__LOOP_MAIN, 500);
+    private static final Border NO_BORDER = BorderFactory.createEmptyBorder();
     private static final int INFINITE_SIZE = 9999;
     private static final Font font = ResourceFactory.getRobotoFont();
 
-    /**
-     * Minimum time connected from which we can assume that a match has taken place.
-     */
-    private static final int DEFAULT_MIN_MATCH_SECONDS = 60;
-    private static final int DEBUG_MIN_MATCH_SECONDS = 1;
     private static final int MAX_KILLER_PLAYER_NAME_LEN = 25;
-    private static final int SURVIVAL_INPUT_WINDOW_DELAY = 3000;
-
-
-    private enum GameState {
-        IDLE,
-        SEARCHING_LOBBY,
-        IN_LOBBY,
-        IN_MATCH,
-        AFTER_MATCH
-    }
+    private static final String MSG__KILLER_VS_RECORD__NONE = "You have not played against this killer player.";
+    private static final String MSG__KILLER_VS_RECORD__TIED = "You are tied against this killer player.";
+    private static final String MSG__KILLER_VS_RECORD__KILLER_LOSES = "You dominate this killer player in record.";
+    private static final String MSG__KILLER_VS_RECORD__KILLER_WINS = "You are dominated by this killer player in record.";
+    private static final String MSG__STATUS__STARTING_UP = "Starting up...";
+    private static final String MSG__STATUS__CONNECTED = "In Lobby";
+    private static final String MSG__STATUS__DISCONNECTED = "Idle";
+    private static final String MSG__STATUS__IN_MATCH = "In match";
+    private static final String MSG__STATUS__MATCH_FINISHED = "Match finished";
+    private static final String MSG__STATUS__SEARCHING_LOBBY = "Searching for lobby";
+    private static final String MSG__TITLE_BAR__QUEUE_TIME = "Queue: ";
+    private static final String MSG__TITLE_BAR__MATCH_TIME = "Match: ";
+    private static final String TOOLTIP__BUTTON__FORCE_DISCONNECT = "Force disconnect (this will not affect the game)";
+    private static final String TOOLTIP__BUTTON__EXIT_APP = "Exit application";
+    private static final String MSG__STATUS__MATCH_CANCELLED = "Match was cancelled.";
+    private static final String MSG__STATUS__PLAYER_ESCAPED = "You escaped :)";
+    private static final String MSG__STATUS__PLAYER_DIED = "You died :(";
 
     private final Settings settings;
     private final AppProperties appProperties;
-    private final DbdLogMonitor dbdLogMonitor;
     private final LoopDataService dataService;
+    private final GameStateManager gameStateManager;
+    private final UiEventOrchestrator uiEventOrchestrator;
     private final ServerPanel serverPanel;
     private final KillerPanel killerPanel;
+    private final MatchPanel matchPanel;
     private final StatsPanel statsPanel;
+    private final SurvivalInputPanel survivalInputPanel;
 
-    private int minMatchSeconds;
-    private GameState gameState = GameState.IDLE;
     private Timer queueTimer;
-    private Long queueStartTime;
-    private Integer queueTime;
-    private Long matchWaitStartTime;
-    private int matchWaitTime;
     private Timer matchTimer;
-    private Long matchStartTime;
-    private boolean connectionCountedAsMatch = false;
 
-    private SurvivalInputPanel survivalInputPanel;
     private JPanel titleBar;
     private JPanel messagePanel;
     private JLabel lastConnMsgLabel;
@@ -101,41 +92,90 @@ public class MainWindow extends JFrame implements Observer {
     private JLabel killerPlayerValueLabel;
     private JLabel killerPlayerRateLabel;
     private JLabel killerPlayerNotesLabel;
-    private JLabel killerCharLabel;
+    private JLabel killerSubtitleLabel;
     private JPanel titleBarTimerContainer;
     private JLabel connTimerLabel;
     private JLabel disconnectButton;
     private JLabel titleBarMinimizeLabel;
     private JPanel detailPanel;
+    private boolean detailPanelSavedVisibilityState;
 
 
-    public MainWindow(Settings settings, AppProperties appProperties, DbdLogMonitor dbdLogMonitor, LoopDataService loopDataService,
-                      ServerPanel serverPanel, KillerPanel killerPanel, StatsPanel statsPanel) {
+    public MainWindow(Settings settings, AppProperties appProperties, LoopDataService loopDataService,
+                      GameStateManager gameStateManager, UiEventOrchestrator uiEventOrchestrator,
+                      ServerPanel serverPanel, MatchPanel matchPanel, KillerPanel killerPanel, StatsPanel statsPanel,
+                      SurvivalInputPanel survivalInputPanel) {
         this.settings = settings;
         this.appProperties = appProperties;
-        this.dbdLogMonitor = dbdLogMonitor;
         this.dataService = loopDataService;
+        this.gameStateManager = gameStateManager;
+        this.uiEventOrchestrator = uiEventOrchestrator;
         this.serverPanel = serverPanel;
+        this.matchPanel = matchPanel;
         this.killerPanel = killerPanel;
         this.statsPanel = statsPanel;
+        this.survivalInputPanel = survivalInputPanel;
 
-        minMatchSeconds = appProperties.getBoolean("debug")? DEBUG_MIN_MATCH_SECONDS: DEFAULT_MIN_MATCH_SECONDS;
-        dbdLogMonitor.addObserver(this);
         initTimers();
+        draw();
+        hidePanels();
+        showStatus(MSG__STATUS__STARTING_UP);
+    }
 
-        serverPanel.addPropertyChangeListener(evt -> pack());
-        killerPanel.addPropertyChangeListener(evt -> {
-            String propertyName = evt.getPropertyName();
+    private void hidePanels() {
+        titleBarMinimizeLabel.setVisible(false);
+        detailPanelSavedVisibilityState = detailPanel.isVisible();
+        detailPanel.setVisible(false);
+    }
 
-            if (KillerPanel.EVENT_STRUCTURE_CHANGED.equals(propertyName)) {
-                pack();
-            } else if (gameState == GameState.IN_LOBBY && KillerPanel.EVENT_KILLER_UPDATE.equals(propertyName)) {
-                updateKillerOnTitleBar();
-            }
-        });
-        statsPanel.addPropertyChangeListener(evt -> pack());
+    private void restorePanels() {
+        detailPanel.setVisible(detailPanelSavedVisibilityState);
+        titleBarMinimizeLabel.setVisible(true);
+    }
+
+    public void start() {
+        restorePanels();
+        showStatus(MSG__STATUS__DISCONNECTED);
+        initGameStateListeners(gameStateManager, uiEventOrchestrator);
+    }
 
 
+    private void initGameStateListeners(GameStateManager gameStateManager, UiEventOrchestrator uiEventOrchestrator) {
+        gameStateManager.registerListener(GameEvent.DISCONNECTED, evt -> handleServerDisconnect());
+        gameStateManager.registerListener(GameEvent.START_LOBBY_SEARCH, evt -> handleLobbySearchStart());
+        gameStateManager.registerListener(GameEvent.CONNECTED_TO_LOBBY, evt -> handleLobbyConnect());
+        gameStateManager.registerListener(GameEvent.START_MAP_GENERATION, evt -> handleMapGeneration());
+        gameStateManager.registerListener(GameEvent.MATCH_STARTED, evt -> handleMatchStart());
+        gameStateManager.registerListener(GameEvent.MATCH_ENDED, evt -> handleMatchEnd((Match) evt.getValue()));
+        gameStateManager.registerListener(GameEvent.NEW_KILLER_PLAYER, evt -> refreshKillerPlayerOnTitleBar((Player) evt.getValue()));
+
+        uiEventOrchestrator.registerListener(UiEvent.UPDATE_KILLER_PLAYER_TITLE_EXTRA,
+                evt -> refreshKillerPlayerSubtitleOnScreen((String) evt.getValue()));
+        uiEventOrchestrator.registerListener(UiEvent.STRUCTURE_RESIZED, evt -> pack());
+    }
+
+
+    public void showMessage(String message) {
+        lastConnMsgLabel.setText(message);
+        messagePanel.setVisible(true);
+        pack();
+    }
+
+    public void hideMessage() {
+        messagePanel.setVisible(false);
+        pack();
+    }
+
+    private void showStatus(String statusMessage) {
+        connStatusLabel.setText(statusMessage);
+    }
+
+    private void initTimers() {
+        matchTimer = new Timer(1000, e -> displayMatchTimer(gameStateManager.getMatchDurationInSeconds()));
+        queueTimer = new Timer(1000, e -> displayQueueTimer(gameStateManager.getQueueTimeInSeconds()));
+    }
+
+    private void draw() {
         setAlwaysOnTop(true);
         setUndecorated(true);
         setOpacity(0.9f);
@@ -143,6 +183,10 @@ public class MainWindow extends JFrame implements Observer {
         setMaximumSize(MAXIMUM_SIZE);
         setLocation(settings.getInt(SETTING__WINDOW_FRAME_X), settings.getInt(SETTING__WINDOW_FRAME_Y));
 
+        createComponents();
+    }
+
+    private void createComponents() {
         titleBar = createTitleBar();
         messagePanel = createMessagePanel();
 
@@ -166,15 +210,17 @@ public class MainWindow extends JFrame implements Observer {
             }
         });
 
-        survivalInputPanel = new SurvivalInputPanel(statsPanel, killerPanel, dataService);
         survivalInputPanel.addPropertyChangeListener(evt -> {
-            survivalInputPanel.setVisible(false);
-            pack();
+            if (SurvivalInputPanel.EVENT_SURVIVAL_INPUT_DONE.equals(evt.getPropertyName())) {
+                survivalInputPanel.setVisible(false);
+                detailPanel.setVisible(detailPanelSavedVisibilityState);
+                pack();
+            }
         });
 
-        detailPanel.add(messagePanel);
         detailPanel.add(serverPanel);
         detailPanel.add(killerPanel);
+        detailPanel.add(matchPanel);
         detailPanel.add(statsPanel);
         detailPanel.add(Box.createVerticalGlue());
         detailPanel.setVisible(!settings.getBoolean(SETTING__MAIN_PANEL_COLLAPSED));
@@ -185,6 +231,7 @@ public class MainWindow extends JFrame implements Observer {
         collapsablePanel.setBackground(Color.BLACK);
         collapsablePanel.setLayout(new BoxLayout(collapsablePanel, BoxLayout.Y_AXIS));
         collapsablePanel.add(titleBar);
+        collapsablePanel.add(messagePanel);
         collapsablePanel.add(survivalInputPanel);
         collapsablePanel.add(detailPanel);
 
@@ -203,60 +250,6 @@ public class MainWindow extends JFrame implements Observer {
     }
 
 
-    private void updateKillerOnTitleBar() {
-        Player player = killerPanel.getKillerPlayer();
-        connStatusLabel.setVisible(false);
-        killerInfoContainer.setVisible(true);
-
-        if (settings.getExperimentalSwitchWithChance(2)) {
-            Killer killerChar = killerPanel.getKillerCharacter();
-            killerCharLabel.setVisible(killerChar != null && killerPanel.isShowKillerCharacter());
-            if (killerChar != null && killerChar != Killer.UNIDENTIFIED) {
-                killerCharLabel.setText(String.format(MSG_KILLER_CHARACTER, killerChar.alias()));
-            }
-        }
-
-        if (player != null) {
-            if (player.getMatchesPlayed() == 0) {
-                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_WHITE));
-                killerSkullIcon.setToolTipText("You have not played against this killer player.");
-            }
-            else if (player.getEscapesAgainst() == player.getDeathsBy()) {
-                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_BLACK));
-                killerSkullIcon.setToolTipText("You are tied against this killer player.");
-            }
-            else if (player.getEscapesAgainst() > player.getDeathsBy()) {
-                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_BLUE));
-                killerSkullIcon.setToolTipText("You dominate this killer player in record.");
-            }
-            else {
-                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_RED));
-                killerSkullIcon.setToolTipText("You are dominated by this killer player in record.");
-            }
-
-            if (settings.getExperimentalSwitchWithChance(1)) {
-                killerPlayerValueLabel.setText(shortenKillerPlayerName(player.getMostRecentName()));
-            }
-
-            updateKillerRateOnTitleBar(player.getRating());
-            killerPlayerNotesLabel.setVisible(player.getDescription() != null && !player.getDescription().isEmpty());
-        }
-    }
-
-    private void updateKillerRateOnTitleBar(Player.Rating rate) {
-        if (rate == Player.Rating.THUMBS_UP) {
-            killerPlayerRateLabel.setIcon(ResourceFactory.getIcon(Icon.THUMBS_UP));
-            killerPlayerRateLabel.setVisible(true);
-        } else if (rate == Player.Rating.THUMBS_DOWN) {
-            killerPlayerRateLabel.setIcon(ResourceFactory.getIcon(Icon.THUMBS_DOWN));
-            killerPlayerRateLabel.setVisible(true);
-        } else {
-            killerPlayerRateLabel.setIcon(null);
-            killerPlayerRateLabel.setVisible(false);
-        }
-    }
-
-
     private JPanel createTitleBar() {
         Border border = new EmptyBorder(3, 5, 0, 5);
 
@@ -270,7 +263,7 @@ public class MainWindow extends JFrame implements Observer {
         separatorLabel.setForeground(Color.WHITE);
         separatorLabel.setFont(font);
 
-        connStatusLabel = new JLabel(MSG_DISCONNECTED);
+        connStatusLabel = new JLabel();
         connStatusLabel.setBorder(border);
         connStatusLabel.setForeground(Color.WHITE);
         connStatusLabel.setFont(font);
@@ -293,20 +286,19 @@ public class MainWindow extends JFrame implements Observer {
         killerPlayerNotesLabel.setBorder(new EmptyBorder(2, 0, 0, 5));
         killerPlayerNotesLabel.setIcon(ResourceFactory.getIcon(Icon.EDIT));
 
-        killerCharLabel = new JLabel();
-        killerCharLabel.setBorder(new EmptyBorder(2, 0, 0, 5));
-        killerCharLabel.setForeground(Color.BLUE);
-        killerCharLabel.setFont(font);
+        killerSubtitleLabel = new JLabel();
+        killerSubtitleLabel.setBorder(new EmptyBorder(2, 0, 0, 5));
+        killerSubtitleLabel.setForeground(Color.BLUE);
+        killerSubtitleLabel.setFont(font);
 
         killerInfoContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         killerInfoContainer.setBorder(NO_BORDER);
-        killerInfoContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        killerInfoContainer.setBackground(UiConstants.COLOR__STATUS_BAR__DISCONNECTED__BG);
         killerInfoContainer.add(killerSkullIcon);
         killerInfoContainer.add(killerPlayerValueLabel);
         killerInfoContainer.add(killerPlayerRateLabel);
         killerInfoContainer.add(killerPlayerNotesLabel);
-
-        killerInfoContainer.add(killerCharLabel);
+        killerInfoContainer.add(killerSubtitleLabel);
         killerInfoContainer.setVisible(false);
 
         JLabel timerSeparatorLabel = new JLabel();
@@ -320,13 +312,13 @@ public class MainWindow extends JFrame implements Observer {
         displayQueueTimer(0);
 
         titleBarTimerContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        titleBarTimerContainer.setBackground(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND);
+        titleBarTimerContainer.setBackground(UiConstants.COLOR__STATUS_BAR__CONNECTED__BG);
         titleBarTimerContainer.add(timerSeparatorLabel);
         titleBarTimerContainer.add(connTimerLabel);
         titleBarTimerContainer.setVisible(false);
 
         JPanel connMsgPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        connMsgPanel.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        connMsgPanel.setBackground(UiConstants.COLOR__STATUS_BAR__DISCONNECTED__BG);
         connMsgPanel.add(appLabel);
         connMsgPanel.add(separatorLabel);
         connMsgPanel.add(connStatusLabel);
@@ -338,12 +330,12 @@ public class MainWindow extends JFrame implements Observer {
 
         disconnectButton = ComponentUtils.createButtonLabel(
                 null,
-                "Disconnect (this will not affect the game)",
+                TOOLTIP__BUTTON__FORCE_DISCONNECT,
                 Icon.DISCONNECT,
                 new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        turnToIdle();
+                        gameStateManager.forceDisconnect();
                     }
                 });
         disconnectButton.setBorder(border);
@@ -352,7 +344,7 @@ public class MainWindow extends JFrame implements Observer {
         JLabel switchOffButton = new JLabel();
         switchOffButton.setBorder(border);
         switchOffButton.setIcon(ResourceFactory.getIcon(Icon.SWITCH_OFF));
-        switchOffButton.setToolTipText("Exit application");
+        switchOffButton.setToolTipText(TOOLTIP__BUTTON__EXIT_APP);
         switchOffButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         switchOffButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -375,7 +367,7 @@ public class MainWindow extends JFrame implements Observer {
         });
 
         JPanel titleBarButtonContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        titleBarButtonContainer.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        titleBarButtonContainer.setBackground(UiConstants.COLOR__STATUS_BAR__DISCONNECTED__BG);
         titleBarButtonContainer.add(disconnectButton);
         titleBarButtonContainer.add(switchOffButton);
         titleBarButtonContainer.add(titleBarMinimizeLabel);
@@ -384,7 +376,7 @@ public class MainWindow extends JFrame implements Observer {
         container.setLayout(new BorderLayout());
         container.setPreferredSize(new Dimension(200, 25));
         container.setMaximumSize(new Dimension(INFINITE_SIZE, 25));
-        container.setBackground(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND);
+        container.setBackground(UiConstants.COLOR__STATUS_BAR__DISCONNECTED__BG);
         container.add(connMsgPanel, BorderLayout.CENTER);
         container.add(titleBarButtonContainer, BorderLayout.EAST);
 
@@ -393,15 +385,15 @@ public class MainWindow extends JFrame implements Observer {
 
     private JPanel createMessagePanel() {
         lastConnMsgLabel = new JLabel();
-        lastConnMsgLabel.setForeground(Colors.MSG_BAR_FOREGROUND);
+        lastConnMsgLabel.setForeground(UiConstants.COLOR__MSG_BAR__FG);
         lastConnMsgLabel.setFont(font);
 
         JLabel elapsedLabel = new JLabel();
-        elapsedLabel.setForeground(Colors.MSG_BAR_FOREGROUND);
+        elapsedLabel.setForeground(UiConstants.COLOR__MSG_BAR__FG);
         elapsedLabel.setFont(font);
 
         JPanel container = new JPanel();
-        container.setBackground(Colors.MSG_BAR_BACKGROUND);
+        container.setBackground(UiConstants.COLOR__MSG_BAR__BG);
         container.setLayout(new FlowLayout());
         container.add(lastConnMsgLabel);
         container.add(elapsedLabel);
@@ -410,46 +402,50 @@ public class MainWindow extends JFrame implements Observer {
         return container;
     }
 
+    private void refreshKillerPlayerSubtitleOnScreen(String subtitle) {
+        connStatusLabel.setVisible(false);
+        killerInfoContainer.setVisible(true);
+        killerSubtitleLabel.setText(subtitle);
+        killerSubtitleLabel.setVisible(isNotEmpty(subtitle));
+    }
 
-    @Override
-    public void update(Observable observable, Object arg) {
-        if (observable instanceof DbdLogMonitor) {
-            DbdLogMonitor.Event event = (DbdLogMonitor.Event) arg;
-            Runnable action = null;
+    private void refreshKillerPlayerOnTitleBar(Player player) {
+        connStatusLabel.setVisible(false);
+        killerInfoContainer.setVisible(true);
 
-            switch (event.type) {
-                case MATCH_WAIT:
-                    action = this::notifyWaitingForMatch;
-                    break;
-                case MATCH_WAIT_CANCEL:
-                    action = this::notifyMatchWaitCancel;
-                    break;
-                case SERVER_CONNECT:
-                    action = () -> notifyServerConnect(((InetSocketAddress) event.argument).getHostName());
-                    break;
-                case KILLER_PLAYER:
-                    action = () -> notifyNewKillerPlayer((PlayerDto) event.argument);
-                    break;
-                case KILLER_CHARACTER:
-                    action = () -> notifyNewKillerCharacter((Killer) event.argument);
-                    break;
-                case MAP_GENERATE:
-                    action = () -> notifyMapGeneration((String) event.argument);
-                    break;
-                case MATCH_START:
-                    action = this::notifyMatchStart;
-                    break;
-                case MATCH_END:
-                    action = this::notifyMatchEnd;
-                    break;
-                case SERVER_DISCONNECT:
-                    action = this::notifyServerDisconnect;
-                    break;
+        if (player != null) {
+            if (player.getMatchesPlayed() == 0) {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_WHITE));
+                killerSkullIcon.setToolTipText(MSG__KILLER_VS_RECORD__NONE);
+            } else if (player.getEscapes() == player.getDeaths()) {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_BLACK));
+                killerSkullIcon.setToolTipText(MSG__KILLER_VS_RECORD__TIED);
+            } else if (player.getEscapes() > player.getDeaths()) {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_BLUE));
+                killerSkullIcon.setToolTipText(MSG__KILLER_VS_RECORD__KILLER_LOSES);
+            } else {
+                killerSkullIcon.setIcon(ResourceFactory.getIcon(Icon.SKULL_RED));
+                killerSkullIcon.setToolTipText(MSG__KILLER_VS_RECORD__KILLER_WINS);
             }
-
-            SwingUtilities.invokeLater(action);
+            killerPlayerValueLabel.setText(player.getMostRecentName().map(this::shortenKillerPlayerName).orElse(null));
+            refreshKillerPlayerRateOnTitleBar(player.getRating());
+            killerPlayerNotesLabel.setVisible(player.getDescription() != null && !player.getDescription().isEmpty());
         }
     }
+
+    private void refreshKillerPlayerRateOnTitleBar(Player.Rating rate) {
+        if (rate == Player.Rating.THUMBS_UP) {
+            killerPlayerRateLabel.setIcon(ResourceFactory.getIcon(Icon.THUMBS_UP));
+            killerPlayerRateLabel.setVisible(true);
+        } else if (rate == Player.Rating.THUMBS_DOWN) {
+            killerPlayerRateLabel.setIcon(ResourceFactory.getIcon(Icon.THUMBS_DOWN));
+            killerPlayerRateLabel.setVisible(true);
+        } else {
+            killerPlayerRateLabel.setIcon(null);
+            killerPlayerRateLabel.setVisible(false);
+        }
+    }
+
 
     private String shortenKillerPlayerName(String playerName) {
         String result = playerName;
@@ -457,191 +453,69 @@ public class MainWindow extends JFrame implements Observer {
             result = result.substring(0, MAX_KILLER_PLAYER_NAME_LEN - 3) + "...";
         }
 
-        return result;
+        return FontUtil.replaceNonDisplayableChars(result);
     }
 
 
-    private void initTimers() {
-        matchTimer = new Timer(1000, e -> {
-            int seconds = getMatchDuration();
-            displayMatchTimer(seconds);
-
-            if (seconds >= minMatchSeconds && !connectionCountedAsMatch) {
-                connectionCountedAsMatch = true;
-                statsPanel.notifyMatchDetected();
-            }
-        });
-
-        queueTimer = new Timer(1000, e ->
-                displayQueueTimer((int) (System.currentTimeMillis() - queueStartTime) / 1000));
-    }
-
-    private int getMatchDuration() {
-        return matchStartTime == null ? 0 : (int) (System.currentTimeMillis() - matchStartTime) / 1000;
-    }
-
-    private void notifyWaitingForMatch() {
-        if (gameState != GameState.IDLE) {
-            return;
-        }
-        logger.debug("Event: waiting for match");
-        disconnectButton.setVisible(true);
-        changeTitleBarColor(Colors.CONNECTION_BAR_WAITING, Color.BLACK);
-        connStatusLabel.setText("Waiting for match");
-        queueStartTime = System.currentTimeMillis();
-        queueTimer.start();
-        matchWaitStartTime = queueStartTime;
-        titleBarTimerContainer.setVisible(true);
-        gameState = GameState.SEARCHING_LOBBY;
-    }
-
-    private void notifyMatchWaitCancel() {
-        if (gameState != GameState.SEARCHING_LOBBY && gameState != GameState.IN_LOBBY) {
-            return;
-        }
-        logger.debug("Event: match wait cancel");
-        turnToIdle();
-        pack();
-    }
-
-    private void notifyServerConnect(String serverAddress) {
-        connectToMatch(serverAddress);
-        notifyLobbyJoin();
-    }
-
-    private void notifyLobbyJoin() {
-        if (gameState != GameState.SEARCHING_LOBBY) {
-            return;
-        }
-
-        logger.debug("Event: lobby join");
-        disconnectButton.setVisible(true);
-        queueTime = (int) (System.currentTimeMillis() - queueStartTime) / 1000;
-        queueStartTime = null;
-        queueTimer.stop();
-        dataService.getStats().incrementLobbiesFound();
-        dataService.getStats().incrementSecondsInQueue(queueTime);
-        dataService.notifyChange();
-        statsPanel.refreshStats();
-        statsPanel.updateMap(RealmMap.UNIDENTIFIED);
-        connStatusLabel.setText(MSG_CONNECTED);
-        killerPanel.clearKillerInfo();
-        survivalInputPanel.setVisible(false);
-        messagePanel.setVisible(false);
-        changeTitleBarColor(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND, Color.WHITE);
-        pack();
-        gameState = GameState.IN_LOBBY;
-    }
-
-    private void notifyNewKillerPlayer(PlayerDto killerPlayer) {
-        if (gameState != GameState.IN_LOBBY) {
-            return;
-        }
-        logger.debug("Event: new killer player");
-        killerPanel.receiveNewKillerPlayer(killerPlayer);
-    }
-
-    private void notifyNewKillerCharacter(Killer killer) {
-        if (gameState != GameState.IN_LOBBY) {
-            return;
-        }
-        logger.debug("Event: new killer character");
-        killerPanel.updateKillerCharacter(killer);
-        statsPanel.updateKiller(killer);
-    }
-
-
-    private void notifyMapGeneration(String mapId) {
-        RealmMap realmMap = RealmMap.fromDbdId(mapId);
-        logger.debug("Event: map generation: {}", realmMap.alias());
-        statsPanel.updateMap(realmMap);
-    }
-
-
-    private void notifyMatchStart() {
-        if (gameState != GameState.IN_LOBBY) {
-            return;
-        }
-        logger.debug("Event: match start");
-
-        matchWaitTime += (int) (System.currentTimeMillis() - matchWaitStartTime) / 1000;
-        matchWaitStartTime = null;
-        dataService.getStats().incrementSecondsWaited(matchWaitTime);
-        dataService.notifyChange();
-        statsPanel.refreshStats();
-
-        matchStartTime = System.currentTimeMillis();
-        connStatusLabel.setText("In match");
-        displayMatchTimer(0);
-        connectionCountedAsMatch = false;
-        matchTimer.start();
-        titleBarTimerContainer.setVisible(true);
-        gameState = GameState.IN_MATCH;
-    }
-
-    private void notifyMatchEnd() {
-        if (gameState != GameState.IN_MATCH) {
-            return;
-        }
-        logger.debug("Event: match end");
-        matchTimer.stop();
-        reportEndOfMatchStats();
-        titleBarTimerContainer.setVisible(false);
-        killerInfoContainer.setVisible(false);
-        connStatusLabel.setText("Match finished");
-        connStatusLabel.setVisible(true);
-        connTimerLabel.setText(TimeUtil.formatTimeUpToHours(0));
-        lastConnMsgLabel.setText(String.format("Last match => actual play: %s / in queue: %s / overall wait: %s",
-                TimeUtil.formatTimeUpToHours(getMatchDuration()),
-                TimeUtil.formatTimeUpToHours(queueTime),
-                TimeUtil.formatTimeUpToHours(matchWaitTime)));
-        matchWaitTime = 0;
-        messagePanel.setVisible(true);
-        queueTime = null;
-        gameState = GameState.AFTER_MATCH;
-        pack();
-    }
-
-    private void reportEndOfMatchStats() {
-        survivalInputPanel.reset();
-        int matchTime = getMatchDuration();
-        if (matchTime >= minMatchSeconds) {
-            killerPanel.notifyEndOfMatch(matchTime);
-            statsPanel.notifyEndOfMatch(matchTime);
-            survivalInputPanel.setVisible(true);
-        }
-    }
-
-    private void notifyServerDisconnect() {
-        if (gameState != GameState.IN_MATCH && gameState != GameState.AFTER_MATCH && gameState != GameState.IN_LOBBY) {
-            return;
-        }
-        logger.debug("Event: server disconnect");
-        turnToIdle();
-        pack();
-    }
-
-    public void connectToMatch(String ipAddress) {
-        serverPanel.clearServer();
-        serverPanel.updateServerIpAddress(ipAddress);
-        changeTitleBarColor(Colors.CONNECTION_BAR_CONNECTED_BACKGROUND, Color.WHITE);
-    }
-
-    private void turnToIdle() {
+    private void handleServerDisconnect() {
         disconnectButton.setVisible(false);
-        dbdLogMonitor.resetKiller();
-        queueStartTime = null;
-        queueTime = null;
         queueTimer.stop();
         displayQueueTimer(0);
-        matchWaitTime += matchWaitStartTime != null? (int) (System.currentTimeMillis() - matchWaitStartTime) / 1000: 0;
-        matchWaitStartTime = null;
-        changeTitleBarColor(Colors.CONNECTION_BAR_DISCONNECTED_BACKGROUND, Color.WHITE);
+        changeTitleBarColor(UiConstants.COLOR__STATUS_BAR__DISCONNECTED__BG, Color.WHITE);
         connStatusLabel.setText("Idle");
         connStatusLabel.setVisible(true);
         killerInfoContainer.setVisible(false);
         titleBarTimerContainer.setVisible(false);
-        gameState = GameState.IDLE;
+        messagePanel.setVisible(false);
+        pack();
+    }
+
+    private void handleLobbySearchStart() {
+        disconnectButton.setVisible(true);
+        changeTitleBarColor(UiConstants.COLOR__STATUS_BAR__SEARCHING_LOBBY__BG, Color.BLACK);
+        connStatusLabel.setText(MSG__STATUS__SEARCHING_LOBBY);
+        queueTimer.start();
+        titleBarTimerContainer.setVisible(true);
+    }
+
+    private void handleLobbyConnect() {
+        changeTitleBarColor(UiConstants.COLOR__STATUS_BAR__CONNECTED__BG, Color.WHITE);
+        disconnectButton.setVisible(true);
+        queueTimer.stop();
+        connStatusLabel.setText(MSG__STATUS__CONNECTED);
+        survivalInputPanel.setVisible(false);
+        messagePanel.setVisible(false);
+        pack();
+    }
+
+    private void handleMapGeneration() {
+        titleBarTimerContainer.setVisible(false);
+    }
+
+
+    private void handleMatchStart() {
+        connStatusLabel.setText(MSG__STATUS__IN_MATCH);
+        displayMatchTimer(0);
+        matchTimer.start();
+        titleBarTimerContainer.setVisible(true);
+    }
+
+
+    private void handleMatchEnd(Match match) {
+        matchTimer.stop();
+        titleBarTimerContainer.setVisible(false);
+        killerInfoContainer.setVisible(false);
+        connStatusLabel.setText(MSG__STATUS__MATCH_FINISHED);
+        connStatusLabel.setVisible(true);
+        connTimerLabel.setText(TimeUtil.formatTimeUpToHours(0));
+
+        if (match.isCancelled()) {
+            showMessage(MSG__STATUS__MATCH_CANCELLED);
+        } else {
+            showMessage(match.escaped() ?
+                    MSG__STATUS__PLAYER_ESCAPED
+                    : MSG__STATUS__PLAYER_DIED);
+        }
     }
 
     private void changeTitleBarColor(Color bgColor, Color fgColor) {
@@ -663,11 +537,11 @@ public class MainWindow extends JFrame implements Observer {
     }
 
     private void displayQueueTimer(int seconds) {
-        connTimerLabel.setText("[Q] " + TimeUtil.formatTimeUpToHours(seconds));
+        connTimerLabel.setText(MSG__TITLE_BAR__QUEUE_TIME + TimeUtil.formatTimeUpToHours(seconds));
     }
 
     private void displayMatchTimer(int seconds) {
-        connTimerLabel.setText("[M] " + TimeUtil.formatTimeUpToHours(seconds));
+        connTimerLabel.setText(MSG__TITLE_BAR__MATCH_TIME + TimeUtil.formatTimeUpToHours(seconds));
     }
 
     public void close() {
@@ -676,164 +550,4 @@ public class MainWindow extends JFrame implements Observer {
         dispose();
     }
 
-
-    private static final class SurvivalInputPanel extends JPanel {
-        private static final String EVENT_SURVIVAL_INPUT_DONE = "survival_input_done";
-
-        private enum SelectionState {NONE, ESCAPED, DIED, IGNORE}
-
-        private StatsPanel statsPanel;
-        private KillerPanel killerPanel;
-        private LoopDataService dataService;
-        private JLabel escapedButton;
-        private JLabel diedButton;
-        private JLabel ignoreButton;
-        private Timer timer;
-
-        private SelectionState selectionState = SelectionState.NONE;
-        private Player killerPlayerBackup;
-
-
-        SurvivalInputPanel(StatsPanel statsPanel, KillerPanel killerPanel, LoopDataService dataService) {
-            this.statsPanel = statsPanel;
-            this.killerPanel = killerPanel;
-            this.dataService = dataService;
-            initTimer();
-
-            UIManager.put("ToolTip.font", ResourceFactory.getRobotoFont().deriveFont(14f));
-            escapedButton = ComponentUtils.createButtonLabel(
-                    Colors.INFO_PANEL_NAME_FOREGROUND,
-                    "Click to indicate that you survived this match",
-                    Icon.ESCAPED_BUTTON, new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent e) {
-                            handleSurvivalStatusChange(SelectionState.ESCAPED);
-                        }
-                    });
-            diedButton = ComponentUtils.createButtonLabel(
-                    Colors.INFO_PANEL_NAME_FOREGROUND,
-                    "Click to indicate that you died on this match",
-                    Icon.DIED_BUTTON, new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent e) {
-                            handleSurvivalStatusChange(SelectionState.DIED);
-                        }
-                    });
-
-            ignoreButton = ComponentUtils.createButtonLabel(
-                    Colors.INFO_PANEL_NAME_FOREGROUND,
-                    "Click to ignore reporting your survival status for this match.",
-                    Icon.IGNORE_BUTTON, new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent e) {
-                            handleSurvivalStatusChange(SelectionState.IGNORE);
-                        }
-                    }
-            );
-
-            JLabel msg1Label = new JLabel("Did you survive or die this match?");
-            msg1Label.setForeground(Color.BLACK);
-            msg1Label.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-            msg1Label.setFont(font);
-
-            JPanel msgPanel1 = new JPanel();
-            msgPanel1.setLayout(new BoxLayout(msgPanel1, BoxLayout.Y_AXIS));
-            msgPanel1.setBackground(Color.YELLOW);
-            msgPanel1.add(msg1Label);
-
-            JPanel survivalStatusButtonPanel = new JPanel();
-            survivalStatusButtonPanel.setBackground(Colors.INFO_PANEL_BACKGROUND);
-            survivalStatusButtonPanel.add(escapedButton);
-            survivalStatusButtonPanel.add(diedButton);
-            survivalStatusButtonPanel.add(ignoreButton);
-            survivalStatusButtonPanel.setVisible(true);
-
-            JPanel survivalMessagePanel = new JPanel();
-            survivalMessagePanel.setBackground(Colors.INFO_PANEL_BACKGROUND);
-            survivalMessagePanel.add(msgPanel1);
-            survivalMessagePanel.setVisible(true);
-
-            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            add(survivalStatusButtonPanel);
-            add(survivalMessagePanel);
-            setVisible(false);
-
-            SurvivalInputPanel thisPanel = this;
-
-            addComponentListener(new ComponentAdapter() {
-                @Override
-                public void componentShown(ComponentEvent e) {
-                    thisPanel.backupStats();
-                }
-            });
-        }
-
-        private void backupStats() {
-            if (killerPanel.getKillerPlayer() != null) {
-                killerPlayerBackup = killerPanel.getKillerPlayer().clone();
-            }
-            statsPanel.backupStats();
-        }
-
-        private void handleSurvivalStatusChange(SelectionState newSelectionState) {
-            restoreStats();
-
-            if (newSelectionState == this.selectionState) {
-                resetButtons();
-                this.selectionState = SelectionState.NONE;
-                timer.stop();
-                return;
-            }
-
-            resetButtons();
-            Boolean survived = null;
-
-            if (newSelectionState == SelectionState.IGNORE) {
-                ignoreButton.setIcon(ResourceFactory.getIcon(Icon.IGNORE_BUTTON_PRESSED));
-            } else if (newSelectionState == SelectionState.ESCAPED) {
-                escapedButton.setIcon(ResourceFactory.getIcon(Icon.ESCAPED_BUTTON_PRESSED));
-                survived = true;
-            } else {
-                diedButton.setIcon(ResourceFactory.getIcon(Icon.DIED_BUTTON_PRESSED));
-                survived = false;
-            }
-
-            killerPanel.notifySurvivalAgainstCurrentKiller(survived);
-            statsPanel.notifyMatchSurvival(survived);
-            this.selectionState = newSelectionState;
-            timer.restart();
-        }
-
-        private void restoreStats() {
-            Player killerPlayer = killerPanel.getKillerPlayer();
-
-            if (killerPlayer != null) {
-                killerPlayer.setEscapesAgainst(killerPlayerBackup.getEscapesAgainst());
-                killerPlayer.setDeaths(killerPlayerBackup.getDeathsBy());
-                dataService.notifyChange();
-                killerPanel.updateKillerPlayer(killerPlayer);
-            }
-
-            statsPanel.restoreStats();
-        }
-
-        private void initTimer() {
-            timer = new Timer(SURVIVAL_INPUT_WINDOW_DELAY, e -> {
-                timer.stop();
-                firePropertyChange(EVENT_SURVIVAL_INPUT_DONE, null, null);
-            });
-        }
-
-        private void reset() {
-            resetButtons();
-            selectionState = SelectionState.NONE;
-            timer.stop();
-        }
-
-        private void resetButtons() {
-            escapedButton.setIcon(ResourceFactory.getIcon(Icon.ESCAPED_BUTTON));
-            diedButton.setIcon(ResourceFactory.getIcon(Icon.DIED_BUTTON));
-            ignoreButton.setIcon(ResourceFactory.getIcon(Icon.IGNORE_BUTTON));
-        }
-    }
 }

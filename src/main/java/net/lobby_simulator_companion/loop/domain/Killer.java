@@ -1,12 +1,16 @@
 package net.lobby_simulator_companion.loop.domain;
 
+/**
+ * @author NickyRamone
+ */
 public enum Killer {
-    UNIDENTIFIED(null),
+    UNIDENTIFIED("?"),
     CANNIBAL("Cannibal"),
     CLOWN("Clown"),
     DEATHSLINGER("Deathslinger"),
     DEMOGORGON("Demogorgon"),
     DOCTOR("Doctor"),
+    EXECUTIONER("Executioner"),
     GHOSTFACE("Ghost Face"),
     HAG("Hag"),
     HILLBILLY("Hillbilly"),
@@ -40,6 +44,6 @@ public enum Killer {
 
     @Override
     public String toString() {
-        return name().toLowerCase();
+        return alias;
     }
 }
