@@ -11,14 +11,11 @@ actually playing? or how many times you survived today, or this week, or during 
 
 
 # What does it look like?
-Here's a sample screenshot:
+Here are some sample screenshots:
 
 ![](docs/images/sample_1.png)
 ![](docs/images/sample_2.png)
 ![](docs/images/sample_3.png)
-
-You can see the LOOP bar showing the connection status, server information, killer information (in addition to your
-own personal notes for rating them) and a bunch of statistics that include survival info match times, and queue times. 
 
 
 # What are its main features?
