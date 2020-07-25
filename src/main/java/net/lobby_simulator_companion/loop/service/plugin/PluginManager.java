@@ -105,7 +105,6 @@ public class PluginManager {
         Path pluginFullPath = Paths.get(appHome, pluginFilename);
 
         if (!pluginFullPath.toFile().exists()) {
-            log.info("Plugin jar does not exist.");
             return Optional.empty();
         }
 
