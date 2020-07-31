@@ -1,3 +1,22 @@
+# Project Discontinued
+On July 28th 2020, DBD patch 4.1.0 was released. This patch includes the encryption of log files, 
+which is where Loop obtained most of the information for generating the different statistics.
+
+There are other techniques that can be used to gather this information but they require much more work and the project would become less transparent.
+That's why I decided to discontinue the project.
+ 
+It's a shame that the game does not provide those statistics and information that this tool provided and that
+many of us found interesting and entertaining to analyze. This tool gave us the chance to have data-based opinions and more understanding of the balance mechanics, 
+as well as about your own performance as a player, 
+It's something that the devs could easily add into the game but I guess it does not generate any revenue for the company
+because in 4 years they haven't done anything remotely similar to this.
+
+
+See you in the fog.
+ 
+#
+
+
 # What is LOOP?
 
 LOOP (which comes from "LObby simulatOr comPanion") is a tool for giving "Dead By Daylight" (DBD) survivor players 
