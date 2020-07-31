@@ -7,9 +7,11 @@ That's why I decided to discontinue the project.
  
 It's a shame that the game does not provide those statistics and information that this tool provided and that
 many of us found interesting and entertaining to analyze. This tool gave us the chance to have data-based opinions and more understanding of the balance mechanics, 
-as well as about your own performance as a player, 
+as well as about your own performance as a player.
 It's something that the devs could easily add into the game but I guess it does not generate any revenue for the company
 because in 4 years they haven't done anything remotely similar to this.
+
+Guess we'll have to focus on other things, like Feng's upcoming new skin.
 
 
 See you in the fog.
